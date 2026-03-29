@@ -14,7 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          description: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      appointments: {
+        Row: {
+          appointment_type: string
+          client_or_lead_name: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          time: string
+          user_id: string
+        }
+        Insert: {
+          appointment_type?: string
+          client_or_lead_name: string
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          time: string
+          user_id: string
+        }
+        Update: {
+          appointment_type?: string
+          client_or_lead_name?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          company: string | null
+          created_at: string
+          custom_fields: Json | null
+          email: string | null
+          id: string
+          monthly_value: number | null
+          name: string
+          notes: string | null
+          phone: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          custom_fields?: Json | null
+          email?: string | null
+          id?: string
+          monthly_value?: number | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          custom_fields?: Json | null
+          email?: string | null
+          id?: string
+          monthly_value?: number | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          created_at: string
+          custom_fields: Json | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          source: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_fields?: Json | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_fields?: Json | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          business_description: string
+          business_type: string
+          company_name: string
+          created_at: string
+          full_name: string
+          id: string
+          onboarding_completed: boolean
+          phone: string
+          plan: string
+          trial_ends_at: string
+          user_id: string
+        }
+        Insert: {
+          business_description?: string
+          business_type?: string
+          company_name?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          onboarding_completed?: boolean
+          phone?: string
+          plan?: string
+          trial_ends_at?: string
+          user_id: string
+        }
+        Update: {
+          business_description?: string
+          business_type?: string
+          company_name?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          onboarding_completed?: boolean
+          phone?: string
+          plan?: string
+          trial_ends_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
