@@ -1,0 +1,190 @@
+import { ReactNode, useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X,
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
+const navItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
+  { label: 'Leads', icon: Users, path: '/leads', locked: false },
+  { label: 'Clients', icon: UserCheck, path: '/clients', locked: false },
+  { label: 'Booking', icon: CalendarDays, path: '/booking', locked: false },
+  { label: 'AI Content', icon: PenTool, path: '#', locked: true },
+  { label: 'Reviews', icon: Star, path: '#', locked: true },
+  { label: 'Automations', icon: Zap, path: '#', locked: true },
+  { label: 'Settings', icon: Settings, path: '/settings', locked: false },
+];
+
+export default function AppLayout({ children }: { children: ReactNode }) {
+  const { profile, signOut } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showTrialExpired, setShowTrialExpired] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const trialEndsAt = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
+  const now = new Date();
+  const daysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 7;
+  const trialExpired = profile?.plan === 'trial' && trialEndsAt && trialEndsAt < now;
+
+  useEffect(() => {
+    if (trialExpired) setShowTrialExpired(true);
+  }, [trialExpired]);
+
+  const handleNavClick = (item: typeof navItems[0]) => {
+    if (item.locked) {
+      setShowUpgrade(true);
+      return;
+    }
+    navigate(item.path);
+    setMobileMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-64 border-r border-border bg-sidebar fixed h-full">
+        <div className="p-4 border-b border-sidebar-border">
+          <span className="text-lg font-bold text-foreground">AgencyOS</span>
+        </div>
+
+        {/* Trial warning */}
+        {profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
+          <div className="mx-3 mt-3 p-2 rounded-md bg-warning/10 border border-warning/20">
+            <p className="text-xs text-warning font-medium">Your trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</p>
+          </div>
+        )}
+
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                  active
+                    ? 'bg-sidebar-accent text-primary font-medium'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.locked && <Lock className="w-3 h-3 text-muted-foreground" />}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium text-primary">
+              {profile?.full_name?.charAt(0) || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{profile?.full_name || 'User'}</p>
+              <Badge variant="outline" className="text-[10px] px-1.5">{profile?.plan || 'trial'}</Badge>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" /> Logout
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 md:ml-64 pb-20 md:pb-0">
+        {/* Mobile header */}
+        <div className="md:hidden flex items-center justify-between px-4 h-14 border-b border-border bg-sidebar sticky top-0 z-40">
+          <span className="text-lg font-bold text-foreground">AgencyOS</span>
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {/* Mobile slide menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 top-14 bg-background/95 backdrop-blur z-30 p-4 space-y-1 overflow-y-auto">
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item)}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm ${
+                  location.pathname === item.path ? 'bg-muted text-primary font-medium' : 'text-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+                {item.locked && <Lock className="w-3 h-3 text-muted-foreground ml-auto" />}
+              </button>
+            ))}
+            <Button variant="ghost" className="w-full justify-start mt-4 text-muted-foreground" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" /> Logout
+            </Button>
+          </div>
+        )}
+
+        {/* Mobile bottom nav */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-border z-40 flex justify-around py-2">
+          {navItems.slice(0, 5).map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item)}
+                className={`flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] ${
+                  active ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {children}
+      </main>
+
+      {/* Upgrade modal */}
+      <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upgrade to Pro</DialogTitle>
+            <DialogDescription>
+              This feature is available on the Pro plan. Upgrade to unlock AI Content, Reviews, Automations, and more.
+            </DialogDescription>
+          </DialogHeader>
+          <Link to="/pricing">
+            <Button className="w-full">View Plans</Button>
+          </Link>
+        </DialogContent>
+      </Dialog>
+
+      {/* Trial expired modal */}
+      <Dialog open={showTrialExpired} onOpenChange={() => {}}>
+        <DialogContent className="[&>button]:hidden">
+          <DialogHeader>
+            <DialogTitle>Your free trial has ended</DialogTitle>
+            <DialogDescription>
+              Your 7-day free trial has expired. Choose a plan to continue using AgencyOS.
+            </DialogDescription>
+          </DialogHeader>
+          <Link to="/pricing">
+            <Button className="w-full">Choose a Plan</Button>
+          </Link>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
