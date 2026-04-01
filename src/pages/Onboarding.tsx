@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,10 +21,20 @@ export default function Onboarding() {
   const totalSteps = 5;
 
   // Step 2 state
-  const [companyName, setCompanyName] = useState(profile?.company_name || '');
-  const [phone, setPhone] = useState(profile?.phone || '');
-  const [businessType, setBusinessType] = useState(profile?.business_type || 'Other');
+  const [companyName, setCompanyName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [businessType, setBusinessType] = useState('Other');
   const [businessDescription, setBusinessDescription] = useState('');
+
+  // Pre-fill from profile when it loads
+  useEffect(() => {
+    if (profile) {
+      setCompanyName(profile.company_name || '');
+      setPhone(profile.phone || '');
+      setBusinessType(profile.business_type || 'Other');
+      setBusinessDescription(profile.business_description || '');
+    }
+  }, [profile]);
 
   // Step 3 state
   const [leadName, setLeadName] = useState('');
