@@ -71,6 +71,39 @@ export type Database = {
         }
         Relationships: []
       }
+      automations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          message_template: string
+          name: string
+          trigger_type: string
+          trigger_value: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_template?: string
+          name: string
+          trigger_type: string
+          trigger_value?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_template?: string
+          name?: string
+          trigger_type?: string
+          trigger_value?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           company: string | null
@@ -152,8 +185,40 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          appointment_reminders: boolean
+          created_at: string
+          id: string
+          notification_email: string | null
+          trial_reminders: boolean
+          user_id: string
+          weekly_summary: boolean
+        }
+        Insert: {
+          appointment_reminders?: boolean
+          created_at?: string
+          id?: string
+          notification_email?: string | null
+          trial_reminders?: boolean
+          user_id: string
+          weekly_summary?: boolean
+        }
+        Update: {
+          appointment_reminders?: boolean
+          created_at?: string
+          id?: string
+          notification_email?: string | null
+          trial_reminders?: boolean
+          user_id?: string
+          weekly_summary?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          ai_generations_count: number
+          ai_generations_reset_at: string
           business_description: string
           business_type: string
           company_name: string
@@ -163,10 +228,14 @@ export type Database = {
           onboarding_completed: boolean
           phone: string
           plan: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           trial_ends_at: string
           user_id: string
         }
         Insert: {
+          ai_generations_count?: number
+          ai_generations_reset_at?: string
           business_description?: string
           business_type?: string
           company_name?: string
@@ -176,10 +245,14 @@ export type Database = {
           onboarding_completed?: boolean
           phone?: string
           plan?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           trial_ends_at?: string
           user_id: string
         }
         Update: {
+          ai_generations_count?: number
+          ai_generations_reset_at?: string
           business_description?: string
           business_type?: string
           company_name?: string
@@ -189,7 +262,33 @@ export type Database = {
           onboarding_completed?: boolean
           phone?: string
           plan?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           trial_ends_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          created_at: string
+          id: string
+          reply_text: string
+          review_text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reply_text?: string
+          review_text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reply_text?: string
+          review_text?: string
           user_id?: string
         }
         Relationships: []
