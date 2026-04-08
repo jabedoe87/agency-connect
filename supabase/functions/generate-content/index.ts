@@ -131,7 +131,7 @@ Write specifically for this business. Avoid generic phrasing. If output feels ge
 
 ` : ""}${styleInstruction}
 
-Return ONLY valid JSON. No markdown, no code blocks, no explanation.`;
+Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
 
     const generateContent = async (retryPrompt?: string) => {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
