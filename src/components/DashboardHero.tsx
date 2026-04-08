@@ -7,7 +7,6 @@ export default function DashboardHero() {
 
   return (
     <section className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card via-card to-primary/5 p-6 md:p-10 mb-8">
-      {/* Subtle glow */}
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 max-w-2xl">
@@ -28,7 +27,6 @@ export default function DashboardHero() {
         </Button>
       </div>
 
-      {/* Before / After demo */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
         <div className="rounded-lg border border-border bg-muted/50 p-5">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Before</span>

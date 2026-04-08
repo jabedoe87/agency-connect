@@ -74,7 +74,7 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="p-4 md:p-8 fade-in">
-        {/* Personalized header */}
+        {/* Dashboard header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <h1 className="font-display text-2xl md:text-3xl text-foreground">
@@ -87,7 +87,7 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        {/* Conversion banner */}
+        {/* Conversion banners */}
         <ConversionBanner />
 
         {/* Hero section */}

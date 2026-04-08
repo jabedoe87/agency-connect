@@ -4,27 +4,32 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X, Sparkles, BarChart3, ChevronDown,
+  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X, Sparkles, BarChart3, ChevronDown, FolderOpen, ChevronRight,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-const navItems = [
+const primaryNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
   { label: 'Content Generator', icon: Sparkles, path: '/generator', locked: false },
-  { label: 'Leads', icon: Users, path: '/leads', locked: false },
+  { label: 'Projects', icon: FolderOpen, path: '/projects', locked: false },
   { label: 'Clients', icon: UserCheck, path: '/clients', locked: false },
-  { label: 'Booking', icon: CalendarDays, path: '/booking', locked: false },
   { label: 'Analytics', icon: BarChart3, path: '/analytics', locked: false },
-  { label: 'AI Content', icon: PenTool, path: '#', locked: true },
-  { label: 'Reviews', icon: Star, path: '#', locked: true },
-  { label: 'Automations', icon: Zap, path: '#', locked: true },
   { label: 'Settings', icon: Settings, path: '/settings', locked: false },
 ];
 
-const mobileNavItems = navItems.filter(i => !i.locked).slice(0, 5);
+const secondaryNav = [
+  { label: 'Leads', icon: Users, path: '/leads', locked: false },
+  { label: 'Booking', icon: CalendarDays, path: '/booking', locked: false },
+  { label: 'AI Content', icon: PenTool, path: '#', locked: true },
+  { label: 'Reviews', icon: Star, path: '#', locked: true },
+  { label: 'Automations', icon: Zap, path: '#', locked: true },
+];
+
+const mobileNavItems = primaryNav.filter(i => !i.locked).slice(0, 5);
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, profile, signOut } = useAuth();
@@ -33,6 +38,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showTrialExpired, setShowTrialExpired] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const trialEndsAt = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const now = new Date();
@@ -43,7 +49,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (trialExpired) setShowTrialExpired(true);
   }, [trialExpired]);
 
-  const handleNavClick = (item: typeof navItems[0]) => {
+  const handleNavClick = (item: { path: string; locked: boolean }) => {
     if (item.locked) {
       setShowUpgrade(true);
       return;
@@ -57,6 +63,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     navigate('/');
   };
 
+  const renderNavButton = (item: typeof primaryNav[0], active: boolean) => (
+    <button
+      key={item.label}
+      onClick={() => handleNavClick(item)}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+        active
+          ? 'bg-sidebar-accent text-primary font-medium'
+          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+      }`}
+    >
+      <item.icon className="w-4 h-4" />
+      <span className="flex-1 text-left">{item.label}</span>
+      {item.locked && <Lock className="w-3 h-3 text-muted-foreground" />}
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
@@ -65,7 +87,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <span className="font-display text-xl text-foreground">AgencyOS</span>
         </div>
 
-        {/* Trial warning */}
         {profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
           <div className="mx-3 mt-3 p-2 rounded-md bg-warning/10 border border-warning/20">
             <p className="text-xs text-warning font-medium">Your trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</p>
@@ -73,24 +94,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         )}
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const active = location.pathname === item.path;
-            return (
-              <button
-                key={item.label}
-                onClick={() => handleNavClick(item)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
-                  active
-                    ? 'bg-sidebar-accent text-primary font-medium'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                <span className="flex-1 text-left">{item.label}</span>
-                {item.locked && <Lock className="w-3 h-3 text-muted-foreground" />}
-              </button>
-            );
-          })}
+          {primaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
+
+          <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
+            <CollapsibleTrigger className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors">
+              <Menu className="w-4 h-4" />
+              <span className="flex-1 text-left">More</span>
+              <ChevronRight className={`w-3 h-3 transition-transform ${moreOpen ? 'rotate-90' : ''}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-3 space-y-1 mt-1">
+              {secondaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
+            </CollapsibleContent>
+          </Collapsible>
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
@@ -114,14 +129,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-border bg-sidebar/80 backdrop-blur-md">
           <div className="flex items-center justify-between px-4 h-14">
-            {/* Mobile: brand + hamburger */}
             <div className="md:hidden flex items-center gap-3">
               <span className="font-display text-lg text-foreground">AgencyOS</span>
             </div>
-            {/* Desktop: empty left */}
             <div className="hidden md:block" />
 
-            {/* Right: user dropdown */}
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -141,7 +153,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Mobile hamburger */}
               <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -152,7 +163,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {/* Mobile slide menu */}
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 top-14 bg-background/95 backdrop-blur z-30 p-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
+            {[...primaryNav, ...secondaryNav].map((item) => (
               <button
                 key={item.label}
                 onClick={() => handleNavClick(item)}
