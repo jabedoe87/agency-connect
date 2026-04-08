@@ -12,6 +12,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Pricing from "./pages/Pricing";
 import Onboarding from "./pages/Onboarding";
+import Generator from "./pages/Generator";
+import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Clients from "./pages/Clients";
@@ -61,6 +63,12 @@ const App = () => (
             } />
             <Route path="/settings" element={
               <ProtectedRoute><OnboardingGuard><Settings /></OnboardingGuard></ProtectedRoute>
+            } />
+            <Route path="/generator" element={
+              <ProtectedRoute><OnboardingGuard><Generator /></OnboardingGuard></ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute><OnboardingGuard><Analytics /></OnboardingGuard></ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>

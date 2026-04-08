@@ -4,23 +4,30 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X,
+  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X, Sparkles, BarChart3, ChevronDown,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
+  { label: 'Content Generator', icon: Sparkles, path: '/generator', locked: false },
   { label: 'Leads', icon: Users, path: '/leads', locked: false },
   { label: 'Clients', icon: UserCheck, path: '/clients', locked: false },
   { label: 'Booking', icon: CalendarDays, path: '/booking', locked: false },
+  { label: 'Analytics', icon: BarChart3, path: '/analytics', locked: false },
   { label: 'AI Content', icon: PenTool, path: '#', locked: true },
   { label: 'Reviews', icon: Star, path: '#', locked: true },
   { label: 'Automations', icon: Zap, path: '#', locked: true },
   { label: 'Settings', icon: Settings, path: '/settings', locked: false },
 ];
 
+const mobileNavItems = navItems.filter(i => !i.locked).slice(0, 5);
+
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -55,7 +62,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r border-border bg-sidebar fixed h-full">
         <div className="p-4 border-b border-sidebar-border">
-          <span className="text-lg font-bold text-foreground">AgencyOS</span>
+          <span className="font-display text-xl text-foreground">AgencyOS</span>
         </div>
 
         {/* Trial warning */}
@@ -104,12 +111,42 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 md:ml-64 pb-20 md:pb-0">
-        {/* Mobile header */}
-        <div className="md:hidden flex items-center justify-between px-4 h-14 border-b border-border bg-sidebar sticky top-0 z-40">
-          <span className="text-lg font-bold text-foreground">AgencyOS</span>
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+        {/* Top bar */}
+        <div className="sticky top-0 z-40 border-b border-border bg-sidebar/80 backdrop-blur-md">
+          <div className="flex items-center justify-between px-4 h-14">
+            {/* Mobile: brand + hamburger */}
+            <div className="md:hidden flex items-center gap-3">
+              <span className="font-display text-lg text-foreground">AgencyOS</span>
+            </div>
+            {/* Desktop: empty left */}
+            <div className="hidden md:block" />
+
+            {/* Right: user dropdown */}
+            <div className="flex items-center gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors">
+                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">
+                      {profile?.full_name?.charAt(0) || 'U'}
+                    </div>
+                    <span className="hidden sm:inline truncate max-w-[150px]">{user?.email}</span>
+                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>Profile</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/pricing')}>Billing</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Mobile hamburger */}
+              <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Mobile slide menu */}
@@ -136,7 +173,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Mobile bottom nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-border z-40 flex justify-around py-2">
-          {navItems.slice(0, 5).map((item) => {
+          {mobileNavItems.map((item) => {
             const active = location.pathname === item.path;
             return (
               <button

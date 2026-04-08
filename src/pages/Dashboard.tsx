@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/AppLayout';
-import { Users, UserCheck, CalendarDays, DollarSign, Clock } from 'lucide-react';
+import DashboardHero from '@/components/DashboardHero';
+import ConversionBanner from '@/components/ConversionBanner';
+import { Users, UserCheck, CalendarDays, DollarSign, Clock, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Stats {
@@ -20,9 +24,12 @@ interface Activity {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({ totalLeads: 0, totalClients: 0, upcomingAppointments: 0, monthlyRevenue: 0 });
   const [activities, setActivities] = useState<Activity[]>([]);
+
+  const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
   useEffect(() => {
     if (!user) return;
@@ -67,8 +74,26 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="p-4 md:p-8 fade-in">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Dashboard</h1>
+        {/* Personalized header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl text-foreground">
+              Welcome back, {firstName}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your business today.</p>
+          </div>
+          <Button className="mt-3 md:mt-0 gap-2" onClick={() => navigate('/generator')}>
+            <Sparkles className="w-4 h-4" /> Start Generating Content
+          </Button>
+        </div>
 
+        {/* Conversion banner */}
+        <ConversionBanner />
+
+        {/* Hero section */}
+        <DashboardHero />
+
+        {/* Stats grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statCards.map((s) => (
             <div key={s.label} className="glass-card p-4">
@@ -85,6 +110,7 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* Recent Activity */}
         <div className="glass-card p-6">
           <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5" /> Recent Activity
