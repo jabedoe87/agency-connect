@@ -187,23 +187,29 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
       });
     }
 
-    let validation = validateOutput(result.content);
+    // Skip validation for variations requests (different JSON structure)
+    const isVariationsRequest = assistInstruction && assistInstruction.toLowerCase().includes('variations');
     
-    // Retry once if validation fails
-    if (!validation.valid) {
-      console.log("Validation failed, retrying:", validation.errors);
-      const retryPrompt = `${userPrompt}
+    let validation = { valid: true, errors: [] as string[] };
+    if (!isVariationsRequest) {
+      validation = validateOutput(result.content);
+      
+      // Retry once if validation fails
+      if (!validation.valid) {
+        console.log("Validation failed, retrying:", validation.errors);
+        const retryPrompt = `${userPrompt}
 
 IMPORTANT: Your previous output had these issues: ${validation.errors.join("; ")}. Fix them. Return ONLY valid JSON.`;
-      
-      result = await generateContent(retryPrompt);
-      if ("error" in result) {
-        return new Response(JSON.stringify({ error: result.error }), {
-          status: result.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        
+        result = await generateContent(retryPrompt);
+        if ("error" in result) {
+          return new Response(JSON.stringify({ error: result.error }), {
+            status: result.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        validation = validateOutput(result.content);
       }
-      validation = validateOutput(result.content);
     }
 
     return new Response(JSON.stringify({
