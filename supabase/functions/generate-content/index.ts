@@ -112,7 +112,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { niche, preset = "high-converting", businessContext } = await req.json();
+    const { niche, preset = "high-converting", businessContext, assistInstruction } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -131,7 +131,7 @@ Write specifically for this business. Avoid generic phrasing. If output feels ge
 
 ` : ""}${styleInstruction}
 
-Return ONLY valid JSON. No markdown, no code blocks, no explanation.`;
+Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
 
     const generateContent = async (retryPrompt?: string) => {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

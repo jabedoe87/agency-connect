@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/AppLayout';
+import AIAssistBlock from '@/components/AIAssistBlock';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Copy, Check, Loader2, RefreshCw, Lock, Save } from 'lucide-react';
+import { Sparkles, Copy, Check, Loader2, RefreshCw, Lock, Save, ArrowLeft } from 'lucide-react';
 
 interface GeneratedContent {
   hook: string;
@@ -41,7 +42,11 @@ export default function Generator() {
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-
+  const [assistLoading, setAssistLoading] = useState(false);
+  const [assistLoadingText, setAssistLoadingText] = useState('');
+  const [variations, setVariations] = useState<GeneratedContent[] | null>(null);
+  const [previousOutput, setPreviousOutput] = useState<GeneratedContent | null>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
   const isFreePlan = !profile?.plan || profile.plan === 'trial';
 
   const handleGenerate = async (demoMode = false) => {
@@ -103,6 +108,56 @@ export default function Generator() {
       toast({ title: 'Generation failed', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runAssistAction = async (actionInstruction: string, newPreset?: string) => {
+    if (!user || !content) return;
+    const activePreset = newPreset || preset;
+    if (newPreset) setPreset(newPreset);
+
+    // Determine loading text
+    let loadingMsg = 'Processing...';
+    if (actionInstruction.includes('Rewrite this content with different wording')) loadingMsg = 'Rewriting your content...';
+    else if (actionInstruction.includes('more persuasive')) loadingMsg = 'Making your content stronger...';
+    else if (actionInstruction.includes('selected style')) loadingMsg = 'Applying new style...';
+    else if (actionInstruction.includes('variations')) loadingMsg = 'Creating more variations...';
+
+    setAssistLoading(true);
+    setAssistLoadingText(loadingMsg);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-content', {
+        body: {
+          niche: niche || DEMO_NICHE,
+          preset: activePreset,
+          businessContext: {
+            business_type: profile?.business_type || 'Service business',
+            target_audience: targetAudience || 'Local customers',
+            offer: offer || niche || DEMO_NICHE,
+          },
+          assistInstruction: `Current content:\n${JSON.stringify(content, null, 2)}\n\n${actionInstruction}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Handle variations response
+      if (actionInstruction.includes('variations') && data.content?.variations) {
+        setPreviousOutput(content);
+        setVariations(data.content.variations);
+      } else {
+        setVariations(null);
+        setContent(data.content as GeneratedContent);
+      }
+
+      outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err: any) {
+      toast({ title: 'AI Assist failed', description: err.message || 'Something went wrong. Try again.', variant: 'destructive' });
+    } finally {
+      setAssistLoading(false);
+      setAssistLoadingText('');
     }
   };
 
@@ -215,7 +270,7 @@ export default function Generator() {
           </div>
 
           {/* Output panel */}
-          <div className="space-y-4">
+          <div ref={outputRef} className="space-y-4">
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
@@ -338,6 +393,54 @@ export default function Generator() {
                     </Button>
                   )}
                 </div>
+
+                {/* Variations view */}
+                {variations && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Variations</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => {
+                          if (previousOutput) setContent(previousOutput);
+                          setVariations(null);
+                          setPreviousOutput(null);
+                        }}
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" /> Back to single view
+                      </Button>
+                    </div>
+                    {variations.map((v, i) => (
+                      <div key={i} className="glass-card p-4 space-y-2">
+                        <p className="text-xs font-semibold text-primary">Variation {i + 1}</p>
+                        <p className="text-sm font-medium text-foreground">{v.hook}</p>
+                        <p className="text-sm text-muted-foreground">{v.emotional_benefit}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1"
+                          onClick={() => {
+                            setContent(v);
+                            setVariations(null);
+                            setPreviousOutput(null);
+                          }}
+                        >
+                          Use this version
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* AI Assist block */}
+                <AIAssistBlock
+                  loading={assistLoading}
+                  loadingText={assistLoadingText}
+                  onAction={runAssistAction}
+                  currentPreset={preset}
+                />
 
                 {/* Post-generation upgrade message */}
                 {isFreePlan && (
