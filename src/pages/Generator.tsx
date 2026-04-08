@@ -111,6 +111,56 @@ export default function Generator() {
     }
   };
 
+  const runAssistAction = async (actionInstruction: string, newPreset?: string) => {
+    if (!user || !content) return;
+    const activePreset = newPreset || preset;
+    if (newPreset) setPreset(newPreset);
+
+    // Determine loading text
+    let loadingMsg = 'Processing...';
+    if (actionInstruction.includes('Rewrite this content with different wording')) loadingMsg = 'Rewriting your content...';
+    else if (actionInstruction.includes('more persuasive')) loadingMsg = 'Making your content stronger...';
+    else if (actionInstruction.includes('selected style')) loadingMsg = 'Applying new style...';
+    else if (actionInstruction.includes('variations')) loadingMsg = 'Creating more variations...';
+
+    setAssistLoading(true);
+    setAssistLoadingText(loadingMsg);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-content', {
+        body: {
+          niche: niche || DEMO_NICHE,
+          preset: activePreset,
+          businessContext: {
+            business_type: profile?.business_type || 'Service business',
+            target_audience: targetAudience || 'Local customers',
+            offer: offer || niche || DEMO_NICHE,
+          },
+          assistInstruction: `Current content:\n${JSON.stringify(content, null, 2)}\n\n${actionInstruction}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Handle variations response
+      if (actionInstruction.includes('variations') && data.content?.variations) {
+        setPreviousOutput(content);
+        setVariations(data.content.variations);
+      } else {
+        setVariations(null);
+        setContent(data.content as GeneratedContent);
+      }
+
+      outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err: any) {
+      toast({ title: 'AI Assist failed', description: err.message || 'Something went wrong. Try again.', variant: 'destructive' });
+    } finally {
+      setAssistLoading(false);
+      setAssistLoadingText('');
+    }
+  };
+
   const copyToClipboard = async (text: string, field: string) => {
     await navigator.clipboard.writeText(text);
     setCopiedField(field);
