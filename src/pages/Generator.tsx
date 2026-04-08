@@ -42,7 +42,11 @@ export default function Generator() {
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-
+  const [assistLoading, setAssistLoading] = useState(false);
+  const [assistLoadingText, setAssistLoadingText] = useState('');
+  const [variations, setVariations] = useState<GeneratedContent[] | null>(null);
+  const [previousOutput, setPreviousOutput] = useState<GeneratedContent | null>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
   const isFreePlan = !profile?.plan || profile.plan === 'trial';
 
   const handleGenerate = async (demoMode = false) => {
