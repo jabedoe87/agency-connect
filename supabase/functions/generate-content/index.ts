@@ -61,7 +61,22 @@ objection_handler:
 
 cta:
 - strong action
-- urgency`;
+- urgency
+
+Example of perfect output:
+
+{
+  "hook": "Still hiding your body under baggy clothes because nothing seems to work?",
+  "emotional_benefit": "Imagine finally feeling confident when you look in the mirror instead of frustrated every morning.",
+  "bullets": [
+    "Lose visible fat in the first weeks without extreme diets",
+    "Train efficiently even with a busy schedule",
+    "Feel stronger, fitter, and more energized daily",
+    "Stop starting over every Monday and finally stay consistent"
+  ],
+  "objection_handler": "Tried everything before and nothing worked? This approach is built for busy professionals who need something realistic and sustainable.",
+  "cta": "Book your first session before this week fills up"
+}`;
 
 function containsBannedWords(text: string): string[] {
   const lower = text.toLowerCase();
