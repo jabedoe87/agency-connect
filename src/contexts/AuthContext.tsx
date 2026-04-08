@@ -25,6 +25,8 @@ interface Profile {
   trial_ends_at: string;
   onboarding_completed: boolean;
   created_at: string;
+  ai_generations_count: number;
+  ai_generations_reset_at: string;
 }
 
 interface AuthContextType {
