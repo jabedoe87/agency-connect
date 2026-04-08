@@ -31,6 +31,8 @@ const DEMO_NICHE = 'Personal trainer helping busy professionals get fit';
 export default function Generator() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const nicheRef = useRef<HTMLTextAreaElement>(null);
   const [niche, setNiche] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [offer, setOffer] = useState('');
@@ -38,6 +40,9 @@ export default function Generator() {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const isFreePlan = !profile?.plan || profile.plan === 'trial';
 
   const handleGenerate = async (demoMode = false) => {
     if (!user) return;
