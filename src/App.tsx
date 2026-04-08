@@ -71,8 +71,6 @@ const App = () => (
             <Route path="/projects" element={
               <ProtectedRoute><OnboardingGuard><Projects /></OnboardingGuard></ProtectedRoute>
             } />
-              <ProtectedRoute><OnboardingGuard><Generator /></OnboardingGuard></ProtectedRoute>
-            } />
             <Route path="/analytics" element={
               <ProtectedRoute><OnboardingGuard><Analytics /></OnboardingGuard></ProtectedRoute>
             } />
