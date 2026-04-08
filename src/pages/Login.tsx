@@ -15,14 +15,31 @@ export default function Login() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const getAuthErrorMessage = (error: any): string => {
+    const msg = error?.message?.toLowerCase() || '';
+    console.log('[AUTH DEBUG] Supabase error:', error?.message, error?.status);
+    if (msg.includes('invalid login credentials')) {
+      return 'Invalid email or password. If you signed up with Google, use the "Continue with Google" button below.';
+    }
+    if (msg.includes('email not confirmed')) {
+      return 'Please confirm your email before logging in. Check your inbox.';
+    }
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch')) {
+      return 'Could not reach the authentication service. Check your connection and try again.';
+    }
+    return error?.message || 'Something went wrong. Please try again.';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    console.log('[AUTH DEBUG] Provider attempted: email');
     try {
       await signIn(email, password);
+      console.log('[AUTH DEBUG] Session created: true');
       navigate('/dashboard');
     } catch (err: any) {
-      toast({ title: 'Login failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Login failed', description: getAuthErrorMessage(err), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
