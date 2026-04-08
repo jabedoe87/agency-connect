@@ -37,7 +37,7 @@ export default function Projects() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        setItems((data as ContentItem[]) || []);
+        setItems((data as unknown as ContentItem[]) || []);
         setLoading(false);
       });
   }, [user]);
