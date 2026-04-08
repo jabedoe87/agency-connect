@@ -38,7 +38,13 @@ export default function Register() {
       toast({ title: 'Account created! Welcome to AgencyOS.' });
       navigate('/onboarding');
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      console.log('[AUTH DEBUG] Signup error:', err?.message, err?.status);
+      const msg = err?.message?.toLowerCase() || '';
+      let description = err?.message || 'Something went wrong.';
+      if (msg.includes('already registered')) {
+        description = 'An account with this email already exists. Try logging in instead.';
+      }
+      toast({ title: 'Error', description, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
