@@ -199,6 +199,21 @@ export default function Generator() {
               </div>
             </div>
 
+            {isFreePlan && (
+              <div className="text-sm text-muted-foreground text-center">
+                {profile?.ai_generations_count !== undefined && profile.ai_generations_count >= 10 ? (
+                  <div className="space-y-2">
+                    <p>You've reached your limit. Unlock Unlimited to keep going.</p>
+                    <Button size="sm" className="gap-1.5" onClick={() => navigate('/pricing')}>
+                      <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
+                    </Button>
+                  </div>
+                ) : (
+                  <p>You have {Math.max(0, 10 - (profile?.ai_generations_count || 0))} generations left.</p>
+                )}
+              </div>
+            )}
+
             <Button
               size="lg"
               className="w-full gap-2 font-semibold"
