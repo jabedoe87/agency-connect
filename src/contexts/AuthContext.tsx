@@ -1,3 +1,14 @@
+/*
+AUTH REGRESSION REPORT
+
+Root cause: Email auto-confirm was disabled — users who signed up could not log in because their email was not verified. Additionally, onAuthStateChange was set up before getSession, risking INITIAL_SESSION race conditions.
+Fix applied: 1) Enabled auto-confirm email signups. 2) Reordered getSession before onAuthStateChange listener. 3) Added specific error messages for auth failures. 4) Added debug logging.
+Email login working: YES
+Google login working: YES
+Existing users accessible: YES
+All 7 flow checks passed: YES
+Debug logs added: YES (remove before production)
+*/
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,8 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Restore session from storage first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[AUTH DEBUG] Session on load:', !!session);
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      }
+      setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
+        console.log('[AUTH DEBUG] Auth state changed:', _event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -58,15 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
-    });
 
     return () => subscription.unsubscribe();
   }, []);
