@@ -148,27 +148,30 @@ export type Database = {
       }
       generated_content: {
         Row: {
-          content: string
+          content: Json
           created_at: string
           id: string
           niche: string
           preset: string
+          project_id: string | null
           user_id: string
         }
         Insert: {
-          content: string
+          content: Json
           created_at?: string
           id?: string
           niche?: string
           preset?: string
+          project_id?: string | null
           user_id: string
         }
         Update: {
-          content?: string
+          content?: Json
           created_at?: string
           id?: string
           niche?: string
           preset?: string
+          project_id?: string | null
           user_id?: string
         }
         Relationships: []
