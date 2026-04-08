@@ -150,6 +150,7 @@ export default function Generator() {
               <div>
                 <Label className="text-sm font-medium">Your Niche / Business *</Label>
                 <Textarea
+                  ref={nicheRef}
                   placeholder="e.g. Personal trainer helping busy professionals get fit"
                   value={niche}
                   onChange={(e) => setNiche(e.target.value)}
