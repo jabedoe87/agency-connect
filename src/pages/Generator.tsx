@@ -303,6 +303,66 @@ export default function Generator() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2">Call to Action</p>
                   <p className="text-foreground font-semibold leading-relaxed pr-8">{content.cta}</p>
                 </div>
+
+                {/* Post-generation action buttons */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 flex-1"
+                    onClick={() => {
+                      setContent(null);
+                      setSaveState('idle');
+                      setTimeout(() => nicheRef.current?.focus(), 100);
+                    }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Generate Again
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 flex-1"
+                    disabled={saveState === 'saving' || saveState === 'saved'}
+                    onClick={async () => {
+                      setSaveState('saving');
+                      try {
+                        const { error } = await supabase.from('generated_content').insert({
+                          user_id: user!.id,
+                          content: content as any,
+                          niche: niche || 'Demo',
+                          preset,
+                        });
+                        if (error) throw error;
+                        setSaveState('saved');
+                        setTimeout(() => setSaveState('idle'), 2000);
+                      } catch {
+                        setSaveState('error');
+                        setTimeout(() => setSaveState('idle'), 3000);
+                      }
+                    }}
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : saveState === 'error' ? 'Save failed — try again' : 'Save'}
+                  </Button>
+                  {isFreePlan ? (
+                    <Button className="gap-1.5 flex-1" onClick={() => navigate('/pricing')}>
+                      <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="gap-1.5 flex-1" disabled>
+                      Export Content
+                    </Button>
+                  )}
+                </div>
+
+                {/* Post-generation upgrade message */}
+                {isFreePlan && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center space-y-3">
+                    <p className="text-foreground font-semibold">Keep generating client-winning content without limits.</p>
+                    <p className="text-sm text-muted-foreground">You've seen what one output can do. Don't stop now.</p>
+                    <Button className="gap-1.5" onClick={() => navigate('/pricing')}>
+                      <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
