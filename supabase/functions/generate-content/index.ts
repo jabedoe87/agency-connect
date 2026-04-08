@@ -12,11 +12,11 @@ const BANNED_WORDS = [
 ];
 
 const STYLE_PRESETS: Record<string, string> = {
-  luxury: `Tone: sophisticated, exclusive, aspirational. Use elevated language that signals premium quality. Speak to high-end clients who value exclusivity and results. Avoid casualness.`,
-  aggressive: `Tone: bold, direct, urgent. Use strong action language and high-pressure urgency. Challenge the reader. Be provocative but not offensive. Push hard for action.`,
-  tiktok: `Tone: casual, punchy, scroll-stopping. Write like viral social media copy. Short sentences. Use "you" constantly. Pattern interrupts. Raw and authentic, not corporate.`,
-  minimal: `Tone: clean, clear, no fluff. Every word must earn its place. Short sentences. No adjectives unless necessary. Let the offer speak for itself.`,
-  "high-converting": `Tone: proven direct-response style. Lead with pain, agitate, solve. Use specifics and numbers where possible. Write like a seasoned copywriter who has tested thousands of ads.`,
+  "high-converting": `Style: High-Converting. Write like a top-performing direct-response marketer. Lead with the reader's pain. Follow with a clear, concrete benefit. Close with urgency that feels earned, not forced. Keep sentences tight — every line must move the reader one step closer to action. No filler. No fluff. Focus on outcomes, not features. Use simple language that scans fast. This should feel like copy that has already been tested and proven to convert in paid ads.`,
+  luxury: `Style: Luxury. Write like a premium brand speaking to a high-value client. Use refined, sensory language and a calm, confident tone. Never use urgency, discounts, or pressure tactics. Focus on exclusivity, craftsmanship, and experience. Sentences should be longer and more deliberate. No exclamation marks. Preferred vocabulary: bespoke, curated, private, crafted, considered, unhurried, refined. The reader should feel chosen, not sold to. The CTA must feel like a quiet invitation — never a command.`,
+  aggressive: `Style: Aggressive Sales. Write like a high-converting Facebook ad designed to force action now. Short sentences. Hard stops. Direct commands only. Name the consequences of NOT acting. Use scarcity and urgency explicitly. Make waiting feel like a mistake the reader will regret. Occasional ALL CAPS on the single most important phrase is allowed. No soft language. No hedging. No "consider" or "maybe" or "could". This should feel like someone who has no patience for excuses.`,
+  tiktok: `Style: TikTok Viral. Write like a scroll-stopping TikTok hook or spoken video caption. One idea per line. Maximum 6 words per sentence. Use rhythm — short, then shorter, then one punchy closer. Open with something unexpected, relatable, or slightly provocative. Speak directly to "you". Informal is fine. Energy must stay high. Use line breaks to create spoken rhythm, not paragraph structure. The first line must make someone stop scrolling. That is the only rule that matters more than all others.`,
+  minimal: `Style: Minimal. Write with extreme clarity. Short sentences only. No hype. No exaggeration. No stacked adjectives. Every word must earn its place — cut anything decorative. Tone: calm, confident, understated. The reader should understand the full message in under 10 seconds. This should feel like a clean product page written by someone who trusts the product to speak for itself.`,
 };
 
 const SYSTEM_PROMPT = `You are an expert direct-response copywriter who writes content that converts readers into paying clients.
@@ -107,14 +107,14 @@ serve(async (req) => {
 
 Niche: ${niche}
 
-Style: ${styleInstruction}
-
 ${businessContext ? `Business context:
 - Business type: ${businessContext.business_type || "Service business"}
 - Target audience: ${businessContext.target_audience || "Local customers"}
 - Offer: ${businessContext.offer || niche}
 
-Write specifically for this business. Avoid generic phrasing. If output feels generic, rewrite it to be more specific.` : ""}
+Write specifically for this business. Avoid generic phrasing. If output feels generic, rewrite it to be more specific.
+
+` : ""}${styleInstruction}
 
 Return ONLY valid JSON. No markdown, no code blocks, no explanation.`;
 
