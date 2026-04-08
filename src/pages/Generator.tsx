@@ -270,7 +270,7 @@ export default function Generator() {
           </div>
 
           {/* Output panel */}
-          <div className="space-y-4">
+          <div ref={outputRef} className="space-y-4">
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
@@ -393,6 +393,54 @@ export default function Generator() {
                     </Button>
                   )}
                 </div>
+
+                {/* Variations view */}
+                {variations && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Variations</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => {
+                          if (previousOutput) setContent(previousOutput);
+                          setVariations(null);
+                          setPreviousOutput(null);
+                        }}
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" /> Back to single view
+                      </Button>
+                    </div>
+                    {variations.map((v, i) => (
+                      <div key={i} className="glass-card p-4 space-y-2">
+                        <p className="text-xs font-semibold text-primary">Variation {i + 1}</p>
+                        <p className="text-sm font-medium text-foreground">{v.hook}</p>
+                        <p className="text-sm text-muted-foreground">{v.emotional_benefit}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1"
+                          onClick={() => {
+                            setContent(v);
+                            setVariations(null);
+                            setPreviousOutput(null);
+                          }}
+                        >
+                          Use this version
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* AI Assist block */}
+                <AIAssistBlock
+                  loading={assistLoading}
+                  loadingText={assistLoadingText}
+                  onAction={runAssistAction}
+                  currentPreset={preset}
+                />
 
                 {/* Post-generation upgrade message */}
                 {isFreePlan && (
