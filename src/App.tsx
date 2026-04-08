@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Pricing from "./pages/Pricing";
 import Onboarding from "./pages/Onboarding";
 import Generator from "./pages/Generator";
+import Projects from "./pages/Projects";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
@@ -65,6 +66,11 @@ const App = () => (
               <ProtectedRoute><OnboardingGuard><Settings /></OnboardingGuard></ProtectedRoute>
             } />
             <Route path="/generator" element={
+              <ProtectedRoute><OnboardingGuard><Generator /></OnboardingGuard></ProtectedRoute>
+            } />
+            <Route path="/projects" element={
+              <ProtectedRoute><OnboardingGuard><Projects /></OnboardingGuard></ProtectedRoute>
+            } />
               <ProtectedRoute><OnboardingGuard><Generator /></OnboardingGuard></ProtectedRoute>
             } />
             <Route path="/analytics" element={
