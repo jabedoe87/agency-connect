@@ -107,14 +107,14 @@ serve(async (req) => {
 
 Niche: ${niche}
 
-Style: ${styleInstruction}
-
 ${businessContext ? `Business context:
 - Business type: ${businessContext.business_type || "Service business"}
 - Target audience: ${businessContext.target_audience || "Local customers"}
 - Offer: ${businessContext.offer || niche}
 
-Write specifically for this business. Avoid generic phrasing. If output feels generic, rewrite it to be more specific.` : ""}
+Write specifically for this business. Avoid generic phrasing. If output feels generic, rewrite it to be more specific.
+
+` : ""}${styleInstruction}
 
 Return ONLY valid JSON. No markdown, no code blocks, no explanation.`;
 
