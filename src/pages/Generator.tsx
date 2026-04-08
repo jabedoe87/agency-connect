@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/AppLayout';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Copy, Check, Loader2, RefreshCw } from 'lucide-react';
+import { Sparkles, Copy, Check, Loader2, RefreshCw, Lock, Save } from 'lucide-react';
 
 interface GeneratedContent {
   hook: string;
@@ -30,6 +31,8 @@ const DEMO_NICHE = 'Personal trainer helping busy professionals get fit';
 export default function Generator() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const nicheRef = useRef<HTMLTextAreaElement>(null);
   const [niche, setNiche] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [offer, setOffer] = useState('');
@@ -37,6 +40,9 @@ export default function Generator() {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const isFreePlan = !profile?.plan || profile.plan === 'trial';
 
   const handleGenerate = async (demoMode = false) => {
     if (!user) return;
@@ -144,6 +150,7 @@ export default function Generator() {
               <div>
                 <Label className="text-sm font-medium">Your Niche / Business *</Label>
                 <Textarea
+                  ref={nicheRef}
                   placeholder="e.g. Personal trainer helping busy professionals get fit"
                   value={niche}
                   onChange={(e) => setNiche(e.target.value)}
@@ -191,6 +198,21 @@ export default function Generator() {
                 ))}
               </div>
             </div>
+
+            {isFreePlan && (
+              <div className="text-sm text-muted-foreground text-center">
+                {profile?.ai_generations_count !== undefined && profile.ai_generations_count >= 10 ? (
+                  <div className="space-y-2">
+                    <p>You've reached your limit. Unlock Unlimited to keep going.</p>
+                    <Button size="sm" className="gap-1.5" onClick={() => navigate('/pricing')}>
+                      <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
+                    </Button>
+                  </div>
+                ) : (
+                  <p>You have {Math.max(0, 10 - (profile?.ai_generations_count || 0))} generations left.</p>
+                )}
+              </div>
+            )}
 
             <Button
               size="lg"
@@ -281,6 +303,66 @@ export default function Generator() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2">Call to Action</p>
                   <p className="text-foreground font-semibold leading-relaxed pr-8">{content.cta}</p>
                 </div>
+
+                {/* Post-generation action buttons */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 flex-1"
+                    onClick={() => {
+                      setContent(null);
+                      setSaveState('idle');
+                      setTimeout(() => nicheRef.current?.focus(), 100);
+                    }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Generate Again
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-1.5 flex-1"
+                    disabled={saveState === 'saving' || saveState === 'saved'}
+                    onClick={async () => {
+                      setSaveState('saving');
+                      try {
+                        const { error } = await supabase.from('generated_content').insert({
+                          user_id: user!.id,
+                          content: content as any,
+                          niche: niche || 'Demo',
+                          preset,
+                        });
+                        if (error) throw error;
+                        setSaveState('saved');
+                        setTimeout(() => setSaveState('idle'), 2000);
+                      } catch {
+                        setSaveState('error');
+                        setTimeout(() => setSaveState('idle'), 3000);
+                      }
+                    }}
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : saveState === 'error' ? 'Save failed — try again' : 'Save'}
+                  </Button>
+                  {isFreePlan ? (
+                    <Button className="gap-1.5 flex-1" onClick={() => navigate('/pricing')}>
+                      <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="gap-1.5 flex-1" disabled>
+                      Export Content
+                    </Button>
+                  )}
+                </div>
+
+                {/* Post-generation upgrade message */}
+                {isFreePlan && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center space-y-3">
+                    <p className="text-foreground font-semibold">Keep generating client-winning content without limits.</p>
+                    <p className="text-sm text-muted-foreground">You've seen what one output can do. Don't stop now.</p>
+                    <Button className="gap-1.5" onClick={() => navigate('/pricing')}>
+                      <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
