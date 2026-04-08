@@ -70,7 +70,6 @@ const App = () => (
             <Route path="/analytics" element={
               <ProtectedRoute><OnboardingGuard><Analytics /></OnboardingGuard></ProtectedRoute>
             } />
-            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
