@@ -35,9 +35,37 @@ export default function Login() {
     setLoading(true);
     console.log('[AUTH DEBUG] Provider attempted: email');
     try {
-      await signIn(email, password);
-      console.log('[AUTH DEBUG] Session created: true');
-      navigate('/dashboard');
+      // Clear any stale/corrupted session before attempting login
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession) {
+        console.log('[AUTH DEBUG] Clearing stale session before login');
+        await supabase.auth.signOut();
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('[AUTH DEBUG] error:', error?.message ?? 'none');
+      console.log('[AUTH DEBUG] session:', !!data?.session);
+
+      if (error) {
+        // Check if this email is registered via Google OAuth only
+        if (error.message === 'Invalid login credentials') {
+          toast({
+            title: 'Login failed',
+            description: 'Invalid email or password. If you signed up with Google, use the "Continue with Google" button below.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({ title: 'Login failed', description: getAuthErrorMessage(error), variant: 'destructive' });
+        }
+        return;
+      }
+
+      if (data.session) {
+        console.log('[AUTH DEBUG] Session created: true, redirecting');
+        navigate('/dashboard');
+      } else {
+        toast({ title: 'Login failed', description: 'No session returned. Please try again.', variant: 'destructive' });
+      }
     } catch (err: any) {
       toast({ title: 'Login failed', description: getAuthErrorMessage(err), variant: 'destructive' });
     } finally {
