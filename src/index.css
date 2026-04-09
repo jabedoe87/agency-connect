@@ -36,7 +36,7 @@
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 20% 9%;
+    --sidebar-background: 220 20% 5%;
     --sidebar-foreground: 210 40% 90%;
     --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -77,5 +77,21 @@
 
   .glass-card {
     @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl;
+  }
+
+  .glass-card-raised {
+    @apply bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl shadow-inner;
+  }
+
+  .label-uppercase {
+    @apply text-xs uppercase tracking-widest text-muted-foreground font-medium;
+  }
+
+  .cta-primary {
+    @apply px-7 py-3 font-medium shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:scale-[1.02] active:scale-95 transition-all duration-150;
+  }
+
+  .card-interactive {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
   }
 }

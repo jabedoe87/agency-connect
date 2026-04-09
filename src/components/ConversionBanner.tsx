@@ -26,7 +26,7 @@ export default function ConversionBanner() {
   const trialExpired = isOnTrial && trialEndsAt && trialEndsAt < now;
 
   return (
-    <div className="space-y-4 mb-8">
+    <div className="space-y-4">
       {isOnTrial && (
         <div className="rounded-xl border border-white/10 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-5 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -45,7 +45,7 @@ export default function ConversionBanner() {
             </div>
             <Button
               size="lg"
-              className="whitespace-nowrap font-semibold px-6 py-2.5"
+              className="whitespace-nowrap cta-primary"
               onClick={() => navigate('/pricing')}
             >
               Unlock Unlimited Content
@@ -68,7 +68,7 @@ export default function ConversionBanner() {
                 <p className="text-xs text-muted-foreground">Designed to convert — ready to use, no editing needed.</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="border-white/10" onClick={() => navigate('/projects')}>
+            <Button variant="outline" size="sm" className="border-white/10 opacity-80 hover:opacity-100 transition-opacity duration-150" onClick={() => navigate('/projects')}>
               View Projects
             </Button>
           </div>

@@ -67,13 +67,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <button
       key={item.label}
       onClick={() => handleNavClick(item)}
-      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm tracking-wide transition-all duration-200 ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm tracking-wide transition-all duration-150 ${
         active
-          ? 'bg-white/5 text-foreground font-medium border-l-2 border-primary pl-[10px]'
-          : 'text-sidebar-foreground/60 hover:bg-white/[0.03] hover:text-sidebar-foreground/80'
+          ? 'bg-white/[0.07] text-foreground font-medium border-l-2 border-primary pl-[10px]'
+          : 'text-sidebar-foreground/50 hover:text-sidebar-foreground/75 hover:bg-white/[0.03]'
       }`}
     >
-      <item.icon className="w-4 h-4" />
+      <item.icon className="w-4 h-4 shrink-0" />
       <span className="flex-1 text-left">{item.label}</span>
       {item.locked && <Lock className="w-3 h-3 text-muted-foreground" />}
     </button>
@@ -81,10 +81,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar — deepest layer */}
       <aside className="hidden md:flex flex-col w-64 border-r border-white/10 bg-sidebar fixed h-full">
         <div className="px-6 py-5 border-b border-white/10">
-          <span className="font-display text-xl text-foreground">AgencyOS</span>
+          <span className="font-display text-xl text-foreground tracking-tight">AgencyOS</span>
         </div>
 
         {profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
@@ -93,16 +93,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-0.5 overflow-y-auto">
           {primaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
 
           <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
-            <CollapsibleTrigger className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm tracking-wide text-sidebar-foreground/60 hover:bg-white/[0.03] transition-all duration-200">
+            <CollapsibleTrigger className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm tracking-wide text-sidebar-foreground/50 hover:text-sidebar-foreground/75 hover:bg-white/[0.03] transition-all duration-150">
               <Menu className="w-4 h-4" />
               <span className="flex-1 text-left">More</span>
               <ChevronRight className={`w-3 h-3 transition-transform ${moreOpen ? 'rotate-90' : ''}`} />
             </CollapsibleTrigger>
-            <CollapsibleContent className="pl-3 space-y-1 mt-1">
+            <CollapsibleContent className="pl-3 space-y-0.5 mt-0.5">
               {secondaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
             </CollapsibleContent>
           </Collapsible>
@@ -110,15 +110,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium text-primary">
+            <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-sm font-medium text-primary">
               {profile?.full_name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{profile?.full_name || 'User'}</p>
-              <Badge variant="outline" className="text-[10px] px-1.5">{profile?.plan || 'trial'}</Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 opacity-70">{profile?.plan || 'trial'}</Badge>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
+          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground transition-colors duration-150" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" /> Logout
           </Button>
         </div>
@@ -127,18 +127,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Main content */}
       <main className="flex-1 md:ml-64 pb-20 md:pb-0">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 border-b border-white/10 bg-sidebar/80 backdrop-blur-md">
+        <div className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur-md">
           <div className="flex items-center justify-between px-6 h-14">
             <div className="md:hidden flex items-center gap-3">
-              <span className="font-display text-lg text-foreground">AgencyOS</span>
+              <span className="font-display text-lg text-foreground tracking-tight">AgencyOS</span>
             </div>
             <div className="hidden md:block" />
 
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors">
-                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">
+                  <button className="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground transition-colors duration-150">
+                    <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-xs font-medium text-primary">
                       {profile?.full_name?.charAt(0) || 'U'}
                     </div>
                     <span className="hidden sm:inline truncate max-w-[150px]">{user?.email}</span>
@@ -167,8 +167,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button
                 key={item.label}
                 onClick={() => handleNavClick(item)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm ${
-                  location.pathname === item.path ? 'bg-white/5 text-primary font-medium' : 'text-foreground'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-150 ${
+                  location.pathname === item.path ? 'bg-white/[0.07] text-primary font-medium' : 'text-foreground/70'
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -190,7 +190,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button
                 key={item.label}
                 onClick={() => handleNavClick(item)}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] justify-center text-[10px] ${
+                className={`flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] justify-center text-[10px] transition-colors duration-150 ${
                   active ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
@@ -214,7 +214,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </DialogDescription>
           </DialogHeader>
           <Link to="/pricing">
-            <Button className="w-full">View Plans</Button>
+            <Button className="w-full cta-primary">View Plans</Button>
           </Link>
         </DialogContent>
       </Dialog>
@@ -229,7 +229,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </DialogDescription>
           </DialogHeader>
           <Link to="/pricing">
-            <Button className="w-full">Choose a Plan</Button>
+            <Button className="w-full cta-primary">Choose a Plan</Button>
           </Link>
         </DialogContent>
       </Dialog>

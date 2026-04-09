@@ -82,7 +82,7 @@ export default function Dashboard() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your business today.</p>
           </div>
-          <Button className="mt-3 md:mt-0 gap-2 px-6 py-2.5 font-semibold" onClick={() => navigate('/generator')}>
+          <Button className="mt-3 md:mt-0 gap-2 cta-primary" onClick={() => navigate('/generator')}>
             <Sparkles className="w-4 h-4" /> Start Generating Content
           </Button>
         </div>
@@ -93,14 +93,14 @@ export default function Dashboard() {
         {/* Stats grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((s) => (
-            <div key={s.label} className="glass-card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+            <div key={s.label} className="glass-card p-5 card-interactive">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center ${s.color}`}>
+                <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${s.color}`}>
                   <s.icon className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
-                  <p className="text-xl font-bold text-foreground">{s.value}</p>
+                  <p className="text-xl font-semibold text-foreground">{s.value}</p>
                 </div>
               </div>
             </div>
@@ -110,19 +110,19 @@ export default function Dashboard() {
         {/* Recent Activity */}
         <div className="glass-card p-6">
           <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5" /> Recent Activity
+            <Clock className="w-5 h-5 text-muted-foreground" /> Recent Activity
           </h2>
           {activities.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No activity yet. Start by adding a lead or booking an appointment.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-0">
               {activities.map((a) => (
-                <div key={a.id} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
+                <div key={a.id} className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
                   <div>
                     <p className="text-sm text-foreground font-medium">{a.action}</p>
                     <p className="text-xs text-muted-foreground">{a.description}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  <span className="text-xs text-muted-foreground/70 whitespace-nowrap ml-4">
                     {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
                   </span>
                 </div>
