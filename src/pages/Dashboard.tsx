@@ -73,32 +73,29 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="p-4 md:p-8 fade-in">
+      <div className="px-4 md:px-6 py-6 md:py-8 fade-in space-y-6">
         {/* Dashboard header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="font-display text-2xl md:text-3xl text-foreground">
               Welcome back, {firstName}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your business today.</p>
           </div>
-          <Button className="mt-3 md:mt-0 gap-2" onClick={() => navigate('/generator')}>
+          <Button className="mt-3 md:mt-0 gap-2 px-6 py-2.5 font-semibold" onClick={() => navigate('/generator')}>
             <Sparkles className="w-4 h-4" /> Start Generating Content
           </Button>
         </div>
 
-        {/* Conversion banners */}
         <ConversionBanner />
-
-        {/* Hero section */}
         <DashboardHero />
 
         {/* Stats grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((s) => (
-            <div key={s.label} className="glass-card p-4">
+            <div key={s.label} className="glass-card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center ${s.color}`}>
+                <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center ${s.color}`}>
                   <s.icon className="w-5 h-5" />
                 </div>
                 <div>
@@ -120,7 +117,7 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-3">
               {activities.map((a) => (
-                <div key={a.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div key={a.id} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
                   <div>
                     <p className="text-sm text-foreground font-medium">{a.action}</p>
                     <p className="text-xs text-muted-foreground">{a.description}</p>

@@ -79,7 +79,6 @@ export default function Generator() {
       const generated = data.content as GeneratedContent;
       setContent(generated);
 
-      // Store in database
       await supabase.from('generated_content').insert({
         user_id: user.id,
         content: generated as any,
@@ -87,7 +86,6 @@ export default function Generator() {
         preset,
       });
 
-      // Log activity
       await supabase.from('activity_log').insert({
         user_id: user.id,
         action: 'Content Generated',
@@ -116,7 +114,6 @@ export default function Generator() {
     const activePreset = newPreset || preset;
     if (newPreset) setPreset(newPreset);
 
-    // Determine loading text
     let loadingMsg = 'Processing...';
     if (actionInstruction.includes('Rewrite this content with different wording')) loadingMsg = 'Rewriting your content...';
     else if (actionInstruction.includes('more persuasive')) loadingMsg = 'Making your content stronger...';
@@ -143,7 +140,6 @@ export default function Generator() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Handle variations response
       if (actionInstruction.includes('variations') && data.content?.variations) {
         setPreviousOutput(content);
         setVariations(data.content.variations);
@@ -177,7 +173,7 @@ export default function Generator() {
   const CopyButton = ({ text, field }: { text: string; field: string }) => (
     <button
       onClick={() => copyToClipboard(text, field)}
-      className="absolute top-2 right-2 p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+      className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all duration-200"
     >
       {copiedField === field ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
@@ -185,23 +181,22 @@ export default function Generator() {
 
   return (
     <AppLayout>
-      <div className="p-4 md:p-8 fade-in">
+      <div className="px-4 md:px-6 py-6 md:py-8 fade-in">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <h1 className="font-display text-2xl md:text-3xl text-foreground">Content Generator</h1>
             <p className="text-sm text-muted-foreground mt-1">Generate high-converting content for your business.</p>
           </div>
           {!content && (
-            <Button variant="outline" size="sm" className="mt-2 md:mt-0 gap-2" onClick={() => handleGenerate(true)}>
+            <Button variant="outline" size="sm" className="mt-2 md:mt-0 gap-2 border-white/10" onClick={() => handleGenerate(true)}>
               <Sparkles className="w-3.5 h-3.5" /> Try Demo
             </Button>
           )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Input panel */}
-          <div className="space-y-5">
-            <div className="glass-card p-5 space-y-4">
+          <div className="space-y-6">
+            <div className="glass-card p-6 space-y-4">
               <div>
                 <Label className="text-sm font-medium">Your Niche / Business *</Label>
                 <Textarea
@@ -233,18 +228,17 @@ export default function Generator() {
               </div>
             </div>
 
-            {/* Style presets */}
-            <div className="glass-card p-5">
+            <div className="glass-card p-6">
               <Label className="text-sm font-medium mb-3 block">Style Preset</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {STYLE_PRESETS.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => setPreset(p.id)}
-                    className={`p-3 rounded-lg border text-left transition-all ${
+                    className={`p-3 rounded-xl border text-left transition-all duration-200 ${
                       preset === p.id
                         ? 'border-primary bg-primary/10 text-foreground'
-                        : 'border-border bg-card/50 text-muted-foreground hover:border-muted-foreground/30'
+                        : 'border-white/10 bg-white/5 text-muted-foreground hover:bg-white/[0.08]'
                     }`}
                   >
                     <p className="text-sm font-medium">{p.label}</p>
@@ -254,10 +248,9 @@ export default function Generator() {
               </div>
             </div>
 
-
             <Button
               size="lg"
-              className="w-full gap-2 font-semibold"
+              className="w-full gap-2 font-semibold px-6 py-2.5 min-h-[44px]"
               onClick={() => handleGenerate(false)}
               disabled={loading}
             >
@@ -269,8 +262,7 @@ export default function Generator() {
             </Button>
           </div>
 
-          {/* Output panel */}
-          <div ref={outputRef} className="space-y-4">
+          <div ref={outputRef} className="space-y-6">
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
@@ -290,37 +282,34 @@ export default function Generator() {
             )}
 
             {content && (
-              <>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Your Content</p>
+              <div className="bg-white/[0.08] rounded-xl p-6 border border-white/10 space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Your Content</p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={copyAll}>
+                    <Button variant="outline" size="sm" className="gap-1.5 border-white/10" onClick={copyAll}>
                       <Copy className="w-3.5 h-3.5" /> Copy All
                     </Button>
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleGenerate(false)}>
+                    <Button variant="outline" size="sm" className="gap-1.5 border-white/10" onClick={() => handleGenerate(false)}>
                       <RefreshCw className="w-3.5 h-3.5" /> Regenerate
                     </Button>
                   </div>
                 </div>
 
-                {/* Hook */}
                 <div className="glass-card p-5 relative">
                   <CopyButton text={content.hook} field="hook" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2">Hook</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-2">Hook</p>
                   <p className="text-foreground font-medium leading-relaxed pr-8">{content.hook}</p>
                 </div>
 
-                {/* Emotional Benefit */}
                 <div className="glass-card p-5 relative">
                   <CopyButton text={content.emotional_benefit} field="benefit" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2">Emotional Benefit</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-2">Emotional Benefit</p>
                   <p className="text-foreground leading-relaxed pr-8">{content.emotional_benefit}</p>
                 </div>
 
-                {/* Bullets */}
                 <div className="glass-card p-5 relative">
                   <CopyButton text={content.bullets.map(b => `• ${b}`).join('\n')} field="bullets" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2">Key Benefits</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-2">Key Benefits</p>
                   <ul className="space-y-2 pr-8">
                     {content.bullets.map((b, i) => (
                       <li key={i} className="text-foreground text-sm flex gap-2">
@@ -331,25 +320,22 @@ export default function Generator() {
                   </ul>
                 </div>
 
-                {/* Objection Handler */}
                 <div className="glass-card p-5 relative">
                   <CopyButton text={content.objection_handler} field="objection" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2">Objection Handler</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-2">Objection Handler</p>
                   <p className="text-foreground leading-relaxed pr-8">{content.objection_handler}</p>
                 </div>
 
-                {/* CTA */}
-                <div className="glass-card p-5 relative border-primary/20 bg-primary/5">
+                <div className="glass-card p-5 relative bg-primary/5">
                   <CopyButton text={content.cta} field="cta" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2">Call to Action</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-2">Call to Action</p>
                   <p className="text-foreground font-semibold leading-relaxed pr-8">{content.cta}</p>
                 </div>
 
-                {/* Post-generation action buttons */}
-                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <Button
                     variant="outline"
-                    className="gap-1.5 flex-1"
+                    className="gap-1.5 flex-1 border-white/10 min-h-[44px]"
                     onClick={() => {
                       setContent(null);
                       setSaveState('idle');
@@ -360,7 +346,7 @@ export default function Generator() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="gap-1.5 flex-1"
+                    className="gap-1.5 flex-1 border-white/10 min-h-[44px]"
                     disabled={saveState === 'saving' || saveState === 'saved'}
                     onClick={async () => {
                       setSaveState('saving');
@@ -384,25 +370,24 @@ export default function Generator() {
                     {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : saveState === 'error' ? 'Save failed — try again' : 'Save'}
                   </Button>
                   {isFreePlan ? (
-                    <Button className="gap-1.5 flex-1" onClick={() => navigate('/pricing')}>
+                    <Button className="gap-1.5 flex-1 px-6 py-2.5 font-semibold min-h-[44px]" onClick={() => navigate('/pricing')}>
                       <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
                     </Button>
                   ) : (
-                    <Button variant="outline" className="gap-1.5 flex-1" disabled>
+                    <Button variant="outline" className="gap-1.5 flex-1 border-white/10 min-h-[44px]" disabled>
                       Export Content
                     </Button>
                   )}
                 </div>
 
-                {/* Variations view */}
                 {variations && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Variations</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Variations</p>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 border-white/10"
                         onClick={() => {
                           if (previousOutput) setContent(previousOutput);
                           setVariations(null);
@@ -413,14 +398,14 @@ export default function Generator() {
                       </Button>
                     </div>
                     {variations.map((v, i) => (
-                      <div key={i} className="glass-card p-4 space-y-2">
+                      <div key={i} className="glass-card p-5 space-y-2 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                         <p className="text-xs font-semibold text-primary">Variation {i + 1}</p>
                         <p className="text-sm font-medium text-foreground">{v.hook}</p>
                         <p className="text-sm text-muted-foreground">{v.emotional_benefit}</p>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-1"
+                          className="mt-1 border-white/10"
                           onClick={() => {
                             setContent(v);
                             setVariations(null);
@@ -434,7 +419,6 @@ export default function Generator() {
                   </div>
                 )}
 
-                {/* AI Assist block */}
                 <AIAssistBlock
                   loading={assistLoading}
                   loadingText={assistLoadingText}
@@ -442,17 +426,16 @@ export default function Generator() {
                   currentPreset={preset}
                 />
 
-                {/* Post-generation upgrade message */}
                 {isFreePlan && (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center space-y-3">
+                  <div className="rounded-xl border border-white/10 bg-primary/5 p-6 text-center space-y-3">
                     <p className="text-foreground font-semibold">Keep generating client-winning content without limits.</p>
                     <p className="text-sm text-muted-foreground">You've seen what one output can do. Don't stop now.</p>
-                    <Button className="gap-1.5" onClick={() => navigate('/pricing')}>
+                    <Button className="gap-1.5 px-6 py-2.5 font-semibold" onClick={() => navigate('/pricing')}>
                       <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
                     </Button>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>

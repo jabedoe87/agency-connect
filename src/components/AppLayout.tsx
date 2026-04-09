@@ -67,10 +67,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <button
       key={item.label}
       onClick={() => handleNavClick(item)}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm tracking-wide transition-all duration-200 ${
         active
-          ? 'bg-sidebar-accent text-primary font-medium'
-          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+          ? 'bg-white/5 text-foreground font-medium border-l-2 border-primary pl-[10px]'
+          : 'text-sidebar-foreground/60 hover:bg-white/[0.03] hover:text-sidebar-foreground/80'
       }`}
     >
       <item.icon className="w-4 h-4" />
@@ -82,22 +82,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-border bg-sidebar fixed h-full">
-        <div className="p-4 border-b border-sidebar-border">
+      <aside className="hidden md:flex flex-col w-64 border-r border-white/10 bg-sidebar fixed h-full">
+        <div className="px-6 py-5 border-b border-white/10">
           <span className="font-display text-xl text-foreground">AgencyOS</span>
         </div>
 
         {profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
-          <div className="mx-3 mt-3 p-2 rounded-md bg-warning/10 border border-warning/20">
+          <div className="mx-4 mt-4 p-3 rounded-xl bg-warning/10 border border-warning/20">
             <p className="text-xs text-warning font-medium">Your trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</p>
           </div>
         )}
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {primaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
 
           <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
-            <CollapsibleTrigger className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors">
+            <CollapsibleTrigger className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm tracking-wide text-sidebar-foreground/60 hover:bg-white/[0.03] transition-all duration-200">
               <Menu className="w-4 h-4" />
               <span className="flex-1 text-left">More</span>
               <ChevronRight className={`w-3 h-3 transition-transform ${moreOpen ? 'rotate-90' : ''}`} />
@@ -108,7 +108,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </Collapsible>
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium text-primary">
               {profile?.full_name?.charAt(0) || 'U'}
@@ -127,8 +127,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Main content */}
       <main className="flex-1 md:ml-64 pb-20 md:pb-0">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 border-b border-border bg-sidebar/80 backdrop-blur-md">
-          <div className="flex items-center justify-between px-4 h-14">
+        <div className="sticky top-0 z-40 border-b border-white/10 bg-sidebar/80 backdrop-blur-md">
+          <div className="flex items-center justify-between px-6 h-14">
             <div className="md:hidden flex items-center gap-3">
               <span className="font-display text-lg text-foreground">AgencyOS</span>
             </div>
@@ -167,8 +167,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <button
                 key={item.label}
                 onClick={() => handleNavClick(item)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm ${
-                  location.pathname === item.path ? 'bg-muted text-primary font-medium' : 'text-foreground'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm ${
+                  location.pathname === item.path ? 'bg-white/5 text-primary font-medium' : 'text-foreground'
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -183,14 +183,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         )}
 
         {/* Mobile bottom nav */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-border z-40 flex justify-around py-2">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-white/10 z-40 flex justify-around py-2">
           {mobileNavItems.map((item) => {
             const active = location.pathname === item.path;
             return (
               <button
                 key={item.label}
                 onClick={() => handleNavClick(item)}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] ${
+                className={`flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] justify-center text-[10px] ${
                   active ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
