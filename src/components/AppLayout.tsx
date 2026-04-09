@@ -67,10 +67,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <button
       key={item.label}
       onClick={() => handleNavClick(item)}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm tracking-wide transition-all duration-150 ${
+      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm tracking-wide transition-all duration-150 ${
         active
           ? 'bg-white/[0.07] text-foreground font-medium border-l-2 border-primary pl-[10px]'
-          : 'text-sidebar-foreground/50 hover:text-sidebar-foreground/75 hover:bg-white/[0.03]'
+          : 'text-sidebar-foreground/60 hover:text-sidebar-foreground/80 hover:bg-white/[0.04]'
       }`}
     >
       <item.icon className="w-4 h-4 shrink-0" />
@@ -93,7 +93,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <nav className="flex-1 p-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {primaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
 
           <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>

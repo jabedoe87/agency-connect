@@ -248,8 +248,8 @@ export default function Generator() {
                     onClick={() => setPreset(p.id)}
                     className={`p-3 rounded-xl border text-left transition-all duration-150 ${
                       preset === p.id
-                        ? 'border-primary/50 bg-primary/10 text-foreground'
-                        : 'border-white/10 bg-white/5 text-muted-foreground hover:bg-white/[0.08] hover:text-foreground'
+                        ? 'border-primary/40 bg-primary/10 text-foreground shadow-sm'
+                        : 'border-white/10 bg-white/[0.04] text-muted-foreground hover:bg-white/[0.07] hover:text-foreground'
                     }`}
                   >
                     <p className="text-sm font-medium">{p.label}</p>

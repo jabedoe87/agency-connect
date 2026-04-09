@@ -91,11 +91,11 @@ export default function Dashboard() {
         <DashboardHero />
 
         {/* Stats grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {statCards.map((s) => (
             <div key={s.label} className="glass-card p-5 card-interactive">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${s.color}`}>
+                <div className={`w-10 h-10 rounded-xl bg-white/[0.06] flex items-center justify-center ${s.color}`}>
                   <s.icon className="w-5 h-5" />
                 </div>
                 <div>
