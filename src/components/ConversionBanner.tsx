@@ -27,9 +27,8 @@ export default function ConversionBanner() {
 
   return (
     <div className="space-y-4 mb-8">
-      {/* Trial / upgrade banner */}
       {isOnTrial && (
-        <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-5 md:p-6">
+        <div className="rounded-xl border border-white/10 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-5 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
               <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-1">
@@ -46,7 +45,7 @@ export default function ConversionBanner() {
             </div>
             <Button
               size="lg"
-              className="whitespace-nowrap font-semibold shadow-lg shadow-primary/20"
+              className="whitespace-nowrap font-semibold px-6 py-2.5"
               onClick={() => navigate('/pricing')}
             >
               Unlock Unlimited Content
@@ -55,12 +54,11 @@ export default function ConversionBanner() {
         </div>
       )}
 
-      {/* Usage trigger banner */}
       {contentCount > 0 && (
-        <div className="rounded-xl border border-border bg-card/80 p-4 md:p-5">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-success" />
               </div>
               <div>
@@ -70,7 +68,7 @@ export default function ConversionBanner() {
                 <p className="text-xs text-muted-foreground">Designed to convert — ready to use, no editing needed.</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects')}>
+            <Button variant="outline" size="sm" className="border-white/10" onClick={() => navigate('/projects')}>
               View Projects
             </Button>
           </div>

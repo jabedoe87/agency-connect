@@ -7,14 +7,12 @@ const ASSIST_ACTIONS = [
     id: 'rewrite',
     label: 'Rewrite',
     icon: RefreshCw,
-    loadingText: 'Rewriting your content...',
     instruction: 'Rewrite this content with different wording while keeping the same meaning, structure, and offer. Make it feel fresh, not repetitive.',
   },
   {
     id: 'improve',
     label: 'Improve',
     icon: Wand2,
-    loadingText: 'Making your content stronger...',
     instruction: 'Make this content more persuasive, more emotionally compelling, more specific, and more action-driven. Do not make it longer than necessary.',
   },
 ] as const;
@@ -38,7 +36,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
   const [showStylePicker, setShowStylePicker] = useState(false);
 
   return (
-    <div className="glass-card p-5 space-y-3">
+    <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
       <div>
         <p className="text-sm font-semibold text-foreground">AI Assist</p>
         <p className="text-xs text-muted-foreground mt-0.5">Refine, rewrite, or expand this result in one tap.</p>
@@ -51,13 +49,13 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex gap-3 flex-wrap">
         {ASSIST_ACTIONS.map((action) => (
           <Button
             key={action.id}
             variant="outline"
             size="sm"
-            className="gap-1.5 justify-start"
+            className="gap-1.5 border-white/10 opacity-80 hover:opacity-100"
             disabled={loading}
             onClick={() => onAction(action.instruction)}
           >
@@ -69,7 +67,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 justify-start"
+          className="gap-1.5 border-white/10 opacity-80 hover:opacity-100"
           disabled={loading}
           onClick={() => setShowStylePicker(!showStylePicker)}
         >
@@ -80,7 +78,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 justify-start"
+          className="gap-1.5 border-white/10 opacity-80 hover:opacity-100"
           disabled={loading}
           onClick={() =>
             onAction(
@@ -100,7 +98,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
               key={style.id}
               variant="outline"
               size="sm"
-              className="text-xs h-7"
+              className="text-xs h-7 border-white/10"
               disabled={loading}
               onClick={() => {
                 setShowStylePicker(false);

@@ -34,7 +34,7 @@
     --input: 220 17% 22%;
     --ring: 239 84% 67%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 220 20% 9%;
     --sidebar-foreground: 210 40% 90%;
@@ -76,6 +76,6 @@
   }
 
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border rounded-lg;
+    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl;
   }
 }

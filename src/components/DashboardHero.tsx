@@ -6,8 +6,8 @@ export default function DashboardHero() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card via-card to-primary/5 p-6 md:p-10 mb-8">
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+    <section className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-card via-card to-primary/5 p-6 md:p-10 mb-8">
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 max-w-2xl">
         <h2 className="font-display text-2xl md:text-4xl text-foreground leading-tight mb-3">
@@ -18,7 +18,7 @@ export default function DashboardHero() {
         </p>
         <Button
           size="lg"
-          className="gap-2 text-sm font-semibold"
+          className="gap-2 text-sm font-semibold px-6 py-2.5"
           onClick={() => navigate('/generator')}
         >
           <Sparkles className="w-4 h-4" />
@@ -28,14 +28,14 @@ export default function DashboardHero() {
       </div>
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-        <div className="rounded-lg border border-border bg-muted/50 p-5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Before</span>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 block">Before</span>
           <p className="text-sm text-muted-foreground leading-relaxed">
             "We offer personal training sessions"
           </p>
         </div>
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-5 shadow-[0_0_20px_hsl(var(--primary)/0.08)]">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-2 block">After</span>
+        <div className="rounded-xl border border-white/10 bg-primary/5 p-5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-primary mb-2 block">After</span>
           <p className="text-sm text-foreground leading-relaxed">
             "Transform your body, build unstoppable confidence and finally feel proud of what you see in the mirror."
           </p>
