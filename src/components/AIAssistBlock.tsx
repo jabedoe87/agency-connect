@@ -38,7 +38,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
   return (
     <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
       <div>
-        <p className="text-sm font-semibold text-foreground">AI Assist</p>
+        <p className="label-uppercase font-semibold text-foreground">AI Assist</p>
         <p className="text-xs text-muted-foreground mt-0.5">Refine, rewrite, or expand this result in one tap.</p>
       </div>
 
@@ -55,7 +55,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
             key={action.id}
             variant="outline"
             size="sm"
-            className="gap-1.5 border-white/10 opacity-80 hover:opacity-100"
+            className="gap-1.5 border-white/10 opacity-80 hover:opacity-100 transition-all duration-150 hover:scale-[1.02] active:scale-95"
             disabled={loading}
             onClick={() => onAction(action.instruction)}
           >
@@ -67,7 +67,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 border-white/10 opacity-80 hover:opacity-100"
+          className="gap-1.5 border-white/10 opacity-80 hover:opacity-100 transition-all duration-150 hover:scale-[1.02] active:scale-95"
           disabled={loading}
           onClick={() => setShowStylePicker(!showStylePicker)}
         >
@@ -78,7 +78,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 border-white/10 opacity-80 hover:opacity-100"
+          className="gap-1.5 border-white/10 opacity-80 hover:opacity-100 transition-all duration-150 hover:scale-[1.02] active:scale-95"
           disabled={loading}
           onClick={() =>
             onAction(
@@ -98,7 +98,7 @@ export default function AIAssistBlock({ loading, loadingText, onAction, currentP
               key={style.id}
               variant="outline"
               size="sm"
-              className="text-xs h-7 border-white/10"
+              className="text-xs h-7 border-white/10 opacity-70 hover:opacity-100 transition-all duration-150"
               disabled={loading}
               onClick={() => {
                 setShowStylePicker(false);
