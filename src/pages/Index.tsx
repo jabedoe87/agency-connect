@@ -1,7 +1,9 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Users, Zap, MessageSquare, PenTool, BarChart3 } from 'lucide-react';
 import PricingCards from '@/components/PricingCards';
+import { useAuth } from '@/contexts/AuthContext';
 
 const features = [
   { icon: Users, title: 'Get More Customers', description: 'Capture and manage leads from every channel. Turn prospects into paying clients with a clear pipeline.' },
@@ -12,6 +14,17 @@ const features = [
 ];
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users (e.g. returning from Google OAuth) to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      console.log('[AUTH DEBUG] Session exists on index page, redirecting to /dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
