@@ -10,9 +10,9 @@ import { useState } from 'react';
 
 // Map plan names to Stripe price IDs — update these after creating products in Stripe
 const PRICE_IDS: Record<string, string> = {
-  Starter: '', // No direct checkout for Starter
-  Pro: '', // Set your Stripe Price ID here
-  Business: '', // Set your Stripe Price ID here
+  Starter: 'price_1TL0DJAu1BgRc5u1f5foxZg2',
+  Pro: 'price_1TL0GUAu1BgRc5ul4oMu4Pfr',
+  Business: 'price_1TL0GUAu1BgRc5ulybtJ4zi0',
 };
 
 interface PricingCardsProps {
