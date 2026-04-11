@@ -1,0 +1,1 @@
+UPDATE public.profiles SET stripe_customer_id = NULL WHERE stripe_customer_id IS NOT NULL;
