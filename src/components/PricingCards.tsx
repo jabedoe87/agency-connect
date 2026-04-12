@@ -56,7 +56,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
         throw new Error('No checkout URL returned');
       }
     } catch (err: any) {
-      console.error('[BILLING DEBUG] checkout error:', err);
+      console.error('Checkout error:', err);
       toast({ title: 'Checkout failed', description: err.message || 'Please try again.', variant: 'destructive' });
     } finally {
       setLoadingBtn(null);
