@@ -110,9 +110,24 @@ export default function Dashboard() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your business today.</p>
           </div>
-          <Button className="mt-3 md:mt-0 gap-2 cta-primary" onClick={() => navigate('/generator')}>
-            <Sparkles className="w-4 h-4" /> Start Generating Content
-          </Button>
+          <div className="flex items-center gap-2 mt-3 md:mt-0">
+            {activePlan ? (
+              <Badge className="bg-success/15 text-success border-success/20 border">
+                {activePlan} {subscription?.status === 'trialing' ? '(Trial)' : ''}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-muted-foreground">No Plan</Badge>
+            )}
+            {subscription?.subscribed && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleManageSubscription} disabled={portalLoading}>
+                <CreditCard className="w-3.5 h-3.5" />
+                {portalLoading ? 'Loading...' : 'Manage'}
+              </Button>
+            )}
+            <Button className="gap-2 cta-primary" onClick={() => navigate('/generator')}>
+              <Sparkles className="w-4 h-4" /> Generate Content
+            </Button>
+          </div>
         </div>
 
         <ConversionBanner />
