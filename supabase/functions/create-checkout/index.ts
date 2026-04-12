@@ -8,6 +8,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.100.0";
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-12-18.acacia" });
 
 Deno.serve(async (req) => {
+  // TODO: remove before production
+  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+  console.log('[BILLING DEBUG] STRIPE_SECRET_KEY exists:', !!stripeKey);
+  console.log(
+    '[BILLING DEBUG] STRIPE_SECRET_KEY prefix:',
+    stripeKey?.startsWith('sk_live_')
+      ? 'sk_live'
+      : stripeKey?.startsWith('sk_test_')
+      ? 'sk_test'
+      : stripeKey?.startsWith('rk_live_')
+      ? 'rk_live'
+      : 'UNKNOWN'
+  );
+  // TODO: remove before production
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
