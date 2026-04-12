@@ -1,32 +1,38 @@
-import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.100.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-12-18.acacia" });
-
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-);
-
-const PLAN_MAP: Record<string, string> = {};
-
-async function resolvePlan(priceId: string): Promise<string> {
-  if (PLAN_MAP[priceId]) return PLAN_MAP[priceId];
-  try {
-    const price = await stripe.prices.retrieve(priceId, { expand: ["product"] });
-    const product = price.product as Stripe.Product;
-    const name = product.name?.toLowerCase() || "";
-    if (name.includes("business")) return "business";
-    if (name.includes("pro")) return "pro";
-    return "starter";
-  } catch {
-    return "pro";
-  }
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")!;
+  const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  const PLAN_MAP: Record<string, string> = {};
+
+  async function resolvePlan(priceId: string): Promise<string> {
+    if (PLAN_MAP[priceId]) return PLAN_MAP[priceId];
+    try {
+      const price = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+      const product = price.product as Stripe.Product;
+      const name = product.name?.toLowerCase() || "";
+      if (name.includes("business")) return "business";
+      if (name.includes("pro")) return "pro";
+      return "starter";
+    } catch {
+      return "pro";
+    }
   }
 
   try {
@@ -40,10 +46,7 @@ Deno.serve(async (req) => {
       event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
     } else {
       event = JSON.parse(body) as Stripe.Event;
-      console.log("[BILLING DEBUG] WARNING: No webhook secret, parsing raw event");
     }
-
-    console.log("[BILLING DEBUG] webhook event:", event.type);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -52,7 +55,6 @@ Deno.serve(async (req) => {
       const userId = session.metadata?.user_id;
 
       if (!userId) {
-        console.error("[BILLING DEBUG] No user_id in session metadata");
         return new Response("OK", { status: 200 });
       }
 
@@ -60,9 +62,6 @@ Deno.serve(async (req) => {
       const priceId = subscription.items.data[0]?.price?.id;
       const plan = priceId ? await resolvePlan(priceId) : "pro";
       const status = subscription.status;
-
-      console.log("[BILLING DEBUG] resolved paid status:", status);
-      console.log("[BILLING DEBUG] plan:", plan);
 
       const updateData: Record<string, any> = {
         plan,
@@ -74,16 +73,10 @@ Deno.serve(async (req) => {
         updateData.trial_ends_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
+      await supabase
         .from("profiles")
         .update(updateData)
         .eq("user_id", userId);
-
-      if (error) {
-        console.error("[BILLING DEBUG] profile update error:", error);
-      } else {
-        console.log("[BILLING DEBUG] profile updated for user:", userId);
-      }
     }
 
     if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
@@ -99,7 +92,6 @@ Deno.serve(async (req) => {
       if (profile) {
         if (subscription.status === "canceled" || event.type === "customer.subscription.deleted") {
           await supabase.from("profiles").update({ plan: "trial" }).eq("user_id", profile.user_id);
-          console.log("[BILLING DEBUG] subscription canceled for:", profile.user_id);
         }
       }
     }
