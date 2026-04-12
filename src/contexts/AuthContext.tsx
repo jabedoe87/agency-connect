@@ -1,14 +1,3 @@
-/*
-AUTH REGRESSION REPORT
-
-Root cause: Email auto-confirm was disabled — users who signed up could not log in because their email was not verified. Additionally, onAuthStateChange was set up before getSession, risking INITIAL_SESSION race conditions.
-Fix applied: 1) Enabled auto-confirm email signups. 2) Reordered getSession before onAuthStateChange listener. 3) Added specific error messages for auth failures. 4) Added debug logging.
-Email login working: YES
-Google login working: YES
-Existing users accessible: YES
-All 7 flow checks passed: YES
-Debug logs added: YES (remove before production)
-*/
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
