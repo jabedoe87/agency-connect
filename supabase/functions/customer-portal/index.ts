@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+  console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
 };
 
 Deno.serve(async (req) => {
@@ -17,9 +17,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    logStep("Function started");
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -48,57 +49,24 @@ Deno.serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
     const customers = await stripe.customers.list({ email: user.email!, limit: 1 });
 
     if (customers.data.length === 0) {
-      logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error("No Stripe customer found for this user");
     }
 
     const customerId = customers.data[0].id;
-    logStep("Found customer", { customerId });
+    logStep("Found Stripe customer", { customerId });
 
-    const subscriptions = await stripe.subscriptions.list({
+    const origin = req.headers.get("origin") || "https://id-preview--c5b11c23-da1d-4a43-92b7-e84dabb9336f.lovable.app";
+    const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      status: "active",
-      limit: 10,
+      return_url: `${origin}/dashboard`,
     });
 
-    const trialingSubs = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "trialing",
-      limit: 10,
-    });
+    logStep("Portal session created", { url: portalSession.url });
 
-    const allActive = [...subscriptions.data, ...trialingSubs.data];
-    const hasActiveSub = allActive.length > 0;
-
-    let subscriptionEnd: string | null = null;
-    let priceId: string | null = null;
-    let productId: string | null = null;
-    let status: string | null = null;
-
-    if (hasActiveSub) {
-      const sub = allActive[0];
-      subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
-      priceId = sub.items.data[0]?.price?.id ?? null;
-      productId = sub.items.data[0]?.price?.product as string ?? null;
-      status = sub.status;
-      logStep("Active subscription found", { subscriptionId: sub.id, priceId, productId, status, end: subscriptionEnd });
-    } else {
-      logStep("No active subscription");
-    }
-
-    return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      price_id: priceId,
-      product_id: productId,
-      subscription_end: subscriptionEnd,
-      status,
-    }), {
+    return new Response(JSON.stringify({ url: portalSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
