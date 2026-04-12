@@ -66,15 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // silently fail
     }
-    } catch (err) {
-      // silently fail
-    }
   }, []);
 
   useEffect(() => {
-    // Restore session from storage first
     supabase.auth.getSession().then(({ data: { session } }) => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -85,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
