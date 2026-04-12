@@ -21,7 +21,6 @@ const ERROR_MESSAGES: Record<ErrorCase, string> = {
 
 function classifyAuthError(error: any): { errorCase: ErrorCase; provider: string | null } {
   const msg = error?.message?.toLowerCase() || '';
-  const msg = error?.message?.toLowerCase() || '';
 
   if (msg.includes('email not confirmed')) {
     return { errorCase: 'D', provider: null };
