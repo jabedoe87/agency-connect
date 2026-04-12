@@ -61,21 +61,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkSubscription = useCallback(async () => {
     try {
       const res = await supabase.functions.invoke('check-subscription');
-      if (res.error) {
-        console.error('[AUTH DEBUG] check-subscription error:', res.error);
-        return;
-      }
-      console.log('[AUTH DEBUG] Subscription status:', res.data);
+      if (res.error) return;
       setSubscription(res.data as SubscriptionStatus);
+    } catch {
+      // silently fail
+    }
     } catch (err) {
-      console.error('[AUTH DEBUG] check-subscription failed:', err);
+      // silently fail
     }
   }, []);
 
   useEffect(() => {
     // Restore session from storage first
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[AUTH DEBUG] Session on load:', !!session);
+      supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -86,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        console.log('[AUTH DEBUG] Auth state changed:', _event, !!session);
+        (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
