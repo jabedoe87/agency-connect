@@ -26,6 +26,10 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
 
   const handleCheckout = async (planName: string, checkoutMode: 'trial' | 'direct') => {
+    // TODO remove before production cleanup
+    console.log(`[BILLING DEBUG] button clicked: ${planName.toLowerCase()}`);
+    console.log(`[BILLING DEBUG] checkoutMode: ${checkoutMode}`);
+
     if (!user) {
       navigate('/register');
       return;
@@ -39,26 +43,34 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
 
     const btnKey = `${planName}-${checkoutMode}`;
     setLoadingBtn(btnKey);
-    
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke('create-checkout', {
         body: { priceId, checkoutMode },
       });
 
-      if (res.error) throw res.error;
+      // TODO remove before production cleanup
+      console.log(`[BILLING DEBUG] response received: yes`);
 
-      const { url } = res.data;
-      if (url) {
+      if (res.error) {
+        console.error(`[BILLING DEBUG] checkout error:`, res.error);
+        throw res.error;
+      }
+
+      const url = res.data?.url;
+      // TODO remove before production cleanup
+      console.log(`[BILLING DEBUG] session.url exists: ${url ? 'yes' : 'no'}`);
+
+      if (url && typeof url === 'string' && url.startsWith('http')) {
+        console.log(`[BILLING DEBUG] redirect starting: yes`);
         window.location.href = url;
       } else {
-        throw new Error('No checkout URL returned');
+        console.error(`[BILLING DEBUG] checkout error: invalid or missing URL`, res.data);
+        throw new Error('Checkout could not be started. Please try again.');
       }
     } catch (err: any) {
-      console.error('Checkout error:', err);
-      toast({ title: 'Checkout failed', description: err.message || 'Please try again.', variant: 'destructive' });
-    } finally {
+      console.error(`[BILLING DEBUG] checkout error: ${err.message || err}`);
+      toast({ title: 'Checkout failed', description: err.message || 'Checkout could not be started. Please try again.', variant: 'destructive' });
       setLoadingBtn(null);
     }
   };
