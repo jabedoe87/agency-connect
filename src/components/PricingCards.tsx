@@ -10,9 +10,9 @@ import { useState } from 'react';
 
 // Map plan names to Stripe price IDs — update these after creating products in Stripe
 const PRICE_IDS: Record<string, string> = {
-  Starter: 'price_1TL0DJAu1BgRc5ulf5foxZg2',
+  Starter: 'price_1TL0DJAu1BgRc5u1f5foxZg2',
   Pro: 'price_1TL0GUAu1BgRc5ul4oMu4Pfr',
-  Business: 'price_1TL0dyAu1BgRc5ulybtJ4zi0',
+  Business: 'price_1TL0GUAu1BgRc5ulybtJ4zi0',
 };
 
 interface PricingCardsProps {
@@ -79,7 +79,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
     <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
       {PLANS.map((plan) => {
         const hasPriceId = !!PRICE_IDS[plan.name];
-        const showBuyNow = plan.name !== 'Starter' && hasPriceId;
+        const showBuyNow = hasPriceId;
 
         return (
           <div key={plan.name} className={`glass-card p-6 flex flex-col relative ${plan.badge ? 'ring-2 ring-primary' : ''}`}>

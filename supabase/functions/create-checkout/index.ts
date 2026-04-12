@@ -36,6 +36,9 @@ Deno.serve(async (req) => {
     const email = userData.user.email;
 
     const { priceId, checkoutMode } = await req.json();
+    // TODO: remove before production
+    console.log('[BILLING DEBUG] priceId received:', priceId);
+    console.log('[BILLING DEBUG] checkoutMode received:', checkoutMode);
 
     if (!priceId || !["trial", "direct"].includes(checkoutMode)) {
       return new Response(JSON.stringify({ error: "Invalid parameters" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -74,6 +77,16 @@ Deno.serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
+    // TODO: remove before production
+    console.log('[BILLING DEBUG] session created:', !!session);
+    console.log('[BILLING DEBUG] session.url exists:', !!session?.url);
+
+    if (!session?.url) {
+      return new Response(JSON.stringify({ error: "session url missing" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
