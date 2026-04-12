@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { PLANS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 
 // Map plan names to Stripe price IDs — DO NOT CHANGE
 const PRICE_IDS: Record<string, string> = {
@@ -22,94 +22,67 @@ interface PricingCardsProps {
 export default function PricingCards({ ctaPath = '/register' }: PricingCardsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const handleCheckout = async (planName: string, checkoutMode: 'trial' | 'direct') => {
-    // TODO remove before production cleanup
-    console.log('[BILLING DEBUG] button clicked:', planName.toLowerCase());
-    console.log('[BILLING DEBUG] checkoutMode:', checkoutMode);
+  const handleCheckout = async (
+    e: MouseEvent<HTMLButtonElement> | undefined,
+    priceId: string,
+    checkoutMode: 'trial' | 'direct',
+    planName: string,
+  ) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
 
-    if (!user) {
-      navigate('/register');
-      return;
-    }
-
-    const priceId = PRICE_IDS[planName];
-    if (!priceId) {
-      toast({ title: 'Not available', description: 'This plan is not yet configured for checkout.', variant: 'destructive' });
-      return;
-    }
-
-    const btnKey = `${planName}-${checkoutMode}`;
-    setLoadingBtn(btnKey);
+    setLoadingBtn(`${planName}-${checkoutMode}`);
     setCheckoutError(null);
 
+    console.log('[BILLING DEBUG] button clicked:', planName);
+    console.log('[BILLING DEBUG] checkoutMode:', checkoutMode);
+
+    if (!priceId) {
+      toast({ title: 'Not available', description: 'This plan is not yet configured for checkout.', variant: 'destructive' });
+      setLoadingBtn(null);
+      return;
+    }
+
     try {
-      // Get auth session for protected edge function
-      const { data: { session } } = await supabase.auth.getSession();
-
-      // TODO remove before production cleanup
-      console.log('[BILLING DEBUG] auth session exists:', !!session);
-
-      // Build full edge function URL
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const functionUrl = `${supabaseUrl}/functions/v1/create-checkout`;
-
-      // TODO remove before production cleanup
-      console.log('[BILLING DEBUG] function URL:', functionUrl);
-
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': anonKey,
-          ...(session?.access_token
-            ? { 'Authorization': `Bearer ${session.access_token}` }
-            : {}),
-        },
-        body: JSON.stringify({ priceId, checkoutMode }),
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId, checkoutMode },
       });
 
-      // TODO remove before production cleanup
-      console.log('[BILLING DEBUG] fetch status:', response.status);
+      console.log('[BILLING DEBUG] invoke error exists:', !!error);
+      console.log('[BILLING DEBUG] response keys:', data ? Object.keys(data) : []);
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error('[BILLING DEBUG] error body:', errorBody);
-        throw new Error(`Checkout failed (HTTP ${response.status})`);
+      if (error) {
+        throw new Error(error.message || 'Checkout invoke failed');
       }
-
-      const data = await response.json();
-
-      // TODO remove before production cleanup
-      console.log('[BILLING DEBUG] response keys:', Object.keys(data));
 
       const checkoutUrl = data?.url || data?.sessionUrl || data?.session?.url;
 
-      // TODO remove before production cleanup
-      console.log('[BILLING DEBUG] checkout url exists:', !!checkoutUrl);
+      console.log('[BILLING DEBUG] checkout url:', checkoutUrl || 'missing');
 
-      if (!checkoutUrl || typeof checkoutUrl !== 'string' || !checkoutUrl.startsWith('http')) {
-        console.error('[BILLING DEBUG] invalid checkout URL:', data);
+      if (!checkoutUrl || typeof checkoutUrl !== 'string') {
         throw new Error('Missing Stripe checkout URL');
       }
 
-      // TODO remove before production cleanup
-      console.log('[BILLING DEBUG] redirecting to Stripe');
+      const isStripeUrl =
+        checkoutUrl.startsWith('https://checkout.stripe.com/') ||
+        checkoutUrl.startsWith('https://buy.stripe.com/');
 
-      // Direct redirect — NO navigate(), NO router.push(), NO intermediate page
+      if (!isStripeUrl) {
+        throw new Error('Invalid Stripe checkout URL');
+      }
+
+      console.log('[BILLING DEBUG] redirecting to Stripe now');
+
       window.location.assign(checkoutUrl);
-
     } catch (err: any) {
-      // TODO remove before production cleanup
-      console.error('[BILLING DEBUG] checkout error:', err?.message || err);
+      console.log('[BILLING DEBUG] checkout error:', err?.message);
 
       setLoadingBtn(null);
       setCheckoutError('Checkout could not be started. Please try again.');
-      toast({ title: 'Checkout failed', description: err.message || 'Please try again.', variant: 'destructive' });
+      toast({ title: 'Checkout failed', description: err?.message || 'Please try again.', variant: 'destructive' });
     }
   };
 
@@ -142,18 +115,20 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
               {hasPriceId && user ? (
                 <>
                   <Button
+                    type="button"
                     className="w-full"
                     variant={plan.badge ? 'default' : 'outline'}
                     disabled={loadingBtn === `${plan.name}-trial`}
-                    onClick={() => handleCheckout(plan.name, 'trial')}
+                    onClick={(e) => handleCheckout(e, PRICE_IDS[plan.name], 'trial', plan.name)}
                   >
                     {loadingBtn === `${plan.name}-trial` ? 'Loading...' : 'Start Free Trial'}
                   </Button>
                   <Button
+                    type="button"
                     className="w-full"
                     variant="secondary"
                     disabled={loadingBtn === `${plan.name}-direct`}
-                    onClick={() => handleCheckout(plan.name, 'direct')}
+                    onClick={(e) => handleCheckout(e, PRICE_IDS[plan.name], 'direct', plan.name)}
                   >
                     {loadingBtn === `${plan.name}-direct` ? 'Loading...' : 'Buy Now'}
                   </Button>
