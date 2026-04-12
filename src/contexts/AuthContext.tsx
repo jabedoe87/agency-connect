@@ -32,6 +32,7 @@ interface Profile {
 interface SubscriptionStatus {
   subscribed: boolean;
   price_id: string | null;
+  product_id: string | null;
   subscription_end: string | null;
   status: string | null;
 }
