@@ -66,11 +66,8 @@ export default function Login() {
     setLoading(true);
     setLastErrorCase(null);
     try {
-
-    try {
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       if (existingSession) {
-        await supabase.auth.signOut();
         await supabase.auth.signOut();
       }
 
@@ -85,7 +82,6 @@ export default function Login() {
       }
 
       if (data.session) {
-        navigate('/dashboard');
         navigate('/dashboard');
       } else {
         toast({ title: 'Login failed', description: 'No session returned. Please try again.', variant: 'destructive' });
@@ -137,7 +133,6 @@ export default function Login() {
             className={`w-full ${hasError ? 'border-white/30 shadow-sm opacity-100' : ''}`}
             disabled={loading}
             onClick={async () => {
-              onClick={async () => {
               const result = await lovable.auth.signInWithOAuth("google", {
                 redirect_uri: window.location.origin,
               });
