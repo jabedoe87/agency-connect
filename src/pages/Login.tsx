@@ -21,27 +21,25 @@ const ERROR_MESSAGES: Record<ErrorCase, string> = {
 
 function classifyAuthError(error: any): { errorCase: ErrorCase; provider: string | null } {
   const msg = error?.message?.toLowerCase() || '';
-  console.log('[AUTH DEBUG] error:', error?.message);
 
   if (msg.includes('email not confirmed')) {
-    console.log('[AUTH DEBUG] case triggered: D');
+    return { errorCase: 'D', provider: null };
     return { errorCase: 'D', provider: null };
   }
   if (msg.includes('rate limit') || msg.includes('too many requests')) {
-    console.log('[AUTH DEBUG] case triggered: E');
+    return { errorCase: 'E', provider: null };
     return { errorCase: 'E', provider: null };
   }
   if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch')) {
-    console.log('[AUTH DEBUG] case triggered: F');
+    return { errorCase: 'F', provider: null };
     return { errorCase: 'F', provider: null };
   }
   if (msg.includes('invalid login credentials') || msg.includes('invalid_login_credentials')) {
     // Cannot detect provider without session — always fallback to Case B
-    console.log('[AUTH DEBUG] case triggered: B (fallback, no provider metadata available)');
-    console.log('[AUTH DEBUG] fallback used: true');
+    return { errorCase: 'B', provider: null };
     return { errorCase: 'B', provider: null };
   }
-  console.log('[AUTH DEBUG] case triggered: B (unknown error)');
+  return { errorCase: 'B', provider: null };
   return { errorCase: 'B', provider: null };
 }
 
@@ -57,7 +55,7 @@ export default function Login() {
   // Redirect to dashboard if already logged in (handles Google OAuth return)
   useEffect(() => {
     if (!authLoading && user) {
-      console.log('[AUTH DEBUG] Session exists on login page, redirecting to /dashboard');
+      navigate('/dashboard', { replace: true });
       navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);
@@ -66,17 +64,14 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setLastErrorCase(null);
-    console.log('[AUTH DEBUG] method: email-password');
-
     try {
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       if (existingSession) {
-        console.log('[AUTH DEBUG] Clearing stale session before login');
         await supabase.auth.signOut();
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      console.log('[AUTH DEBUG] session:', !!data?.session);
+      
 
       if (error) {
         const { errorCase } = classifyAuthError(error);
@@ -86,7 +81,6 @@ export default function Login() {
       }
 
       if (data.session) {
-        console.log('[AUTH DEBUG] Session created, redirecting');
         navigate('/dashboard');
       } else {
         toast({ title: 'Login failed', description: 'No session returned. Please try again.', variant: 'destructive' });
@@ -138,7 +132,6 @@ export default function Login() {
             className={`w-full ${hasError ? 'border-white/30 shadow-sm opacity-100' : ''}`}
             disabled={loading}
             onClick={async () => {
-              console.log('[AUTH DEBUG] method: google-oauth');
               const result = await lovable.auth.signInWithOAuth("google", {
                 redirect_uri: window.location.origin,
               });

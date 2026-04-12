@@ -20,7 +20,7 @@ export default function LandingPage() {
   // Redirect authenticated users (e.g. returning from Google OAuth) to dashboard
   useEffect(() => {
     if (!loading && user) {
-      console.log('[AUTH DEBUG] Session exists on index page, redirecting to /dashboard');
+      navigate('/dashboard', { replace: true });
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);

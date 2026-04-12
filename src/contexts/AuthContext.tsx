@@ -1,14 +1,3 @@
-/*
-AUTH REGRESSION REPORT
-
-Root cause: Email auto-confirm was disabled — users who signed up could not log in because their email was not verified. Additionally, onAuthStateChange was set up before getSession, risking INITIAL_SESSION race conditions.
-Fix applied: 1) Enabled auto-confirm email signups. 2) Reordered getSession before onAuthStateChange listener. 3) Added specific error messages for auth failures. 4) Added debug logging.
-Email login working: YES
-Google login working: YES
-Existing users accessible: YES
-All 7 flow checks passed: YES
-Debug logs added: YES (remove before production)
-*/
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -72,21 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkSubscription = useCallback(async () => {
     try {
       const res = await supabase.functions.invoke('check-subscription');
-      if (res.error) {
-        console.error('[AUTH DEBUG] check-subscription error:', res.error);
-        return;
-      }
-      console.log('[AUTH DEBUG] Subscription status:', res.data);
+      if (res.error) return;
       setSubscription(res.data as SubscriptionStatus);
-    } catch (err) {
-      console.error('[AUTH DEBUG] check-subscription failed:', err);
+    } catch {
+      // silently fail
     }
   }, []);
 
   useEffect(() => {
-    // Restore session from storage first
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[AUTH DEBUG] Session on load:', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -97,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        console.log('[AUTH DEBUG] Auth state changed:', _event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
