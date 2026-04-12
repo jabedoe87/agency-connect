@@ -39,7 +39,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
 
     const btnKey = `${planName}-${checkoutMode}`;
     setLoadingBtn(btnKey);
-    console.log('[BILLING DEBUG] mode:', checkoutMode);
+    
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
