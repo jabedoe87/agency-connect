@@ -5,9 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/AppLayout';
 import DashboardHero from '@/components/DashboardHero';
 import ConversionBanner from '@/components/ConversionBanner';
-import { Users, UserCheck, CalendarDays, DollarSign, Clock, Sparkles } from 'lucide-react';
+import { Users, UserCheck, CalendarDays, DollarSign, Clock, Sparkles, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface Stats {
   totalLeads: number;
@@ -24,12 +26,38 @@ interface Activity {
 }
 
 export default function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, subscription } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [stats, setStats] = useState<Stats>({ totalLeads: 0, totalClients: 0, upcomingAppointments: 0, monthlyRevenue: 0 });
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
+
+  const PRICE_TO_PLAN: Record<string, string> = {
+    'price_1TL0DJAu1BgRc5ulf5foxZg2': 'Starter',
+    'price_1TL0GUAu1BgRc5ul4oMu4Pfr': 'Pro',
+    'price_1TL0dyAu1BgRc5ulybtJ4zi0': 'Business',
+  };
+
+  const activePlan = subscription?.subscribed && subscription.price_id
+    ? PRICE_TO_PLAN[subscription.price_id] || 'Active'
+    : null;
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const res = await supabase.functions.invoke('customer-portal');
+      if (res.error) throw res.error;
+      const { url } = res.data;
+      if (url) window.location.href = url;
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Could not open subscription portal.', variant: 'destructive' });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -82,9 +110,24 @@ export default function Dashboard() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your business today.</p>
           </div>
-          <Button className="mt-3 md:mt-0 gap-2 cta-primary" onClick={() => navigate('/generator')}>
-            <Sparkles className="w-4 h-4" /> Start Generating Content
-          </Button>
+          <div className="flex items-center gap-2 mt-3 md:mt-0">
+            {activePlan ? (
+              <Badge className="bg-success/15 text-success border-success/20 border">
+                {activePlan} {subscription?.status === 'trialing' ? '(Trial)' : ''}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-muted-foreground">No Plan</Badge>
+            )}
+            {subscription?.subscribed && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleManageSubscription} disabled={portalLoading}>
+                <CreditCard className="w-3.5 h-3.5" />
+                {portalLoading ? 'Loading...' : 'Manage'}
+              </Button>
+            )}
+            <Button className="gap-2 cta-primary" onClick={() => navigate('/generator')}>
+              <Sparkles className="w-4 h-4" /> Generate Content
+            </Button>
+          </div>
         </div>
 
         <ConversionBanner />

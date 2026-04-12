@@ -1,33 +1,20 @@
-import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.100.0";
-
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-12-18.acacia" });
 
 Deno.serve(async (req) => {
-  // TODO: remove before production
-  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-  console.log('[BILLING DEBUG] STRIPE_SECRET_KEY exists:', !!stripeKey);
-  console.log(
-    '[BILLING DEBUG] STRIPE_SECRET_KEY prefix:',
-    stripeKey?.startsWith('sk_live_')
-      ? 'sk_live'
-      : stripeKey?.startsWith('sk_test_')
-      ? 'sk_test'
-      : stripeKey?.startsWith('rk_live_')
-      ? 'rk_live'
-      : 'UNKNOWN'
-  );
-  // TODO: remove before production
-
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -54,7 +41,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid parameters" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    console.log("[BILLING DEBUG] checkout mode selected:", checkoutMode);
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Find or create Stripe customer
     const { data: profile } = await supabase
@@ -84,21 +71,17 @@ Deno.serve(async (req) => {
 
     if (checkoutMode === "trial") {
       sessionConfig.subscription_data = { trial_period_days: 7 };
-      console.log("[BILLING DEBUG] trial applied: yes");
-    } else {
-      console.log("[BILLING DEBUG] trial applied: no");
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
-
-    console.log("[BILLING DEBUG] session created:", session.id);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Checkout error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Checkout error:", msg);
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
