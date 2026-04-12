@@ -39,7 +39,6 @@ export default function Register() {
       navigate('/onboarding');
     } catch (err: any) {
       const msg = err?.message?.toLowerCase() || '';
-      const msg = err?.message?.toLowerCase() || '';
       let description = err?.message || 'Something went wrong.';
       if (msg.includes('already registered')) {
         description = 'An account with this email already exists. Try logging in instead.';
