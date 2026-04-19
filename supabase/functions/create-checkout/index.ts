@@ -36,9 +36,8 @@ Deno.serve(async (req) => {
     const email = userData.user.email;
 
     const { priceId, checkoutMode } = await req.json();
-    // TODO: remove before production
-    console.log('[BILLING DEBUG] priceId received:', priceId);
-    console.log('[BILLING DEBUG] checkoutMode received:', checkoutMode);
+    console.log('EDGE: priceId:', priceId);
+    console.log('EDGE: checkoutMode:', checkoutMode);
 
     if (!priceId || !["trial", "direct"].includes(checkoutMode)) {
       return new Response(JSON.stringify({ error: "Invalid parameters" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -77,12 +76,11 @@ Deno.serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
-    // TODO: remove before production
-    console.log('[BILLING DEBUG] session created:', !!session);
-    console.log('[BILLING DEBUG] session.url exists:', !!session?.url);
+    console.log('EDGE: session created:', !!session);
+    console.log('EDGE: session.url:', session?.url);
 
     if (!session?.url) {
-      return new Response(JSON.stringify({ error: "session url missing" }), {
+      return new Response(JSON.stringify({ error: "Stripe checkout session URL missing" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
       });
@@ -90,6 +88,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

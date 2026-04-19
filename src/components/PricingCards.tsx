@@ -25,6 +25,18 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
+  const redirectToCheckout = (checkoutUrl: string) => {
+    if (window.self !== window.top) {
+      const redirectedTop = window.open(checkoutUrl, '_top');
+
+      if (redirectedTop) {
+        return;
+      }
+    }
+
+    window.location.assign(checkoutUrl);
+  };
+
   const handleCheckout = async (
     e: MouseEvent<HTMLButtonElement> | undefined,
     priceId: string,
@@ -37,8 +49,9 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
     setLoadingBtn(`${planName}-${checkoutMode}`);
     setCheckoutError(null);
 
-    console.log('[BILLING DEBUG] button clicked:', planName);
-    console.log('[BILLING DEBUG] checkoutMode:', checkoutMode);
+    console.log('STEP 1: calling edge function');
+    console.log('plan:', planName);
+    console.log('checkoutMode:', checkoutMode);
 
     if (!priceId) {
       toast({ title: 'Not available', description: 'This plan is not yet configured for checkout.', variant: 'destructive' });
@@ -51,8 +64,9 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
         body: { priceId, checkoutMode },
       });
 
-      console.log('[BILLING DEBUG] invoke error exists:', !!error);
-      console.log('[BILLING DEBUG] response keys:', data ? Object.keys(data) : []);
+      console.log('STEP 2: invoke result');
+      console.log('data:', data);
+      console.log('error:', error);
 
       if (error) {
         throw new Error(error.message || 'Checkout invoke failed');
@@ -60,25 +74,23 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
 
       const checkoutUrl = data?.url || data?.sessionUrl || data?.session?.url;
 
-      console.log('[BILLING DEBUG] checkout url:', checkoutUrl || 'missing');
-
-      if (!checkoutUrl || typeof checkoutUrl !== 'string') {
-        throw new Error('Missing Stripe checkout URL');
-      }
+      console.log('STEP 3: extracted URL:', checkoutUrl);
 
       const isStripeUrl =
-        checkoutUrl.startsWith('https://checkout.stripe.com/') ||
-        checkoutUrl.startsWith('https://buy.stripe.com/');
+        typeof checkoutUrl === 'string' &&
+        (checkoutUrl.startsWith('https://checkout.stripe.com/') ||
+          checkoutUrl.startsWith('https://buy.stripe.com/'));
 
       if (!isStripeUrl) {
-        throw new Error('Invalid Stripe checkout URL');
+        console.log('❌ INVALID URL — STOP HERE');
+        throw new Error('Stripe URL invalid or missing');
       }
 
-      console.log('[BILLING DEBUG] redirecting to Stripe now');
+      console.log('STEP 4: redirecting to Stripe');
 
-      window.location.assign(checkoutUrl);
+      redirectToCheckout(checkoutUrl);
     } catch (err: any) {
-      console.log('[BILLING DEBUG] checkout error:', err?.message);
+      console.log('[CHECKOUT DEBUG] checkout error:', err?.message);
 
       setLoadingBtn(null);
       setCheckoutError('Checkout could not be started. Please try again.');
