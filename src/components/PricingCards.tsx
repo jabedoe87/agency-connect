@@ -60,21 +60,42 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      console.log('[CHECKOUT] STEP 1: invoking edge function', { priceId, checkoutMode });
+
+      const res = await supabase.functions.invoke('create-checkout', {
         body: { priceId, checkoutMode },
       });
 
-      console.log('STEP 2: invoke result');
-      console.log('data:', data);
-      console.log('error:', error);
+      console.log('[CHECKOUT] STEP 2: raw response:', res);
+
+      const { data, error } = res;
+
+      console.log('[CHECKOUT] STEP 3: parsed data:', JSON.stringify(data));
+      console.log('[CHECKOUT] STEP 4: parsed error:', JSON.stringify(error));
 
       if (error) {
+        console.log('[CHECKOUT] ❌ invoke error detected');
         throw new Error(error.message || 'Checkout invoke failed');
       }
 
-      const checkoutUrl = data?.url || data?.sessionUrl || data?.session?.url;
+      if (!data) {
+        console.log('[CHECKOUT] ❌ NO DATA RETURNED');
+        throw new Error('No data returned from edge function');
+      }
 
-      console.log('STEP 3: extracted URL:', checkoutUrl);
+      const checkoutUrl = data?.url ?? data?.sessionUrl ?? data?.session?.url;
+
+      console.log('[CHECKOUT] STEP 5: extracted URL:', checkoutUrl);
+
+      if (!checkoutUrl || typeof checkoutUrl !== 'string') {
+        console.log('[CHECKOUT] ❌ URL MISSING OR INVALID TYPE');
+        throw new Error('Stripe URL missing or invalid');
+      }
+
+      if (!checkoutUrl.includes('stripe.com')) {
+        console.log('[CHECKOUT] ❌ NOT A STRIPE URL:', checkoutUrl);
+        throw new Error('Invalid Stripe URL');
+      }
 
       const isStripeUrl =
         typeof checkoutUrl === 'string' &&
@@ -86,7 +107,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
         throw new Error('Stripe URL invalid or missing');
       }
 
-      console.log('STEP 4: redirecting to Stripe');
+      console.log('[CHECKOUT] STEP 6: redirecting to Stripe');
 
       redirectToCheckout(checkoutUrl);
     } catch (err: any) {
