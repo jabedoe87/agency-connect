@@ -43,7 +43,8 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
     setCheckoutError(null);
 
     // Open popup synchronously on click (required for Safari / mobile webviews)
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    // Note: do NOT use 'noopener' here — we need the popup reference to set its location after the async call
+    const popup = window.open('about:blank', '_blank');
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
