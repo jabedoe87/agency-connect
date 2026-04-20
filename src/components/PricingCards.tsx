@@ -25,22 +25,6 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const redirectToCheckout = (checkoutUrl: string) => {
-    console.log('[CHECKOUT] forcing top-level redirect');
-
-    // HARD BREAKOUT — REQUIRED FOR LOVABLE / MOBILE WEBVIEW
-    if (window.top !== window.self) {
-      window.top.location.href = checkoutUrl;
-    } else {
-      window.location.href = checkoutUrl;
-    }
-
-    // FALLBACK (critical for iOS / blocked redirects)
-    setTimeout(() => {
-      window.open(checkoutUrl, '_blank');
-    }, 500);
-  };
-
   const handleCheckout = async (
     e: MouseEvent<HTMLButtonElement> | undefined,
     priceId: string,
@@ -50,73 +34,38 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
     e?.preventDefault?.();
     e?.stopPropagation?.();
 
-    setLoadingBtn(`${planName}-${checkoutMode}`);
-    setCheckoutError(null);
-
-    console.log('STEP 1: calling edge function');
-    console.log('plan:', planName);
-    console.log('checkoutMode:', checkoutMode);
-
     if (!priceId) {
       toast({ title: 'Not available', description: 'This plan is not yet configured for checkout.', variant: 'destructive' });
-      setLoadingBtn(null);
       return;
     }
 
-    try {
-      console.log('[CHECKOUT] STEP 1: invoking edge function', { priceId, checkoutMode });
+    setLoadingBtn(`${planName}-${checkoutMode}`);
+    setCheckoutError(null);
 
-      const res = await supabase.functions.invoke('create-checkout', {
+    // Open popup synchronously on click (required for Safari / mobile webviews)
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId, checkoutMode },
       });
 
-      console.log('[CHECKOUT] STEP 2: raw response:', res);
+      if (error) throw new Error(error.message);
 
-      const { data, error } = res;
+      const checkoutUrl = data?.url || data?.sessionUrl || data?.session?.url;
 
-      console.log('[CHECKOUT] STEP 3: parsed data:', JSON.stringify(data));
-      console.log('[CHECKOUT] STEP 4: parsed error:', JSON.stringify(error));
-
-      if (error) {
-        console.log('[CHECKOUT] ❌ invoke error detected');
-        throw new Error(error.message || 'Checkout invoke failed');
+      if (!checkoutUrl || !checkoutUrl.includes('stripe.com')) {
+        throw new Error('Invalid Stripe checkout URL');
       }
 
-      if (!data) {
-        console.log('[CHECKOUT] ❌ NO DATA RETURNED');
-        throw new Error('No data returned from edge function');
+      if (popup) {
+        popup.location = checkoutUrl;
+      } else {
+        // fallback if popup blocked
+        window.location.href = checkoutUrl;
       }
-
-      const checkoutUrl = data?.url ?? data?.sessionUrl ?? data?.session?.url;
-
-      console.log('[CHECKOUT] STEP 5: extracted URL:', checkoutUrl);
-
-      if (!checkoutUrl || typeof checkoutUrl !== 'string') {
-        console.log('[CHECKOUT] ❌ URL MISSING OR INVALID TYPE');
-        throw new Error('Stripe URL missing or invalid');
-      }
-
-      if (!checkoutUrl.includes('stripe.com')) {
-        console.log('[CHECKOUT] ❌ NOT A STRIPE URL:', checkoutUrl);
-        throw new Error('Invalid Stripe URL');
-      }
-
-      const isStripeUrl =
-        typeof checkoutUrl === 'string' &&
-        (checkoutUrl.startsWith('https://checkout.stripe.com/') ||
-          checkoutUrl.startsWith('https://buy.stripe.com/'));
-
-      if (!isStripeUrl) {
-        console.log('❌ INVALID URL — STOP HERE');
-        throw new Error('Stripe URL invalid or missing');
-      }
-
-      console.log('[CHECKOUT] STEP 6: redirecting to Stripe');
-
-      redirectToCheckout(checkoutUrl);
     } catch (err: any) {
-      console.log('[CHECKOUT DEBUG] checkout error:', err?.message);
-
+      if (popup && !popup.closed) popup.close();
       setLoadingBtn(null);
       setCheckoutError('Checkout could not be started. Please try again.');
       toast({ title: 'Checkout failed', description: err?.message || 'Please try again.', variant: 'destructive' });
