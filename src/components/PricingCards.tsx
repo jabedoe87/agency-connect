@@ -26,18 +26,19 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const redirectToCheckout = (checkoutUrl: string) => {
-    try {
-      if (window.top) {
-        window.top.location.href = checkoutUrl;
-        return;
-      }
-    } catch {
-      // Cross-origin iframe — fall back to opening top-level
-      const opened = window.open(checkoutUrl, '_top');
-      if (opened) return;
+    console.log('[CHECKOUT] forcing top-level redirect');
+
+    // HARD BREAKOUT — REQUIRED FOR LOVABLE / MOBILE WEBVIEW
+    if (window.top !== window.self) {
+      window.top.location.href = checkoutUrl;
+    } else {
+      window.location.href = checkoutUrl;
     }
 
-    window.location.href = checkoutUrl;
+    // FALLBACK (critical for iOS / blocked redirects)
+    setTimeout(() => {
+      window.open(checkoutUrl, '_blank');
+    }, 500);
   };
 
   const handleCheckout = async (
