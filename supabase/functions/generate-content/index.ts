@@ -11,61 +11,63 @@ const BANNED_WORDS = [
   "cutting-edge", "innovative", "game-changing", "transform your life"
 ];
 
-const STYLE_PRESETS: Record<string, string> = {
-  "high-converting": `Style: High-Converting. Write like a top-performing direct-response marketer. Lead with the reader's pain. Follow with a clear, concrete benefit. Close with urgency that feels earned, not forced. Keep sentences tight — every line must move the reader one step closer to action. No filler. No fluff. Focus on outcomes, not features. Use simple language that scans fast. This should feel like copy that has already been tested and proven to convert in paid ads.`,
-  luxury: `Style: Luxury. Write like a premium brand speaking to a high-value client. Use refined, sensory language and a calm, confident tone. Never use urgency, discounts, or pressure tactics. Focus on exclusivity, craftsmanship, and experience. Sentences should be longer and more deliberate. No exclamation marks. Preferred vocabulary: bespoke, curated, private, crafted, considered, unhurried, refined. The reader should feel chosen, not sold to. The CTA must feel like a quiet invitation — never a command.`,
-  aggressive: `Style: Aggressive Sales. Write like a high-converting Facebook ad designed to force action now. Short sentences. Hard stops. Direct commands only. Name the consequences of NOT acting. Use scarcity and urgency explicitly. Make waiting feel like a mistake the reader will regret. Occasional ALL CAPS on the single most important phrase is allowed. No soft language. No hedging. No "consider" or "maybe" or "could". This should feel like someone who has no patience for excuses.`,
-  tiktok: `Style: TikTok Viral. Write like a scroll-stopping TikTok hook or spoken video caption. One idea per line. Maximum 6 words per sentence. Use rhythm — short, then shorter, then one punchy closer. Open with something unexpected, relatable, or slightly provocative. Speak directly to "you". Informal is fine. Energy must stay high. Use line breaks to create spoken rhythm, not paragraph structure. The first line must make someone stop scrolling. That is the only rule that matters more than all others.`,
-  minimal: `Style: Minimal. Write with extreme clarity. Short sentences only. No hype. No exaggeration. No stacked adjectives. Every word must earn its place — cut anything decorative. Tone: calm, confident, understated. The reader should understand the full message in under 10 seconds. This should feel like a clean product page written by someone who trusts the product to speak for itself.`,
+const GENERIC_PHRASES = [
+  "we are committed to",
+  "customer satisfaction is our priority",
+  "we strive to",
+  "thank you for your feedback",
+  "as a valued customer",
+  "we apologize for any inconvenience",
+];
+
+// Length limits (words)
+const LIMITS = {
+  hook: 40,
+  emotional_benefit: 60,
+  bullet: 18,
+  objection_handler: 50,
+  cta: 20,
 };
 
-const SYSTEM_PROMPT = `You are an expert direct-response copywriter who writes content that converts readers into paying clients.
+const STYLE_PRESETS: Record<string, string> = {
+  "high-converting": `Style: HIGH-CONVERTING DIRECT RESPONSE.
+Tone: urgent, specific, outcome-driven.
+Voice: a top-performing direct-response copywriter who has tested thousands of ads.
+Language: tight sentences, concrete numbers when possible, zero filler, zero adjectives that don't earn their place.
+Feels like: a proven Facebook ad that already converted at scale.
+Rule: every line must move the reader one step closer to action. Lead with pain, follow with concrete benefit, close with earned urgency. Outcomes over features. No fluff.`,
 
-You write for local service businesses.
+  luxury: `Style: LUXURY.
+Tone: premium, minimal, emotionally prestigious — never loud.
+Voice: calm confidence of a high-end brand speaking to a high-value client.
+Language: refined, sensory, deliberate. No slang. No exaggeration. No exclamation marks. No urgency. No discounts. No pressure.
+Feels like: Apple, Rolex, Aman Resorts, Hermès.
+Rule: elegance over persuasion. Use words like bespoke, curated, private, crafted, considered, refined. The reader should feel chosen, not sold to. The CTA is a quiet invitation, never a command.`,
 
-STRICT RULES:
+  aggressive: `Style: AGGRESSIVE SALES.
+Tone: hard, direct, zero patience for excuses.
+Voice: a closer who will not let the reader off the hook.
+Language: short sentences. Hard stops. Direct commands only. No hedging. No "consider", no "maybe", no "could". One ALL-CAPS phrase allowed for the single most important point.
+Feels like: a high-pressure Facebook ad designed to force action right now.
+Rule: name the consequence of NOT acting. Make waiting feel like a mistake the reader will regret.`,
 
-BANNED WORDS (never use these):
-${BANNED_WORDS.join(", ")}
+  tiktok: `Style: VIRAL / TIKTOK.
+Tone: punchy, fast, curiosity-driven, slightly provocative.
+Voice: a creator speaking directly to one person scrolling at 11pm.
+Language: one idea per line. Max 6 words per sentence. Pattern interrupts. Hooks. Informal is fine.
+Feels like: a scroll-stopping TikTok caption or spoken video opener.
+Rule: attention over perfection. The first line must make someone stop scrolling — that matters more than every other rule combined. Use line breaks for spoken rhythm, not paragraph structure.`,
 
-FORMAT:
-Return ONLY valid JSON with this exact structure:
-{
-  "hook": "",
-  "emotional_benefit": "",
-  "bullets": ["", "", "", ""],
-  "objection_handler": "",
-  "cta": ""
-}
+  minimal: `Style: MINIMAL / AUTHORITY.
+Tone: calm, confident, understated, expert.
+Voice: a consultant who trusts the product to speak for itself.
+Language: extreme clarity. Short sentences. No hype. No stacked adjectives. No exaggeration. Precise wording. Data-driven where relevant.
+Feels like: a clean Apple product page or a McKinsey one-pager.
+Rule: trust over hype. Every word must earn its place — cut anything decorative. The reader should grasp the full message in under 10 seconds.`,
+};
 
-RULES:
-
-hook:
-- pain-driven
-- specific
-- max 2 sentences
-- NEVER start with: "Are you", "Do you want", "Looking for"
-
-emotional_benefit:
-- before → after transformation
-- max 3 sentences
-
-bullets:
-- exactly 4
-- benefit-driven
-- start with action verbs
-
-objection_handler:
-- address a real objection for this business type
-- reframe it
-
-cta:
-- strong action
-- urgency
-
-Example of perfect output:
-
-{
+// Golden example for this exact JSON structure
+const GOLDEN_EXAMPLE = `{
   "hook": "Still hiding your body under baggy clothes because nothing seems to work?",
   "emotional_benefit": "Imagine finally feeling confident when you look in the mirror instead of frustrated every morning.",
   "bullets": [
@@ -78,13 +80,73 @@ Example of perfect output:
   "cta": "Book your first session before this week fills up"
 }`;
 
+const SYSTEM_PROMPT = `You are an elite direct-response copywriter for local service businesses. Your copy converts strangers into paying clients.
+
+You are generating client-getting content following an EXACT structure with 5 sections: hook, emotional_benefit, bullets (exactly 4), objection_handler, cta.
+
+BANNED WORDS (never use these — instant fail):
+${BANNED_WORDS.join(", ")}
+
+BANNED GENERIC PHRASES (never use these — instant fail):
+${GENERIC_PHRASES.join(" / ")}
+
+OUTPUT FORMAT — return ONLY valid JSON, no markdown, no code fences, no explanation:
+{
+  "hook": "",
+  "emotional_benefit": "",
+  "bullets": ["", "", "", ""],
+  "objection_handler": "",
+  "cta": ""
+}
+
+SECTION RULES:
+
+hook (max ${LIMITS.hook} words, max 2 sentences)
+- pain-driven, specific to the reader's actual situation
+- NEVER start with: "Are you", "Do you want", "Looking for", "Imagine if"
+
+emotional_benefit (max ${LIMITS.emotional_benefit} words, max 3 sentences)
+- before → after transformation
+- concrete, not abstract
+
+bullets (exactly 4, each max ${LIMITS.bullet} words)
+- benefit-driven, not feature-driven
+- start with strong action verbs
+- specific outcomes, not vague promises
+
+objection_handler (max ${LIMITS.objection_handler} words)
+- address the strongest real objection for this exact business type
+- reframe it, do not just dismiss it
+
+cta (max ${LIMITS.cta} words, 1 sentence)
+- one clear action
+- urgency must feel earned, not forced (unless style is aggressive)
+
+GOLDEN EXAMPLE OF A PERFECT RESULT (fitness coach niche, high-converting style):
+
+${GOLDEN_EXAMPLE}
+
+Now generate a result of equal or greater quality, matching the requested niche, business context, and style EXACTLY. Use the same structure, same depth, same specificity.`;
+
+function wordCount(s: string): number {
+  return (s || "").trim().split(/\s+/).filter(Boolean).length;
+}
+
 function containsBannedWords(text: string): string[] {
   const lower = text.toLowerCase();
   return BANNED_WORDS.filter(w => lower.includes(w));
 }
 
+function containsGenericPhrases(text: string): string[] {
+  const lower = text.toLowerCase();
+  return GENERIC_PHRASES.filter(p => lower.includes(p));
+}
+
 function validateOutput(content: any): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
+  if (!content || typeof content !== "object") {
+    return { valid: false, errors: ["Output is not an object"] };
+  }
   if (!content.hook) errors.push("Missing hook");
   if (!content.emotional_benefit) errors.push("Missing emotional_benefit");
   if (!content.bullets || !Array.isArray(content.bullets) || content.bullets.length < 4)
@@ -92,18 +154,63 @@ function validateOutput(content: any): { valid: boolean; errors: string[] } {
   if (!content.objection_handler) errors.push("Missing objection_handler");
   if (!content.cta) errors.push("Missing cta");
 
-  // Check banned words across all text
+  // Length discipline
+  if (content.hook && wordCount(content.hook) > LIMITS.hook)
+    errors.push(`hook exceeds ${LIMITS.hook} words`);
+  if (content.emotional_benefit && wordCount(content.emotional_benefit) > LIMITS.emotional_benefit)
+    errors.push(`emotional_benefit exceeds ${LIMITS.emotional_benefit} words`);
+  if (Array.isArray(content.bullets)) {
+    content.bullets.forEach((b: string, i: number) => {
+      if (wordCount(b) > LIMITS.bullet) errors.push(`bullet ${i + 1} exceeds ${LIMITS.bullet} words`);
+    });
+  }
+  if (content.objection_handler && wordCount(content.objection_handler) > LIMITS.objection_handler)
+    errors.push(`objection_handler exceeds ${LIMITS.objection_handler} words`);
+  if (content.cta && wordCount(content.cta) > LIMITS.cta)
+    errors.push(`cta exceeds ${LIMITS.cta} words`);
+
   const allText = [
     content.hook, content.emotional_benefit, content.objection_handler, content.cta,
     ...(content.bullets || [])
   ].filter(Boolean).join(" ");
-  const found = containsBannedWords(allText);
-  if (found.length > 0) errors.push(`Contains banned words: ${found.join(", ")}`);
 
-  // Check generic hook starts
+  const banned = containsBannedWords(allText);
+  if (banned.length > 0) errors.push(`Contains banned words: ${banned.join(", ")}`);
+
+  const generic = containsGenericPhrases(allText);
+  if (generic.length >= 2) errors.push(`Contains generic phrases: ${generic.join(", ")}`);
+
   const hookLower = (content.hook || "").toLowerCase().trim();
-  if (hookLower.startsWith("are you") || hookLower.startsWith("do you want") || hookLower.startsWith("looking for"))
+  if (hookLower.startsWith("are you") || hookLower.startsWith("do you want") ||
+      hookLower.startsWith("looking for") || hookLower.startsWith("imagine if"))
     errors.push("Hook starts with a banned phrase");
+
+  return { valid: errors.length === 0, errors };
+}
+
+function validateStyle(content: any, preset: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const allText = [
+    content.hook, content.emotional_benefit, content.objection_handler, content.cta,
+    ...(content.bullets || [])
+  ].filter(Boolean).join(" ");
+
+  if (preset === "luxury") {
+    if (allText.includes("!")) errors.push("Luxury style must not contain exclamation marks");
+    const pushy = /\b(now|hurry|limited time|don't wait|act fast)\b/i;
+    if (pushy.test(allText)) errors.push("Luxury style must not use urgency/pressure language");
+  }
+
+  if (preset === "tiktok") {
+    // Viral: short punchy sentences. Hook should be short.
+    if (content.hook && wordCount(content.hook) > 14)
+      errors.push("Viral hook should be short and punchy (≤14 words)");
+  }
+
+  if (preset === "aggressive") {
+    const soft = /\b(maybe|perhaps|consider|might|could)\b/i;
+    if (soft.test(allText)) errors.push("Aggressive style must not use soft/hedging language");
+  }
 
   return { valid: errors.length === 0, errors };
 }
@@ -118,7 +225,7 @@ serve(async (req) => {
 
     const styleInstruction = STYLE_PRESETS[preset] || STYLE_PRESETS["high-converting"];
 
-    const userPrompt = `Write client-getting content for this business:
+    const userPrompt = `Write client-getting content for this business.
 
 Niche: ${niche}
 
@@ -127,9 +234,11 @@ ${businessContext ? `Business context:
 - Target audience: ${businessContext.target_audience || "Local customers"}
 - Offer: ${businessContext.offer || niche}
 
-Write specifically for this business. Avoid generic phrasing. If output feels generic, rewrite it to be more specific.
+Write specifically for THIS business and audience. Generic phrasing = automatic fail. If a sentence could apply to any business, rewrite it until it could only apply to this one.
 
 ` : ""}${styleInstruction}
+
+Match the style EXACTLY. The output must feel unmistakably like the requested style — a luxury result must not sound like an aggressive result, and vice versa.
 
 Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
 
@@ -150,12 +259,8 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
       });
 
       if (!response.ok) {
-        if (response.status === 429) {
-          return { error: "Rate limit exceeded. Please try again in a moment.", status: 429 };
-        }
-        if (response.status === 402) {
-          return { error: "AI credits exhausted. Please add funds.", status: 402 };
-        }
+        if (response.status === 429) return { error: "Rate limit exceeded. Please try again in a moment.", status: 429 };
+        if (response.status === 402) return { error: "AI credits exhausted. Please add funds.", status: 402 };
         const t = await response.text();
         console.error("AI gateway error:", response.status, t);
         return { error: "AI generation failed", status: 500 };
@@ -163,8 +268,7 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
 
       const data = await response.json();
       const raw = data.choices?.[0]?.message?.content || "";
-      
-      // Extract JSON from response (handle markdown code blocks)
+
       let jsonStr = raw;
       const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) jsonStr = jsonMatch[1];
@@ -187,35 +291,47 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
       });
     }
 
-    // Skip validation for variations requests (different JSON structure)
     const isVariationsRequest = assistInstruction && assistInstruction.toLowerCase().includes('variations');
-    
+
     let validation = { valid: true, errors: [] as string[] };
+    let styleValidation = { valid: true, errors: [] as string[] };
+    let qualityWarning = false;
+
     if (!isVariationsRequest) {
       validation = validateOutput(result.content);
-      
-      // Retry once if validation fails
-      if (!validation.valid) {
-        console.log("Validation failed, retrying:", validation.errors);
+      styleValidation = validateStyle(result.content, preset);
+
+      // Retry up to 2 times total if validation fails
+      let attempts = 0;
+      while ((!validation.valid || !styleValidation.valid) && attempts < 2) {
+        attempts++;
+        const allErrors = [...validation.errors, ...styleValidation.errors];
+        console.log(`Validation failed (attempt ${attempts}), retrying:`, allErrors);
         const retryPrompt = `${userPrompt}
 
-IMPORTANT: Your previous output had these issues: ${validation.errors.join("; ")}. Fix them. Return ONLY valid JSON.`;
-        
-        result = await generateContent(retryPrompt);
-        if ("error" in result) {
-          return new Response(JSON.stringify({ error: result.error }), {
-            status: result.status,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+CRITICAL: Your previous output had these issues — fix ALL of them: ${allErrors.join("; ")}.
+Return ONLY valid JSON matching the exact structure and length limits.`;
+
+        const retry = await generateContent(retryPrompt);
+        if ("error" in retry) break; // keep last good-ish result
+        result = retry;
         validation = validateOutput(result.content);
+        styleValidation = validateStyle(result.content, preset);
+      }
+
+      if (!validation.valid || !styleValidation.valid) {
+        qualityWarning = true;
       }
     }
 
     return new Response(JSON.stringify({
       content: result.content,
       preset,
-      validation: { valid: validation.valid, errors: validation.errors },
+      validation: {
+        valid: validation.valid && styleValidation.valid,
+        errors: [...validation.errors, ...styleValidation.errors],
+      },
+      quality_warning: qualityWarning,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
