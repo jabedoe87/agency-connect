@@ -10,7 +10,7 @@ import { useState, type MouseEvent } from 'react';
 
 // Map plan names to Stripe price IDs — DO NOT CHANGE
 const PRICE_IDS: Record<string, string> = {
-  Starter: 'price_1TL0DJAu1BgRc5ulf5foxZg2',
+  Starter: 'price_1TOYSbAu1BgRc5ulZ0WaSYu4', // TEMP €5 test price — revert to 'price_1TL0DJAu1BgRc5ulf5foxZg2' after live validation
   Pro: 'price_1TL0GUAu1BgRc5ul4oMu4Pfr',
   Business: 'price_1TL0dyAu1BgRc5ulybtJ4zi0',
 };
