@@ -47,7 +47,7 @@ Rule: every line must move the reader one step closer to action. Lead with pain,
   luxury: `Style: LUXURY.
 Tone: premium, minimal, emotionally prestigious — never loud.
 Voice: calm confidence of a high-end brand speaking to a high-value client.
-Language: refined, sensory, deliberate. No slang. No exaggeration. No exclamation marks. No urgency. No discounts. No pressure.
+Language: few words, high impact. Sensory, deliberate. Quiet confidence. No slang. No exaggeration. No exclamation marks. No urgency. No discounts. No pressure.
 Feels like: Apple, Rolex, Aman Resorts, Hermès.
 Rule: elegance over persuasion. Use words like bespoke, curated, private, crafted, considered, refined. The reader should feel chosen, not sold to. The CTA is a quiet invitation, never a command.`,
 
@@ -61,14 +61,14 @@ Rule: name the consequence of NOT acting. Make waiting feel like a mistake the r
   tiktok: `Style: VIRAL / TIKTOK.
 Tone: punchy, fast, curiosity-driven, slightly provocative.
 Voice: a creator speaking directly to one person scrolling at 11pm.
-Language: one idea per line. Max 6 words per sentence. Pattern interrupts. Hooks. Informal is fine.
+Language: sharp hooks. One idea per line. Max 6 words per sentence. Pattern interrupts. Contrast-driven. Informal is fine.
 Feels like: a scroll-stopping TikTok caption or spoken video opener.
 Rule: attention over perfection. The first line must make someone stop scrolling — that matters more than every other rule combined. Use line breaks for spoken rhythm, not paragraph structure.`,
 
   minimal: `Style: MINIMAL / AUTHORITY.
 Tone: calm, confident, understated, expert.
 Voice: a consultant who trusts the product to speak for itself.
-Language: extreme clarity. Short sentences. No hype. No stacked adjectives. No exaggeration. Precise wording. Data-driven where relevant.
+Language: lead with insight. Use numbers. Extreme clarity. Short sentences. No fluff. No hesitation words. No hype. No stacked adjectives. Precise wording. Data-driven where relevant.
 Feels like: a clean Apple product page or a McKinsey one-pager.
 Rule: trust over hype. Every word must earn its place — cut anything decorative. The reader should grasp the full message in under 10 seconds.`,
 };
