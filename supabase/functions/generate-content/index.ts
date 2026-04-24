@@ -8,7 +8,8 @@ const corsHeaders = {
 const BANNED_WORDS = [
   "improve", "enhance", "boost", "optimize", "elevate", "empower", "leverage",
   "streamline", "utilize", "facilitate", "journey", "holistic", "tailored",
-  "cutting-edge", "innovative", "game-changing", "transform your life"
+  "cutting-edge", "innovative", "game-changing", "transform your life",
+  "results-driven", "passionate about", "one-stop shop"
 ];
 
 const GENERIC_PHRASES = [
@@ -18,6 +19,12 @@ const GENERIC_PHRASES = [
   "thank you for your feedback",
   "as a valued customer",
   "we apologize for any inconvenience",
+  "improve your business",
+  "high-quality service",
+  "best solution",
+  "innovative approach",
+  "take your business to the next level",
+  "tailored solutions",
 ];
 
 // Length limits (words)
