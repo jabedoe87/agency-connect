@@ -604,58 +604,84 @@ export default function Generator() {
                   </Button>
                 </div>
 
-                {(['a', 'b', 'c'] as const).map((key) => {
-                  const v = adsOutput[`version_${key}` as 'version_a'];
-                  const s = adsOutput.scores?.[key];
-                  const isWinner = adsOutput.winner === key;
+                {/* Output context (Section 4) */}
+                <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
+                  <p className="text-xs text-foreground">
+                    <span className="text-muted-foreground">This is for:</span>{' '}
+                    <span className="font-semibold text-primary">{actionType}</span>
+                  </p>
+                </div>
+
+                {/* Auto-selected winner — shown prominently FIRST (Section 3) */}
+                {(() => {
+                  const winnerKey = (adsOutput.winner || 'a') as 'a' | 'b' | 'c';
+                  const otherKeys = (['a', 'b', 'c'] as const).filter((k) => k !== winnerKey);
                   const labels = { a: 'A — Curiosity Gap', b: 'B — Bold Contrast', c: 'C — Pain Mirror' };
-                  const fullText = `${v.hook}\n\n${v.pain}\n\n${v.shift}\n\n${v.offer}\n\n${v.cta}`;
+                  const wv = adsOutput[`version_${winnerKey}` as 'version_a'];
+                  const ws = adsOutput.scores?.[winnerKey];
+                  const wText = `${wv.hook}\n\n${wv.pain}\n\n${wv.shift}\n\n${wv.offer}\n\n${wv.cta}`;
                   return (
-                    <div key={key} className={`glass-card p-5 space-y-3 relative ${isWinner ? 'ring-1 ring-primary/40' : ''}`}>
-                      <CopyButton text={fullText} field={`ad_${key}`} />
-                      <div className="flex items-center justify-between pr-8">
-                        <p className="label-uppercase text-primary text-[10px] font-semibold">{labels[key]}</p>
-                        {isWinner && <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">Winner</span>}
-                      </div>
-                      <p className="text-foreground font-medium leading-relaxed">{v.hook}</p>
-                      <p className="text-muted-foreground text-sm leading-relaxed">{v.pain}</p>
-                      <p className="text-muted-foreground text-sm leading-relaxed">{v.shift}</p>
-                      <p className="text-muted-foreground text-sm leading-relaxed">{v.offer}</p>
-                      <p className="text-foreground font-semibold leading-relaxed">{v.cta}</p>
-                      {s && (
-                        <div className="pt-2 border-t border-white/5">
-                          <p className="text-xs text-muted-foreground">
-                            <span className="text-foreground font-medium">{s.stop}/10</span> stop · <span className="text-foreground font-medium">{s.click}/10</span> click
-                          </p>
+                    <>
+                      <div className="rounded-xl border-2 border-primary/40 bg-primary/[0.06] p-5 space-y-3 relative">
+                        <CopyButton text={wText} field={`ad_${winnerKey}`} />
+                        <div className="flex items-center justify-between pr-8">
+                          <p className="label-uppercase text-primary text-[11px] font-bold">🔥 Best performing version (recommended)</p>
+                          <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">{labels[winnerKey]}</span>
                         </div>
-                      )}
-                    </div>
+                        <p className="text-foreground font-medium leading-relaxed">{wv.hook}</p>
+                        <p className="text-foreground/90 text-sm leading-relaxed">{wv.pain}</p>
+                        <p className="text-foreground/90 text-sm leading-relaxed">{wv.shift}</p>
+                        <p className="text-foreground/90 text-sm leading-relaxed">{wv.offer}</p>
+                        <p className="text-foreground font-semibold leading-relaxed">{wv.cta}</p>
+                        {ws && (
+                          <div className="pt-2 border-t border-white/5">
+                            <p className="text-xs text-muted-foreground">
+                              <span className="text-foreground font-medium">{ws.stop}/10</span> stop · <span className="text-foreground font-medium">{ws.click}/10</span> click
+                            </p>
+                          </div>
+                        )}
+                        <p className="text-[11px] text-muted-foreground italic pt-1">This message is structured to get replies.</p>
+                      </div>
+
+                      {/* Other versions — de-emphasized */}
+                      <details className="rounded-lg border border-white/10 bg-white/[0.02] overflow-hidden">
+                        <summary className="px-4 py-2.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">
+                          Show other 2 versions ({otherKeys.map((k) => k.toUpperCase()).join(', ')})
+                        </summary>
+                        <div className="px-4 pb-4 space-y-3 opacity-60">
+                          {otherKeys.map((key) => {
+                            const v = adsOutput[`version_${key}` as 'version_a'];
+                            const s = adsOutput.scores?.[key];
+                            const fullText = `${v.hook}\n\n${v.pain}\n\n${v.shift}\n\n${v.offer}\n\n${v.cta}`;
+                            return (
+                              <div key={key} className="glass-card p-4 space-y-2 relative">
+                                <CopyButton text={fullText} field={`ad_${key}`} />
+                                <p className="label-uppercase text-muted-foreground text-[10px] font-semibold pr-8">{labels[key]}</p>
+                                <p className="text-foreground/80 text-sm font-medium leading-relaxed">{v.hook}</p>
+                                <p className="text-muted-foreground text-xs leading-relaxed">{v.pain}</p>
+                                <p className="text-muted-foreground text-xs leading-relaxed">{v.shift}</p>
+                                <p className="text-muted-foreground text-xs leading-relaxed">{v.offer}</p>
+                                <p className="text-foreground/80 text-xs font-semibold leading-relaxed">{v.cta}</p>
+                                {s && (
+                                  <p className="text-[11px] text-muted-foreground pt-1 border-t border-white/5">
+                                    {s.stop}/10 stop · {s.click}/10 click
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    </>
                   );
-                })}
+                })()}
 
-                {adsOutput.final && (
-                  <div className="glass-card-raised p-5 space-y-3 relative border border-primary/30">
-                    <CopyButton
-                      text={`${adsOutput.final.hook}\n\n${adsOutput.final.pain}\n\n${adsOutput.final.shift}\n\n${adsOutput.final.offer}\n\n${adsOutput.final.cta}`}
-                      field="ad_final"
-                    />
-                    <p className="label-uppercase text-primary text-[10px] font-semibold pr-8">
-                      ✦ Final Ad{adsOutput.final.improved_from ? ` (improved from ${adsOutput.final.improved_from.toUpperCase()})` : ''}
-                    </p>
-                    <p className="text-foreground font-medium leading-relaxed">{adsOutput.final.hook}</p>
-                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.pain}</p>
-                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.shift}</p>
-                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.offer}</p>
-                    <p className="text-foreground font-semibold leading-relaxed">{adsOutput.final.cta}</p>
-                  </div>
-                )}
-
-                {/* ── Money Path: Action Layer (Section 1) ── */}
+                {/* ── Money Path: Action Layer (Section 5) ── */}
                 {adsOutput.final && (
                   <ActionLayer
                     adText={`${adsOutput.final.hook}\n\n${adsOutput.final.pain}\n\n${adsOutput.final.shift}\n\n${adsOutput.final.offer}\n\n${adsOutput.final.cta}`}
                     ctaText={adsOutput.final.cta}
-                    platform={targetAudience}
+                    actionType={actionType}
                     alreadyPosted={!!currentResult?.posted}
                     onPosted={handleMarkPosted}
                   />
@@ -672,7 +698,7 @@ export default function Generator() {
                 {/* ── Money Path: Scale System (Section 5) — only on leads/client ── */}
                 {currentResult?.posted && (currentResult.outcome === 'leads' || currentResult.outcome === 'client') && (
                   <ScaleBanner
-                    platform={targetAudience || 'this'}
+                    platform={actionType}
                     hookType={currentResult.hook_type}
                     outcome={currentResult.outcome}
                     onConfirm={handleScaleVariations}
