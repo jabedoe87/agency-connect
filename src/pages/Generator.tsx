@@ -327,6 +327,72 @@ export default function Generator() {
               </div>
             )}
 
+            {copywriterOutput && !loading && (
+              <div className="glass-card-raised p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="label-uppercase font-semibold">Copywriter Pro — 3 Versions + Final</p>
+                  <Button variant="ghost" size="sm" className="gap-1.5 opacity-70 hover:opacity-100" onClick={() => handleGenerate(false)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+                  </Button>
+                </div>
+
+                {(['a', 'b', 'c'] as const).map((key) => {
+                  const v = copywriterOutput[`version_${key}` as 'version_a'];
+                  const s = copywriterOutput.scores?.[key];
+                  const isWinner = copywriterOutput.winner === key;
+                  const labels = { a: 'Version A — Rational Urgency', b: 'Version B — Aggressive Contrast', c: 'Version C — Emotional Mirror' };
+                  const fullText = `${v.hook}\n\n${v.pain}\n\n${v.shift}\n\n${v.offer}\n\n${v.cta}`;
+                  return (
+                    <div key={key} className={`glass-card p-5 space-y-3 relative ${isWinner ? 'ring-1 ring-primary/40' : ''}`}>
+                      <CopyButton text={fullText} field={`v_${key}`} />
+                      <div className="flex items-center justify-between pr-8">
+                        <p className="label-uppercase text-primary text-[10px] font-semibold">{labels[key]}</p>
+                        {isWinner && <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">Winner</span>}
+                      </div>
+                      <p className="text-foreground font-medium leading-relaxed">{v.hook}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.pain}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.shift}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.offer}</p>
+                      <p className="text-foreground font-semibold leading-relaxed">{v.cta}</p>
+                      {s && (
+                        <div className="pt-2 border-t border-white/5 space-y-1">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="text-foreground font-medium">{s.emotional}/10</span> emotional · <span className="text-foreground font-medium">{s.clarity}/10</span> clarity · <span className="text-foreground font-medium">{s.conversion}/10</span> conversion
+                          </p>
+                          {s.works && <p className="text-xs text-muted-foreground"><span className="text-success">+</span> {s.works}</p>}
+                          {s.limits && <p className="text-xs text-muted-foreground"><span className="text-destructive">−</span> {s.limits}</p>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {copywriterOutput.winner_reason && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <p className="text-xs label-uppercase text-primary mb-1">Winner: Version {copywriterOutput.winner?.toUpperCase()}</p>
+                    <p className="text-sm text-foreground">{copywriterOutput.winner_reason}</p>
+                  </div>
+                )}
+
+                {copywriterOutput.final && (
+                  <div className="glass-card-raised p-5 space-y-3 relative border border-primary/30">
+                    <CopyButton
+                      text={`${copywriterOutput.final.hook}\n\n${copywriterOutput.final.pain}\n\n${copywriterOutput.final.shift}\n\n${copywriterOutput.final.offer}\n\n${copywriterOutput.final.cta}`}
+                      field="final"
+                    />
+                    <p className="label-uppercase text-primary text-[10px] font-semibold pr-8">
+                      ✦ Final Version{copywriterOutput.final.improved_from ? ` (improved from Version ${copywriterOutput.final.improved_from.toUpperCase()})` : ''}
+                    </p>
+                    <p className="text-foreground font-medium leading-relaxed">{copywriterOutput.final.hook}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.pain}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.shift}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.offer}</p>
+                    <p className="text-foreground font-semibold leading-relaxed">{copywriterOutput.final.cta}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {content && (
               <div className="glass-card-raised p-6 space-y-6">
                 <div className="flex items-center justify-between">
