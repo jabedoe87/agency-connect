@@ -115,7 +115,6 @@ export default function Generator() {
 
       const c = data.content || {};
       if (c.niche_audience) setNiche(c.niche_audience);
-      if (c.niche_audience) setTargetAudience(c.niche_audience);
       if (c.offer) setOffer(c.offer);
 
       toast({
