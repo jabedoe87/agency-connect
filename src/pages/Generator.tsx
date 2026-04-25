@@ -19,8 +19,28 @@ interface GeneratedContent {
   cta: string;
 }
 
+interface CopyVersion {
+  hook: string;
+  pain: string;
+  shift: string;
+  offer: string;
+  cta: string;
+  improved_from?: string;
+}
+
+interface CopywriterOutput {
+  version_a: CopyVersion;
+  version_b: CopyVersion;
+  version_c: CopyVersion;
+  scores: Record<'a' | 'b' | 'c', { emotional: number; clarity: number; conversion: number; works: string; limits: string }>;
+  winner: 'a' | 'b' | 'c';
+  winner_reason: string;
+  final: CopyVersion;
+}
+
 const STYLE_PRESETS = [
   { id: 'high-converting', label: 'High-Converting', desc: 'Proven direct-response style' },
+  { id: 'copywriter', label: 'Copywriter Pro', desc: '3 versions, scored, with final' },
   { id: 'luxury', label: 'Luxury', desc: 'Sophisticated & exclusive' },
   { id: 'aggressive', label: 'Aggressive', desc: 'Bold & urgent' },
   { id: 'tiktok', label: 'TikTok', desc: 'Casual & scroll-stopping' },
