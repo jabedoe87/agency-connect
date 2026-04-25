@@ -30,7 +30,7 @@ const STYLE_PRESETS = [
 const DEMO_NICHE = 'Personal trainer helping busy professionals get fit';
 
 export default function Generator() {
-  const { user, profile } = useAuth();
+  const { user, profile, subscription } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const nicheRef = useRef<HTMLTextAreaElement>(null);
