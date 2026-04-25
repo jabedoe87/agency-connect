@@ -84,11 +84,17 @@ Deno.serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/dashboard?checkout=success`,
       cancel_url: `${origin}/pricing`,
-      metadata: { user_id: userId },
+      metadata: { user_id: userId, supabase_user_id: userId, price_id: priceId },
+      subscription_data: {
+        metadata: { user_id: userId, supabase_user_id: userId },
+      },
     };
 
     if (checkoutMode === "trial") {
-      sessionConfig.subscription_data = { trial_period_days: 7 };
+      sessionConfig.subscription_data = {
+        trial_period_days: 7,
+        metadata: { user_id: userId, supabase_user_id: userId },
+      };
     }
 
     let session;

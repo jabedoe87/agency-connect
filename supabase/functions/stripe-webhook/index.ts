@@ -8,9 +8,9 @@ const corsHeaders = {
 
 // Maps Stripe price IDs → internal plan names. Keep in sync with PricingCards.tsx
 const PRICE_TO_PLAN: Record<string, string> = {
-  "price_1TL0DJAu1BgRc5ulf5foxZg2": "starter", // €49/mo
-  "price_1TL0GUAu1BgRc5ul4oMu4Pfr": "pro",     // €99/mo
-  "price_1TL0dyAu1BgRc5ulybtJ4zi0": "business" // €149/mo
+  "price_1TGgrbAu1BgRc5ulqTuDzcer": "starter",  // TEST €49/mo
+  "price_1TGgrdAu1BgRc5ulzP7eBSW9": "pro",      // TEST €99/mo
+  "price_1TGgreAu1BgRc5ulrOh3mr4u": "business", // TEST €149/mo
 };
 
 const PAID_STATUSES = ["active", "trialing"];
@@ -107,8 +107,11 @@ Deno.serve(async (req) => {
       const customerId = (session.customer as string) || null;
       const subscriptionId = (session.subscription as string) || null;
 
+      console.log("metadata:", session.metadata);
+
       // Resolve user (priority: metadata → customer → email)
-      let resolvedUserId: string | null = session.metadata?.user_id ?? null;
+      let resolvedUserId: string | null =
+        session.metadata?.supabase_user_id ?? session.metadata?.user_id ?? null;
       if (!resolvedUserId) {
         resolvedUserId = await resolveUserIdFromCustomer(customerId, session.customer_details?.email);
       }
