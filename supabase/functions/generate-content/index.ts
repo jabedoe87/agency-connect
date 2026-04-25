@@ -348,7 +348,16 @@ serve(async (req) => {
     const isCopywriter = preset === "copywriter";
     const styleInstruction = STYLE_PRESETS[preset] || STYLE_PRESETS["high-converting"];
 
-    const userPrompt = `Write client-getting content for this business.
+    const userPrompt = isCopywriter ? `Generate three high-converting copy versions for this business, score them, and produce a final improved version.
+
+AUDIENCE / NICHE: ${niche}
+${businessContext ? `- Business type: ${businessContext.business_type || "Service business"}
+- Target audience: ${businessContext.target_audience || "Local customers"}
+- Offer / strongest proof: ${businessContext.offer || niche}` : ""}
+
+Write specifically for THIS audience. Generic phrasing = automatic fail.
+
+Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${assistInstruction ? `\n\n${assistInstruction}` : ''}` : `Write client-getting content for this business.
 
 Niche: ${niche}
 
@@ -365,6 +374,8 @@ Match the style EXACTLY. The output must feel unmistakably like the requested st
 
 Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
 
+    const activeSystemPrompt = isCopywriter ? COPYWRITER_SYSTEM_PROMPT : SYSTEM_PROMPT;
+
     const generateContent = async (retryPrompt?: string) => {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -375,7 +386,7 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: activeSystemPrompt },
             { role: "user", content: retryPrompt || userPrompt },
           ],
         }),
@@ -421,29 +432,42 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
     let qualityWarning = false;
 
     if (!isVariationsRequest) {
-      validation = validateOutput(result.content);
-      styleValidation = validateStyle(result.content, preset);
+      if (isCopywriter) {
+        validation = validateCopywriter(result.content);
+        let attempts = 0;
+        while (!validation.valid && attempts < 1) {
+          attempts++;
+          const retry = await generateContent(`${userPrompt}\n\nCRITICAL: previous output had: ${validation.errors.join("; ")}. Return ONLY valid JSON matching the exact schema.`);
+          if ("error" in retry) break;
+          result = retry;
+          validation = validateCopywriter(result.content);
+        }
+        if (!validation.valid) qualityWarning = true;
+      } else {
+        validation = validateOutput(result.content);
+        styleValidation = validateStyle(result.content, preset);
 
-      // Retry up to 2 times total if validation fails
-      let attempts = 0;
-      while ((!validation.valid || !styleValidation.valid) && attempts < 2) {
-        attempts++;
-        const allErrors = [...validation.errors, ...styleValidation.errors];
-        console.log(`Validation failed (attempt ${attempts}), retrying:`, allErrors);
-        const retryPrompt = `${userPrompt}
+        // Retry up to 2 times total if validation fails
+        let attempts = 0;
+        while ((!validation.valid || !styleValidation.valid) && attempts < 2) {
+          attempts++;
+          const allErrors = [...validation.errors, ...styleValidation.errors];
+          console.log(`Validation failed (attempt ${attempts}), retrying:`, allErrors);
+          const retryPrompt = `${userPrompt}
 
 CRITICAL: Your previous output had these issues — fix ALL of them: ${allErrors.join("; ")}.
 Return ONLY valid JSON matching the exact structure and length limits.`;
 
-        const retry = await generateContent(retryPrompt);
-        if ("error" in retry) break; // keep last good-ish result
-        result = retry;
-        validation = validateOutput(result.content);
-        styleValidation = validateStyle(result.content, preset);
-      }
+          const retry = await generateContent(retryPrompt);
+          if ("error" in retry) break; // keep last good-ish result
+          result = retry;
+          validation = validateOutput(result.content);
+          styleValidation = validateStyle(result.content, preset);
+        }
 
-      if (!validation.valid || !styleValidation.valid) {
-        qualityWarning = true;
+        if (!validation.valid || !styleValidation.valid) {
+          qualityWarning = true;
+        }
       }
     }
 
