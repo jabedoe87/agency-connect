@@ -87,6 +87,7 @@ export default function Generator() {
 
     setLoading(true);
     setContent(null);
+    setCopywriterOutput(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -104,8 +105,12 @@ export default function Generator() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const generated = data.content as GeneratedContent;
-      setContent(generated);
+      const generated = data.content;
+      if (preset === 'copywriter') {
+        setCopywriterOutput(generated as CopywriterOutput);
+      } else {
+        setContent(generated as GeneratedContent);
+      }
 
       await supabase.from('generated_content').insert({
         user_id: user.id,
