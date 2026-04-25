@@ -306,6 +306,37 @@ export default function Generator() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Input column */}
           <div className="space-y-6">
+            {/* Auto Input Engine — quick start from a raw idea */}
+            <div className="glass-card p-5 space-y-3 border border-primary/20 bg-primary/[0.04]">
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-4 h-4 text-primary" />
+                <p className="label-uppercase text-primary text-[10px] font-semibold">Quick Start — Auto Input</p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Drop a niche or rough idea. We'll auto-fill audience, offer, and pain points so you can generate faster.
+              </p>
+              <Textarea
+                placeholder="e.g. coach for solo female founders who burn out before $10k/mo"
+                value={rawIdea}
+                onChange={(e) => setRawIdea(e.target.value)}
+                rows={2}
+                className="transition-colors duration-150 focus:ring-2 focus:ring-primary/30"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={handleAutoFill}
+                disabled={autoFilling}
+              >
+                {autoFilling ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Auto-filling...</>
+                ) : (
+                  <><Wand2 className="w-3.5 h-3.5" /> Auto-fill inputs</>
+                )}
+              </Button>
+            </div>
+
             <div className="glass-card p-6 space-y-5">
               <div>
                 <Label className="label-uppercase text-foreground">Your Niche / Business *</Label>
