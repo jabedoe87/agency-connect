@@ -19,10 +19,11 @@ export default function FeedbackBanner({ insight }: FeedbackBannerProps) {
         <TrendingUp className="w-4 h-4 text-success" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="label-uppercase text-success text-[10px] font-semibold mb-1">▸ What's working for you</p>
+        <p className="label-uppercase text-success text-[10px] font-semibold mb-1">▸ This is working for you</p>
         <ul className="text-sm text-foreground space-y-0.5">
-          {lines.map((l, i) => <li key={i}>• {l}</li>)}
+          {lines.map((l, i) => <li key={i}>→ {l}</li>)}
         </ul>
+        <p className="text-sm text-success font-semibold mt-2">👉 Do 3 more messages TODAY.</p>
       </div>
     </div>
   );
