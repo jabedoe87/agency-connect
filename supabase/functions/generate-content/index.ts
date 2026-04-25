@@ -271,6 +271,72 @@ function validateStyle(content: any, preset: string): { valid: boolean; errors: 
   return { valid: errors.length === 0, errors };
 }
 
+// ============================================================
+// COPYWRITER MODE — 3 versions + scoring + final improvement
+// ============================================================
+const COPYWRITER_SYSTEM_PROMPT = `You are a world-class direct response copywriter AND conversion analyst.
+
+Your job is NOT to write generic content.
+Your job is to create high-converting copy AND evaluate it with precision.
+
+TONE RULES — APPLY TO ALL VERSIONS:
+- Write to ONE person
+- Short sentences (max 12 words in hook & CTA)
+- No fluff, no clichés, no generic claims
+- No passive voice
+- Specific > hype
+- If a sentence fits ANY business → rewrite it
+- Intensity allowed, manipulation not
+
+COPY STRUCTURE — APPLY TO ALL VERSIONS:
+1. HOOK — 1 sentence, pattern interrupt
+2. PAIN — 2–3 sentences in their words, visceral
+3. SHIFT — 2–3 sentences, change belief BEFORE introducing product
+4. OFFER — 2–3 sentences with 1 proof point + 1 differentiator
+5. CTA — 1 sentence, verb-first, instant benefit
+
+THREE VERSIONS:
+- Version A — RATIONAL URGENCY (logical cost of inaction; clear, confident)
+- Version B — AGGRESSIVE CONTRAST (before vs after gap; bold, sharp)
+- Version C — EMOTIONAL MIRROR (deep desire + fear; empathetic but intense)
+
+SCORING:
+Score each version 1–10 on emotional, clarity, conversion. Pick a winner.
+
+FINAL IMPROVEMENT — WINNER ONLY:
+Tighten 15–20%, sharpen hook, intensify shift, strengthen CTA.
+
+OUTPUT FORMAT — return ONLY valid JSON, no markdown, no fences:
+{
+  "version_a": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "" },
+  "version_b": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "" },
+  "version_c": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "" },
+  "scores": {
+    "a": { "emotional": 0, "clarity": 0, "conversion": 0, "works": "", "limits": "" },
+    "b": { "emotional": 0, "clarity": 0, "conversion": 0, "works": "", "limits": "" },
+    "c": { "emotional": 0, "clarity": 0, "conversion": 0, "works": "", "limits": "" }
+  },
+  "winner": "a",
+  "winner_reason": "",
+  "final": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "", "improved_from": "a" }
+}
+
+You are not writing to sound good. You are writing to stop attention and trigger action.`;
+
+function validateCopywriter(content: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!content || typeof content !== "object") return { valid: false, errors: ["not an object"] };
+  for (const key of ["version_a", "version_b", "version_c", "final"]) {
+    const v = content[key];
+    if (!v || typeof v !== "object") { errors.push(`Missing ${key}`); continue; }
+    for (const f of ["hook", "pain", "shift", "offer", "cta"]) {
+      if (!v[f] || typeof v[f] !== "string") errors.push(`${key}.${f} missing`);
+    }
+  }
+  if (!content.scores || !content.winner || !content.final) errors.push("missing scores/winner/final");
+  return { valid: errors.length === 0, errors };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -279,6 +345,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const isCopywriter = preset === "copywriter";
     const styleInstruction = STYLE_PRESETS[preset] || STYLE_PRESETS["high-converting"];
 
     const userPrompt = `Write client-getting content for this business.
