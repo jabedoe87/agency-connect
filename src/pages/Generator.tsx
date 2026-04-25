@@ -47,10 +47,23 @@ interface AdsOutput {
   final: CopyVersion;
 }
 
+interface NicheVersion extends CopyVersion {
+  truth: string;
+}
+
+interface NicheOutput {
+  version_a: NicheVersion;
+  version_b: NicheVersion;
+  scores: Record<'a' | 'b', { niche: number; clarity: number; conversion: number }>;
+  winner: 'a' | 'b';
+  final: NicheVersion;
+}
+
 const STYLE_PRESETS = [
   { id: 'high-converting', label: 'High-Converting', desc: 'Proven direct-response style' },
   { id: 'copywriter', label: 'Copywriter Pro', desc: '3 versions, scored, with final' },
   { id: 'ads', label: 'Ads Engine', desc: 'Scroll → click ads, scored' },
+  { id: 'niche', label: 'Niche Engine', desc: 'Deep-conversion for ONE person' },
   { id: 'luxury', label: 'Luxury', desc: 'Sophisticated & exclusive' },
   { id: 'aggressive', label: 'Aggressive', desc: 'Bold & urgent' },
   { id: 'tiktok', label: 'TikTok', desc: 'Casual & scroll-stopping' },
@@ -72,6 +85,7 @@ export default function Generator() {
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copywriterOutput, setCopywriterOutput] = useState<CopywriterOutput | null>(null);
   const [adsOutput, setAdsOutput] = useState<AdsOutput | null>(null);
+  const [nicheOutput, setNicheOutput] = useState<NicheOutput | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [assistLoading, setAssistLoading] = useState(false);
@@ -100,6 +114,7 @@ export default function Generator() {
     setContent(null);
     setCopywriterOutput(null);
     setAdsOutput(null);
+    setNicheOutput(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -122,6 +137,8 @@ export default function Generator() {
         setCopywriterOutput(generated as CopywriterOutput);
       } else if (preset === 'ads') {
         setAdsOutput(generated as AdsOutput);
+      } else if (preset === 'niche') {
+        setNicheOutput(generated as NicheOutput);
       } else {
         setContent(generated as GeneratedContent);
       }
@@ -331,7 +348,7 @@ export default function Generator() {
               </div>
             )}
 
-            {!content && !copywriterOutput && !adsOutput && !loading && (
+            {!content && !copywriterOutput && !adsOutput && !nicheOutput && !loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
                 <Sparkles className="w-10 h-10 text-primary/30 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-1">Ready to generate</h3>
@@ -459,6 +476,73 @@ export default function Generator() {
                     <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.shift}</p>
                     <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.offer}</p>
                     <p className="text-foreground font-semibold leading-relaxed">{adsOutput.final.cta}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {nicheOutput && !loading && (
+              <div className="glass-card-raised p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="label-uppercase font-semibold">Niche Engine — Deep Conversion</p>
+                  <Button variant="ghost" size="sm" className="gap-1.5 opacity-70 hover:opacity-100" onClick={() => handleGenerate(false)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+                  </Button>
+                </div>
+
+                {(['a', 'b'] as const).map((key) => {
+                  const v = nicheOutput[`version_${key}` as 'version_a'];
+                  const s = nicheOutput.scores?.[key];
+                  const isWinner = nicheOutput.winner === key;
+                  const labels = { a: 'A — Cost of Staying Stuck', b: 'B — Identity Contrast' };
+                  const truthPosition = key === 'a' ? 'end-of-pain' : 'start-of-shift';
+                  const fullText = `${v.hook}\n\n${v.pain}${truthPosition === 'end-of-pain' ? `\n${v.truth}` : ''}\n\n${truthPosition === 'start-of-shift' ? `${v.truth}\n` : ''}${v.shift}\n\n${v.offer}\n\n${v.cta}`;
+                  return (
+                    <div key={key} className={`glass-card p-5 space-y-3 relative ${isWinner ? 'ring-1 ring-primary/40' : ''}`}>
+                      <CopyButton text={fullText} field={`niche_${key}`} />
+                      <div className="flex items-center justify-between pr-8">
+                        <p className="label-uppercase text-primary text-[10px] font-semibold">{labels[key]}</p>
+                        {isWinner && <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">Winner</span>}
+                      </div>
+                      <p className="text-foreground font-medium leading-relaxed">{v.hook}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.pain}</p>
+                      {truthPosition === 'end-of-pain' && v.truth && (
+                        <p className="text-foreground/90 text-sm italic leading-relaxed border-l-2 border-primary/40 pl-3">{v.truth}</p>
+                      )}
+                      {truthPosition === 'start-of-shift' && v.truth && (
+                        <p className="text-foreground/90 text-sm italic leading-relaxed border-l-2 border-primary/40 pl-3">{v.truth}</p>
+                      )}
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.shift}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.offer}</p>
+                      <p className="text-foreground font-semibold leading-relaxed">{v.cta}</p>
+                      {s && (
+                        <div className="pt-2 border-t border-white/5">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="text-foreground font-medium">{s.niche}/10</span> niche · <span className="text-foreground font-medium">{s.clarity}/10</span> clarity · <span className="text-foreground font-medium">{s.conversion}/10</span> conversion
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {nicheOutput.final && (
+                  <div className="glass-card-raised p-5 space-y-3 relative border border-primary/30">
+                    <CopyButton
+                      text={`${nicheOutput.final.hook}\n\n${nicheOutput.final.pain}\n${nicheOutput.final.truth}\n\n${nicheOutput.final.shift}\n\n${nicheOutput.final.offer}\n\n${nicheOutput.final.cta}`}
+                      field="niche_final"
+                    />
+                    <p className="label-uppercase text-primary text-[10px] font-semibold pr-8">
+                      ✦ Final Version{nicheOutput.final.improved_from ? ` (improved from ${nicheOutput.final.improved_from.toUpperCase()})` : ''}
+                    </p>
+                    <p className="text-foreground font-medium leading-relaxed">{nicheOutput.final.hook}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{nicheOutput.final.pain}</p>
+                    {nicheOutput.final.truth && (
+                      <p className="text-foreground text-sm italic leading-relaxed border-l-2 border-primary/60 pl-3">{nicheOutput.final.truth}</p>
+                    )}
+                    <p className="text-foreground/90 text-sm leading-relaxed">{nicheOutput.final.shift}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{nicheOutput.final.offer}</p>
+                    <p className="text-foreground font-semibold leading-relaxed">{nicheOutput.final.cta}</p>
                   </div>
                 )}
               </div>
