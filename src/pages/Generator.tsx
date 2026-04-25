@@ -490,6 +490,8 @@ export default function Generator() {
 
           {/* Output column */}
           <div ref={outputRef} className="space-y-6">
+            {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
+            <FeedbackBanner insight={insights} />
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
