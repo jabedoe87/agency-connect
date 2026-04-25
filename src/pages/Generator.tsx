@@ -331,7 +331,7 @@ export default function Generator() {
               </div>
             )}
 
-            {!content && !copywriterOutput && !loading && (
+            {!content && !copywriterOutput && !adsOutput && !loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
                 <Sparkles className="w-10 h-10 text-primary/30 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-1">Ready to generate</h3>
