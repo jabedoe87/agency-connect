@@ -38,9 +38,19 @@ interface CopywriterOutput {
   final: CopyVersion;
 }
 
+interface AdsOutput {
+  version_a: CopyVersion;
+  version_b: CopyVersion;
+  version_c: CopyVersion;
+  scores: Record<'a' | 'b' | 'c', { stop: number; click: number }>;
+  winner: 'a' | 'b' | 'c';
+  final: CopyVersion;
+}
+
 const STYLE_PRESETS = [
   { id: 'high-converting', label: 'High-Converting', desc: 'Proven direct-response style' },
   { id: 'copywriter', label: 'Copywriter Pro', desc: '3 versions, scored, with final' },
+  { id: 'ads', label: 'Ads Engine', desc: 'Scroll → click ads, scored' },
   { id: 'luxury', label: 'Luxury', desc: 'Sophisticated & exclusive' },
   { id: 'aggressive', label: 'Aggressive', desc: 'Bold & urgent' },
   { id: 'tiktok', label: 'TikTok', desc: 'Casual & scroll-stopping' },
@@ -61,6 +71,7 @@ export default function Generator() {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copywriterOutput, setCopywriterOutput] = useState<CopywriterOutput | null>(null);
+  const [adsOutput, setAdsOutput] = useState<AdsOutput | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [assistLoading, setAssistLoading] = useState(false);
@@ -88,6 +99,7 @@ export default function Generator() {
     setLoading(true);
     setContent(null);
     setCopywriterOutput(null);
+    setAdsOutput(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -108,6 +120,8 @@ export default function Generator() {
       const generated = data.content;
       if (preset === 'copywriter') {
         setCopywriterOutput(generated as CopywriterOutput);
+      } else if (preset === 'ads') {
+        setAdsOutput(generated as AdsOutput);
       } else {
         setContent(generated as GeneratedContent);
       }
