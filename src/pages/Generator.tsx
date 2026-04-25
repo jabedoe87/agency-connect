@@ -85,6 +85,7 @@ export default function Generator() {
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copywriterOutput, setCopywriterOutput] = useState<CopywriterOutput | null>(null);
   const [adsOutput, setAdsOutput] = useState<AdsOutput | null>(null);
+  const [nicheOutput, setNicheOutput] = useState<NicheOutput | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [assistLoading, setAssistLoading] = useState(false);
@@ -113,6 +114,7 @@ export default function Generator() {
     setContent(null);
     setCopywriterOutput(null);
     setAdsOutput(null);
+    setNicheOutput(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -135,6 +137,8 @@ export default function Generator() {
         setCopywriterOutput(generated as CopywriterOutput);
       } else if (preset === 'ads') {
         setAdsOutput(generated as AdsOutput);
+      } else if (preset === 'niche') {
+        setNicheOutput(generated as NicheOutput);
       } else {
         setContent(generated as GeneratedContent);
       }
@@ -344,7 +348,7 @@ export default function Generator() {
               </div>
             )}
 
-            {!content && !copywriterOutput && !adsOutput && !loading && (
+            {!content && !copywriterOutput && !adsOutput && !nicheOutput && !loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
                 <Sparkles className="w-10 h-10 text-primary/30 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-1">Ready to generate</h3>
