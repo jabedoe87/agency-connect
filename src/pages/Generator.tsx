@@ -467,9 +467,7 @@ export default function Generator() {
                 </div>
               </div>
 
-              {/* Hidden — kept for state/validation/bindings; auto-filled from niche if empty */}
-              <input type="hidden" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} />
-              <input type="hidden" value={offer} onChange={(e) => setOffer(e.target.value)} />
+              {/* targetAudience + offer state preserved internally — no UI needed */}
             </div>
 
             <div className="glass-card p-6">
