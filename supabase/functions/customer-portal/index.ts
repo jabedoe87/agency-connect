@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
+const log = (step: string, details?: unknown) => {
+  const d = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[portal] ${step}${d}`);
 };
 
 Deno.serve(async (req) => {
@@ -17,8 +17,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    logStep("Function started");
-
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
@@ -46,32 +44,48 @@ Deno.serve(async (req) => {
     }
 
     const user = userData.user;
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    log("user id", { userId: user.id });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email!, limit: 1 });
+    // Look up the Stripe customer id from profiles (set by checkout/webhook)
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+    if (profileError) {
+      throw new Error(`Failed to load profile: ${profileError.message}`);
     }
 
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
+    const customerId = profile?.stripe_customer_id;
+    if (!customerId) {
+      return new Response(
+        JSON.stringify({ error: "No active subscription found. Please subscribe first." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    log("customer exists", { customerId });
 
-    const origin = req.headers.get("origin") || "https://id-preview--c5b11c23-da1d-4a43-92b7-e84dabb9336f.lovable.app";
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    const origin = req.headers.get("origin");
+    if (!origin) {
+      throw new Error("Missing origin header");
+    }
+
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/dashboard`,
     });
 
-    logStep("Portal session created", { url: portalSession.url });
+    log("session created");
 
     return new Response(JSON.stringify({ url: portalSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: msg });
+    console.error(`[portal] ERROR - ${msg}`);
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
