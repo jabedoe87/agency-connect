@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles, Copy, Check, Loader2, RefreshCw, Lock, Save, ArrowLeft, Wand2 } from 'lucide-react';
+import ActionLayer from '@/components/moneypath/ActionLayer';
+import ConversionLayer from '@/components/moneypath/ConversionLayer';
+import ResultTracker from '@/components/moneypath/ResultTracker';
+import FeedbackBanner from '@/components/moneypath/FeedbackBanner';
+import ScaleBanner from '@/components/moneypath/ScaleBanner';
+import {
+  computeInsights,
+  genAdId,
+  readResults,
+  updateOutcome,
+  upsertResult,
+  type MoneyResult,
+  type Outcome,
+} from '@/lib/moneyPath';
 
 interface GeneratedContent {
   hook: string;
@@ -95,6 +109,77 @@ export default function Generator() {
   const outputRef = useRef<HTMLDivElement>(null);
   const [rawIdea, setRawIdea] = useState('');
   const [autoFilling, setAutoFilling] = useState(false);
+
+  // ── Money Path state ────────────────────────────────────────────────
+  // Tracks the current ads-winner result row (per generation) and all stored results.
+  const [results, setResults] = useState<MoneyResult[]>(() => readResults());
+  const [currentAdId, setCurrentAdId] = useState<string | null>(null);
+  const insights = useMemo(() => computeInsights(results), [results]);
+
+  // Reset the per-generation tracking row whenever a new ads output arrives.
+  useEffect(() => {
+    if (adsOutput) {
+      setCurrentAdId(genAdId());
+    } else {
+      setCurrentAdId(null);
+    }
+  }, [adsOutput]);
+
+  const currentResult = currentAdId ? results.find((r) => r.ad_id === currentAdId) ?? null : null;
+
+  const handleMarkPosted = () => {
+    if (!adsOutput || !currentAdId) return;
+    const winnerKey = (adsOutput.winner?.toUpperCase?.() || 'A') as 'A' | 'B' | 'C';
+    const row: MoneyResult = currentResult ?? {
+      ad_id: currentAdId,
+      hook_type: winnerKey,
+      niche: niche || '',
+      platform: targetAudience || '',
+      posted: false,
+      outcome: null,
+      created_at: Date.now(),
+    };
+    const updated: MoneyResult = { ...row, posted: true };
+    setResults(upsertResult(updated));
+  };
+
+  const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
+    if (!currentAdId) return;
+    setResults(updateOutcome(currentAdId, outcome));
+  };
+
+  const handleScaleVariations = async () => {
+    if (!adsOutput) return;
+    const winnerKey = (adsOutput.winner || 'a') as 'a' | 'b' | 'c';
+    const winnerVersion = adsOutput[`version_${winnerKey}` as 'version_a'];
+    // Reuse runAssistAction-equivalent path via direct invoke — keeps inputs locked.
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-content', {
+        body: {
+          niche: niche || DEMO_NICHE,
+          preset: 'ads',
+          businessContext: {
+            business_type: profile?.business_type || 'Service business',
+            target_audience: targetAudience || 'Local customers',
+            offer: offer || niche || DEMO_NICHE,
+          },
+          assistInstruction: `Winning ad (Hook ${winnerKey.toUpperCase()}):\n${JSON.stringify(winnerVersion, null, 2)}\n\nCreate 3 variations of this ad. Keep the hook structure and tone identical. Vary the opening line and the CTA only.`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAdsOutput(data.content as AdsOutput);
+      outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      toast({ title: '3 variations generated', description: 'Same winning hook, fresh openings + CTAs.' });
+    } catch (err: any) {
+      toast({ title: 'Variation failed', description: err.message || 'Try again.', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+  // ────────────────────────────────────────────────────────────────────
+
 
   const handleAutoFill = async () => {
     if (!rawIdea.trim()) {
@@ -405,6 +490,8 @@ export default function Generator() {
 
           {/* Output column */}
           <div ref={outputRef} className="space-y-6">
+            {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
+            <FeedbackBanner insight={insights} />
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
@@ -543,6 +630,35 @@ export default function Generator() {
                     <p className="text-foreground font-semibold leading-relaxed">{adsOutput.final.cta}</p>
                   </div>
                 )}
+
+                {/* ── Money Path: Action Layer (Section 1) ── */}
+                {adsOutput.final && (
+                  <ActionLayer
+                    adText={`${adsOutput.final.hook}\n\n${adsOutput.final.pain}\n\n${adsOutput.final.shift}\n\n${adsOutput.final.offer}\n\n${adsOutput.final.cta}`}
+                    ctaText={adsOutput.final.cta}
+                    platform={targetAudience}
+                    alreadyPosted={!!currentResult?.posted}
+                    onPosted={handleMarkPosted}
+                  />
+                )}
+
+                {/* ── Money Path: Result Tracking (Section 3) — only after posted ── */}
+                {currentResult?.posted && (
+                  <ResultTracker
+                    currentOutcome={currentResult.outcome}
+                    onSelect={handleSelectOutcome}
+                  />
+                )}
+
+                {/* ── Money Path: Scale System (Section 5) — only on leads/client ── */}
+                {currentResult?.posted && (currentResult.outcome === 'leads' || currentResult.outcome === 'client') && (
+                  <ScaleBanner
+                    platform={targetAudience || 'this'}
+                    hookType={currentResult.hook_type}
+                    outcome={currentResult.outcome}
+                    onConfirm={handleScaleVariations}
+                  />
+                )}
               </div>
             )}
 
@@ -609,6 +725,18 @@ export default function Generator() {
                     <p className="text-foreground/90 text-sm leading-relaxed">{nicheOutput.final.offer}</p>
                     <p className="text-foreground font-semibold leading-relaxed">{nicheOutput.final.cta}</p>
                   </div>
+                )}
+
+                {/* ── Money Path: Conversion Layer (Section 2) ── */}
+                {nicheOutput.final && (
+                  <ConversionLayer
+                    hook={nicheOutput.final.hook}
+                    pain={nicheOutput.final.pain}
+                    shift={nicheOutput.final.shift}
+                    offer={nicheOutput.final.offer}
+                    cta={nicheOutput.final.cta}
+                    niche={niche}
+                  />
                 )}
               </div>
             )}
