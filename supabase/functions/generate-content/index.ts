@@ -494,13 +494,105 @@ function validateNiche(content: any): { valid: boolean; errors: string[] } {
   return { valid: errors.length === 0, errors };
 }
 
+// ============================================================
+// AUTO INPUT ENGINE V3.1 — turn a raw idea into structured fields
+// ============================================================
+const AUTO_INPUT_SYSTEM_PROMPT = `You are an elite direct-response strategist.
+You take ONE raw idea (a niche, business, or rough concept) and produce the structured inputs needed to write a high-converting ad.
+
+MODE: FAST.
+
+RULES:
+- No generic output. Every field must feel real and specific.
+- One rewrite max per field — if it sounds like it could fit any business, sharpen it once.
+- PAIN: 1 strong sentence = a specific moment + a clear consequence.
+- DESIRE: outcome only. No process. No fluff.
+- OFFER: the product/service + ONE realistic proof point (a number, timeframe, or concrete result).
+- PLATFORM: pick the single best fit (Instagram, TikTok, Facebook, LinkedIn, Landing Page, Email, YouTube). One choice only.
+- NICHE + AUDIENCE: be specific about WHO (role/identity/situation), not just the industry.
+
+OUTPUT FORMAT — return ONLY valid JSON, no markdown, no fences:
+{
+  "niche_audience": "",
+  "pain": "",
+  "desire": "",
+  "offer": "",
+  "platform": ""
+}`;
+
+function validateAutoInput(content: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!content || typeof content !== "object") return { valid: false, errors: ["not an object"] };
+  for (const f of ["niche_audience", "pain", "desire", "offer", "platform"]) {
+    if (!content[f] || typeof content[f] !== "string") errors.push(`${f} missing`);
+  }
+  return { valid: errors.length === 0, errors };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { niche, preset = "high-converting", businessContext, assistInstruction } = await req.json();
+    const body = await req.json();
+    const { niche, preset = "high-converting", businessContext, assistInstruction, action, rawInput, targetEngine } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // ---------------- AUTO INPUT ACTION ----------------
+    if (action === "auto_input") {
+      if (!rawInput || typeof rawInput !== "string" || rawInput.trim().length < 3) {
+        return new Response(JSON.stringify({ error: "rawInput is required (min 3 chars)" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const engine = targetEngine || "ads";
+      const autoUserPrompt = `RAW INPUT:
+${rawInput.trim()}
+
+TARGET ENGINE: ${engine === "ads" ? "Ads Engine" : engine === "niche" ? "Niche Engine" : engine === "copywriter" ? "Copywriter Pro" : "High-Converting"}
+
+Generate the structured inputs. Follow the exact JSON schema. Return ONLY valid JSON.`;
+
+      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: AUTO_INPUT_SYSTEM_PROMPT },
+            { role: "user", content: autoUserPrompt },
+          ],
+        }),
+      });
+
+      if (!aiResp.ok) {
+        if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Rate limit. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (aiResp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "AI generation failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const aiData = await aiResp.json();
+      const raw = aiData.choices?.[0]?.message?.content || "";
+      let jsonStr = raw;
+      const m = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (m) jsonStr = m[1];
+      jsonStr = jsonStr.trim();
+
+      let parsed: any;
+      try { parsed = JSON.parse(jsonStr); }
+      catch {
+        return new Response(JSON.stringify({ error: "Failed to parse AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const v = validateAutoInput(parsed);
+      return new Response(JSON.stringify({
+        content: parsed,
+        validation: v,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    // ---------------- END AUTO INPUT ACTION ----------------
 
     const isCopywriter = preset === "copywriter";
     const isAds = preset === "ads";
