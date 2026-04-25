@@ -553,7 +553,7 @@ Match the style EXACTLY. The output must feel unmistakably like the requested st
 
 Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
 
-    const activeSystemPrompt = isAds ? ADS_SYSTEM_PROMPT : isCopywriter ? COPYWRITER_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    const activeSystemPrompt = isNiche ? NICHE_SYSTEM_PROMPT : isAds ? ADS_SYSTEM_PROMPT : isCopywriter ? COPYWRITER_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const generateContent = async (retryPrompt?: string) => {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -611,8 +611,8 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
     let qualityWarning = false;
 
     if (!isVariationsRequest) {
-      if (isCopywriter || isAds) {
-        const validator = isAds ? validateAds : validateCopywriter;
+      if (isCopywriter || isAds || isNiche) {
+        const validator = isNiche ? validateNiche : isAds ? validateAds : validateCopywriter;
         validation = validator(result.content);
         let attempts = 0;
         while (!validation.valid && attempts < 1) {
