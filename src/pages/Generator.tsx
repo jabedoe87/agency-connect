@@ -38,9 +38,19 @@ interface CopywriterOutput {
   final: CopyVersion;
 }
 
+interface AdsOutput {
+  version_a: CopyVersion;
+  version_b: CopyVersion;
+  version_c: CopyVersion;
+  scores: Record<'a' | 'b' | 'c', { stop: number; click: number }>;
+  winner: 'a' | 'b' | 'c';
+  final: CopyVersion;
+}
+
 const STYLE_PRESETS = [
   { id: 'high-converting', label: 'High-Converting', desc: 'Proven direct-response style' },
   { id: 'copywriter', label: 'Copywriter Pro', desc: '3 versions, scored, with final' },
+  { id: 'ads', label: 'Ads Engine', desc: 'Scroll → click ads, scored' },
   { id: 'luxury', label: 'Luxury', desc: 'Sophisticated & exclusive' },
   { id: 'aggressive', label: 'Aggressive', desc: 'Bold & urgent' },
   { id: 'tiktok', label: 'TikTok', desc: 'Casual & scroll-stopping' },
@@ -61,6 +71,7 @@ export default function Generator() {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [copywriterOutput, setCopywriterOutput] = useState<CopywriterOutput | null>(null);
+  const [adsOutput, setAdsOutput] = useState<AdsOutput | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [assistLoading, setAssistLoading] = useState(false);
@@ -88,6 +99,7 @@ export default function Generator() {
     setLoading(true);
     setContent(null);
     setCopywriterOutput(null);
+    setAdsOutput(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -108,6 +120,8 @@ export default function Generator() {
       const generated = data.content;
       if (preset === 'copywriter') {
         setCopywriterOutput(generated as CopywriterOutput);
+      } else if (preset === 'ads') {
+        setAdsOutput(generated as AdsOutput);
       } else {
         setContent(generated as GeneratedContent);
       }
@@ -317,7 +331,7 @@ export default function Generator() {
               </div>
             )}
 
-            {!content && !copywriterOutput && !loading && (
+            {!content && !copywriterOutput && !adsOutput && !loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
                 <Sparkles className="w-10 h-10 text-primary/30 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-1">Ready to generate</h3>
@@ -388,6 +402,63 @@ export default function Generator() {
                     <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.shift}</p>
                     <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.offer}</p>
                     <p className="text-foreground font-semibold leading-relaxed">{copywriterOutput.final.cta}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {adsOutput && !loading && (
+              <div className="glass-card-raised p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="label-uppercase font-semibold">Ads Engine — Scroll → Click</p>
+                  <Button variant="ghost" size="sm" className="gap-1.5 opacity-70 hover:opacity-100" onClick={() => handleGenerate(false)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+                  </Button>
+                </div>
+
+                {(['a', 'b', 'c'] as const).map((key) => {
+                  const v = adsOutput[`version_${key}` as 'version_a'];
+                  const s = adsOutput.scores?.[key];
+                  const isWinner = adsOutput.winner === key;
+                  const labels = { a: 'A — Curiosity Gap', b: 'B — Bold Contrast', c: 'C — Pain Mirror' };
+                  const fullText = `${v.hook}\n\n${v.pain}\n\n${v.shift}\n\n${v.offer}\n\n${v.cta}`;
+                  return (
+                    <div key={key} className={`glass-card p-5 space-y-3 relative ${isWinner ? 'ring-1 ring-primary/40' : ''}`}>
+                      <CopyButton text={fullText} field={`ad_${key}`} />
+                      <div className="flex items-center justify-between pr-8">
+                        <p className="label-uppercase text-primary text-[10px] font-semibold">{labels[key]}</p>
+                        {isWinner && <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">Winner</span>}
+                      </div>
+                      <p className="text-foreground font-medium leading-relaxed">{v.hook}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.pain}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.shift}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.offer}</p>
+                      <p className="text-foreground font-semibold leading-relaxed">{v.cta}</p>
+                      {s && (
+                        <div className="pt-2 border-t border-white/5">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="text-foreground font-medium">{s.stop}/10</span> stop · <span className="text-foreground font-medium">{s.click}/10</span> click
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {adsOutput.final && (
+                  <div className="glass-card-raised p-5 space-y-3 relative border border-primary/30">
+                    <CopyButton
+                      text={`${adsOutput.final.hook}\n\n${adsOutput.final.pain}\n\n${adsOutput.final.shift}\n\n${adsOutput.final.offer}\n\n${adsOutput.final.cta}`}
+                      field="ad_final"
+                    />
+                    <p className="label-uppercase text-primary text-[10px] font-semibold pr-8">
+                      ✦ Final Ad{adsOutput.final.improved_from ? ` (improved from ${adsOutput.final.improved_from.toUpperCase()})` : ''}
+                    </p>
+                    <p className="text-foreground font-medium leading-relaxed">{adsOutput.final.hook}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.pain}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.shift}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.offer}</p>
+                    <p className="text-foreground font-semibold leading-relaxed">{adsOutput.final.cta}</p>
                   </div>
                 )}
               </div>

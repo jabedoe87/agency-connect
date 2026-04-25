@@ -337,6 +337,86 @@ function validateCopywriter(content: any): { valid: boolean; errors: string[] } 
   return { valid: errors.length === 0, errors };
 }
 
+// ============================================================
+// ADS ENGINE V3 — scroll-stopping ads, scored, with final
+// ============================================================
+const ADS_SYSTEM_PROMPT = `You write ads that stop the scroll and get clicks. You are sharp, specific, and ruthless about cutting fluff.
+
+ROLE:
+Write ads that stop the scroll and get clicks.
+
+RULES:
+- One person only
+- Hook max 8 words
+- No generic phrases
+- No filler words
+- Each version MUST include ONE specific detail (number, timeframe, or real scenario)
+
+HOOK MUST:
+- Trigger curiosity OR discomfort in 3 seconds
+- Feel personal, not broad
+- If it could fit everyone → it fails
+
+PROOF RULE (MANDATORY):
+Each version must include at least one of: number, timeframe, or real scenario.
+
+THREE VARIATIONS:
+- A — Curiosity gap
+- B — Bold contrast
+- C — Pain mirror
+
+STRUCTURE PER VERSION:
+- hook (1 line, max 8 words)
+- pain (1–2 lines)
+- shift (1–2 lines)
+- offer (1–2 lines)
+- cta (1 line: action + result)
+
+SELF-CHECK BEFORE RETURNING:
+- Would this stop a scroll?
+- Could this be generic? → rewrite
+
+SCORING:
+For each version score 1–10 on:
+- stop (would it stop the scroll)
+- click (would it get the click)
+
+WINNER: pick A, B, or C.
+
+FINAL — rewrite the winner:
+- shorter (−20%)
+- stronger hook
+- clearer CTA
+
+OUTPUT FORMAT — return ONLY valid JSON, no markdown, no fences:
+{
+  "version_a": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "" },
+  "version_b": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "" },
+  "version_c": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "" },
+  "scores": {
+    "a": { "stop": 0, "click": 0 },
+    "b": { "stop": 0, "click": 0 },
+    "c": { "stop": 0, "click": 0 }
+  },
+  "winner": "a",
+  "final": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "", "improved_from": "a" }
+}`;
+
+function validateAds(content: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!content || typeof content !== "object") return { valid: false, errors: ["not an object"] };
+  for (const key of ["version_a", "version_b", "version_c", "final"]) {
+    const v = content[key];
+    if (!v || typeof v !== "object") { errors.push(`Missing ${key}`); continue; }
+    for (const f of ["hook", "pain", "shift", "offer", "cta"]) {
+      if (!v[f] || typeof v[f] !== "string") errors.push(`${key}.${f} missing`);
+    }
+    if (v?.hook && wordCount(v.hook) > 8) errors.push(`${key}.hook exceeds 8 words`);
+  }
+  if (!content.scores || !content.winner || !content.final) errors.push("missing scores/winner/final");
+  return { valid: errors.length === 0, errors };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -346,9 +426,21 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const isCopywriter = preset === "copywriter";
+    const isAds = preset === "ads";
     const styleInstruction = STYLE_PRESETS[preset] || STYLE_PRESETS["high-converting"];
 
-    const userPrompt = isCopywriter ? `Generate three high-converting copy versions for this business, score them, and produce a final improved version.
+    const userPrompt = isAds ? `Write 3 scroll-stopping ads for this business, score each, pick a winner, and rewrite the winner as the final.
+
+AUDIENCE: ${businessContext?.target_audience || "Local customers"}
+PAIN: derive from the niche/offer below — make it visceral and specific
+DESIRE: derive from the niche/offer below — make it concrete
+OFFER: ${businessContext?.offer || niche}
+PLATFORM: ${businessContext?.business_type || "social ads"}
+NICHE: ${niche}
+
+Each version MUST include ONE concrete number, timeframe, or real scenario. Hook max 8 words. If a line could fit any business, rewrite it.
+
+Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${assistInstruction ? `\n\n${assistInstruction}` : ''}` : isCopywriter ? `Generate three high-converting copy versions for this business, score them, and produce a final improved version.
 
 AUDIENCE / NICHE: ${niche}
 ${businessContext ? `- Business type: ${businessContext.business_type || "Service business"}
@@ -374,7 +466,7 @@ Match the style EXACTLY. The output must feel unmistakably like the requested st
 
 Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
 
-    const activeSystemPrompt = isCopywriter ? COPYWRITER_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    const activeSystemPrompt = isAds ? ADS_SYSTEM_PROMPT : isCopywriter ? COPYWRITER_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const generateContent = async (retryPrompt?: string) => {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -432,15 +524,16 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
     let qualityWarning = false;
 
     if (!isVariationsRequest) {
-      if (isCopywriter) {
-        validation = validateCopywriter(result.content);
+      if (isCopywriter || isAds) {
+        const validator = isAds ? validateAds : validateCopywriter;
+        validation = validator(result.content);
         let attempts = 0;
         while (!validation.valid && attempts < 1) {
           attempts++;
           const retry = await generateContent(`${userPrompt}\n\nCRITICAL: previous output had: ${validation.errors.join("; ")}. Return ONLY valid JSON matching the exact schema.`);
           if ("error" in retry) break;
           result = retry;
-          validation = validateCopywriter(result.content);
+          validation = validator(result.content);
         }
         if (!validation.valid) qualityWarning = true;
       } else {
