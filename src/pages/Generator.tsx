@@ -84,6 +84,14 @@ const STYLE_PRESETS = [
   { id: 'minimal', label: 'Minimal', desc: 'Clean & clear' },
 ];
 
+const ACTION_OPTIONS = [
+  'Send Instagram DM',
+  'Post on Instagram',
+  'Run an Ad',
+  'Send Email',
+] as const;
+type ActionType = typeof ACTION_OPTIONS[number];
+
 const DEMO_NICHE = 'Personal trainer helping busy professionals get fit';
 
 export default function Generator() {
