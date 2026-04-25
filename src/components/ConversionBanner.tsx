@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Zap, TrendingUp } from 'lucide-react';
 
 export default function ConversionBanner() {
-  const { user, profile } = useAuth();
+  const { user, profile, subscription } = useAuth();
   const navigate = useNavigate();
   const [contentCount, setContentCount] = useState(0);
 
@@ -22,7 +22,10 @@ export default function ConversionBanner() {
   const trialEndsAt = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const now = new Date();
   const daysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 7;
-  const isOnTrial = profile?.plan === 'trial';
+  const hasPaidPlan =
+    subscription?.subscribed === true ||
+    (profile?.plan === 'starter' || profile?.plan === 'pro' || profile?.plan === 'business');
+  const isOnTrial = !hasPaidPlan && profile?.plan === 'trial';
   const trialExpired = isOnTrial && trialEndsAt && trialEndsAt < now;
 
   return (

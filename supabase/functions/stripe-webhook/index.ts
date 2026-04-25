@@ -92,11 +92,21 @@ Deno.serve(async (req) => {
   }
 
   async function upsertProfile(userId: string, fields: Record<string, any>): Promise<{ ok: boolean; error?: any }> {
-    const { error } = await supabase
+    // Update first (profile row is created by handle_new_user trigger).
+    const { data: updated, error: updateErr } = await supabase
       .from("profiles")
       .update({ ...fields })
-      .eq("user_id", userId);
-    if (error) return { ok: false, error };
+      .eq("user_id", userId)
+      .select("id");
+    if (updateErr) return { ok: false, error: updateErr };
+
+    // Fallback: if no row matched, insert.
+    if (!updated || updated.length === 0) {
+      const { error: insertErr } = await supabase
+        .from("profiles")
+        .insert({ user_id: userId, ...fields });
+      if (insertErr) return { ok: false, error: insertErr };
+    }
     return { ok: true };
   }
 

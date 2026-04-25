@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/AppLayout';
@@ -26,12 +26,25 @@ interface Activity {
 }
 
 export default function Dashboard() {
-  const { user, profile, subscription } = useAuth();
+  const { user, profile, subscription, refreshProfile, checkSubscription } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [stats, setStats] = useState<Stats>({ totalLeads: 0, totalClients: 0, upcomingAppointments: 0, monthlyRevenue: 0 });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [portalLoading, setPortalLoading] = useState(false);
+
+  // Handle Stripe checkout return: refresh profile + subscription, then clean URL.
+  useEffect(() => {
+    if (searchParams.get('checkout') !== 'success') return;
+    (async () => {
+      await Promise.all([refreshProfile(), checkSubscription()]);
+      console.log('[billing] refreshed after checkout');
+      toast({ title: 'Payment successful', description: 'Your plan is now active.' });
+      searchParams.delete('checkout');
+      setSearchParams(searchParams, { replace: true });
+    })();
+  }, [searchParams, setSearchParams, refreshProfile, checkSubscription, toast]);
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
