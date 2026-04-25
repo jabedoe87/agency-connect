@@ -726,10 +726,20 @@ export default function Generator() {
                     <p className="text-foreground font-semibold leading-relaxed">{nicheOutput.final.cta}</p>
                   </div>
                 )}
+
+                {/* ── Money Path: Conversion Layer (Section 2) ── */}
+                {nicheOutput.final && (
+                  <ConversionLayer
+                    hook={nicheOutput.final.hook}
+                    pain={nicheOutput.final.pain}
+                    shift={nicheOutput.final.shift}
+                    offer={nicheOutput.final.offer}
+                    cta={nicheOutput.final.cta}
+                    niche={niche}
+                  />
+                )}
               </div>
             )}
-
-            {content && (
               <div className="glass-card-raised p-6 space-y-6">
                 <div className="flex items-center justify-between">
                   <p className="label-uppercase font-semibold">Generated Content</p>
