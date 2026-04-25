@@ -48,11 +48,23 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const hasPaidPlan =
     subscription?.subscribed === true ||
     (profile?.plan === 'starter' || profile?.plan === 'pro' || profile?.plan === 'business');
-  const trialExpired = !hasPaidPlan && profile?.plan === 'trial' && trialEndsAt && trialEndsAt < now;
+  // Wait for subscription check to complete before deciding trial is expired (avoids modal flash post-checkout).
+  const subscriptionChecked = subscription !== null;
+  const trialExpired =
+    subscriptionChecked &&
+    !hasPaidPlan &&
+    profile?.plan === 'trial' &&
+    trialEndsAt &&
+    trialEndsAt < now;
 
   useEffect(() => {
-    if (trialExpired) setShowTrialExpired(true);
-  }, [trialExpired]);
+    if (trialExpired) {
+      setShowTrialExpired(true);
+    } else if (hasPaidPlan) {
+      // Auto-dismiss if user becomes paid (e.g. webhook lands or subscription check resolves).
+      setShowTrialExpired(false);
+    }
+  }, [trialExpired, hasPaidPlan]);
 
   const handleNavClick = (item: { path: string; locked: boolean }) => {
     if (item.locked) {
