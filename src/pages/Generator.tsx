@@ -116,6 +116,7 @@ export default function Generator() {
   const [previousOutput, setPreviousOutput] = useState<GeneratedContent | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const [rawIdea, setRawIdea] = useState('');
+  const [actionType, setActionType] = useState<ActionType>('Send Instagram DM');
   const [autoFilling, setAutoFilling] = useState(false);
 
   // ── Money Path state ────────────────────────────────────────────────
