@@ -82,10 +82,19 @@ Deno.serve(async (req) => {
     let status: string | null = null;
 
     if (hasActiveSub) {
-      const sub = allActive[0];
-      subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
-      priceId = sub.items.data[0]?.price?.id ?? null;
-      productId = sub.items.data[0]?.price?.product as string ?? null;
+      const sub = allActive[0] as any;
+      // Stripe API 2025-08-27.basil moved current_period_end to subscription items
+      const periodEnd =
+        sub.items?.data?.[0]?.current_period_end ??
+        sub.current_period_end ??
+        sub.trial_end ??
+        null;
+      subscriptionEnd =
+        typeof periodEnd === "number" && !isNaN(periodEnd)
+          ? new Date(periodEnd * 1000).toISOString()
+          : null;
+      priceId = sub.items?.data?.[0]?.price?.id ?? null;
+      productId = (sub.items?.data?.[0]?.price?.product as string) ?? null;
       status = sub.status;
       logStep("Active subscription found", { subscriptionId: sub.id, priceId, productId, status, end: subscriptionEnd });
     } else {
