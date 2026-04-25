@@ -524,15 +524,16 @@ Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInst
     let qualityWarning = false;
 
     if (!isVariationsRequest) {
-      if (isCopywriter) {
-        validation = validateCopywriter(result.content);
+      if (isCopywriter || isAds) {
+        const validator = isAds ? validateAds : validateCopywriter;
+        validation = validator(result.content);
         let attempts = 0;
         while (!validation.valid && attempts < 1) {
           attempts++;
           const retry = await generateContent(`${userPrompt}\n\nCRITICAL: previous output had: ${validation.errors.join("; ")}. Return ONLY valid JSON matching the exact schema.`);
           if ("error" in retry) break;
           result = retry;
-          validation = validateCopywriter(result.content);
+          validation = validator(result.content);
         }
         if (!validation.valid) qualityWarning = true;
       } else {
