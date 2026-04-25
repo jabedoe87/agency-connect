@@ -10,14 +10,16 @@ interface ConversionLayerProps {
   offer: string;
   cta: string;
   niche: string;
+  actionType: string;
 }
 
-export default function ConversionLayer({ hook, pain, shift, offer, cta, niche }: ConversionLayerProps) {
+type VariantKey = 'landing' | 'dm' | 'email' | 'post';
+
+export default function ConversionLayer({ hook, pain, shift, offer, cta, actionType }: ConversionLayerProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState<string | null>(null);
 
   const variants = useMemo(() => {
-    // Build 3 variants from existing output — NO AI call.
     const benefits = [
       shift?.split('.').filter(Boolean)[0]?.trim() || shift,
       offer?.split('.').filter(Boolean)[0]?.trim() || offer,
@@ -34,7 +36,7 @@ export default function ConversionLayer({ hook, pain, shift, offer, cta, niche }
     ].join('\n');
 
     const dm = [
-      `Hey — ${pain?.toLowerCase().replace(/\.$/, '') || 'noticed something'}?`,
+      `Hey — quick one. ${pain?.toLowerCase().replace(/\.$/, '') || 'noticed something'}?`,
       '',
       `${shift} ${offer}`,
       '',
@@ -52,7 +54,17 @@ export default function ConversionLayer({ hook, pain, shift, offer, cta, niche }
       cta,
     ].join('\n');
 
-    return { landing, dm, email };
+    const post = [
+      hook,
+      '',
+      pain,
+      '',
+      `${shift} ${offer}`,
+      '',
+      cta,
+    ].join('\n');
+
+    return { landing, dm, email, post };
   }, [hook, pain, shift, offer, cta]);
 
   const copy = async (text: string, key: string) => {
@@ -62,55 +74,42 @@ export default function ConversionLayer({ hook, pain, shift, offer, cta, niche }
     toast({ title: 'Copied to clipboard' });
   };
 
+  // Pick ONE variant based on actionType (Section 7)
+  const active: { key: VariantKey; label: string; sublabel: string; body: string; copyLabel: string } = (() => {
+    if (/email/i.test(actionType)) {
+      return { key: 'email', label: 'Reply Email', sublabel: 'Subject + 2 paragraphs + CTA', body: variants.email, copyLabel: 'Copy Email Reply' };
+    }
+    if (/^run an ad|paid ad|^ad/i.test(actionType)) {
+      return { key: 'landing', label: 'Landing Page Copy', sublabel: 'Headline + 3 benefits + CTA', body: variants.landing, copyLabel: 'Copy Landing Page' };
+    }
+    if (/post on instagram|^post|caption/i.test(actionType)) {
+      return { key: 'post', label: 'Reply Caption / Comment', sublabel: 'Hook + pain + pitch + CTA', body: variants.post, copyLabel: 'Copy Post Reply' };
+    }
+    // Default: DM
+    return { key: 'dm', label: 'DM Reply Script', sublabel: 'Pain + pitch + soft CTA', body: variants.dm, copyLabel: 'Copy DM Reply' };
+  })();
+
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/[0.06] p-5 space-y-4">
       <div>
-        <p className="label-uppercase text-primary text-[10px] font-semibold mb-1">▸ Turn this into clients</p>
-        <p className="text-xs text-muted-foreground">Use this when someone shows interest.</p>
+        <p className="label-uppercase text-primary text-[10px] font-semibold mb-1">▸ When someone replies — send this immediately</p>
+        <p className="text-xs text-muted-foreground">One ready-to-send response, matched to your action.</p>
       </div>
 
-      <div className="space-y-3">
-        <details className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
-          <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-foreground flex items-center justify-between">
-            A — Landing Page
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Headline + 3 benefits + CTA</span>
-          </summary>
-          <pre className="px-4 pb-3 text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{variants.landing}</pre>
-        </details>
-
-        <details className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
-          <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-foreground flex items-center justify-between">
-            B — DM Script
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Pain + pitch + soft CTA</span>
-          </summary>
-          <pre className="px-4 pb-3 text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{variants.dm}</pre>
-        </details>
-
-        <details className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
-          <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-foreground flex items-center justify-between">
-            C — Email
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Subject + 2 paragraphs + CTA</span>
-          </summary>
-          <pre className="px-4 pb-3 text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{variants.email}</pre>
-        </details>
+      <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-white/5">
+          <p className="text-sm font-medium text-foreground">{active.label}</p>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{active.sublabel}</span>
+        </div>
+        <pre className="px-4 py-3 text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{active.body}</pre>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 pt-1">
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 flex-1" onClick={() => copy(variants.landing, 'landing')}>
-          {copied === 'landing' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-          Copy Landing Page
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 flex-1" onClick={() => copy(variants.dm, 'dm')}>
-          {copied === 'dm' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-          Copy DM Script
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 flex-1" onClick={() => copy(variants.email, 'email')}>
-          {copied === 'email' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-          Copy Email
-        </Button>
-      </div>
+      <Button variant="outline" size="sm" className="gap-1.5 border-white/10 w-full" onClick={() => copy(active.body, active.key)}>
+        {copied === active.key ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+        {active.copyLabel}
+      </Button>
 
-      <p className="text-[11px] text-muted-foreground italic pt-1">Use this as a DM reply or landing page.</p>
+      <p className="text-[11px] text-muted-foreground italic pt-1">Speed wins replies — send within minutes.</p>
     </div>
   );
 }
