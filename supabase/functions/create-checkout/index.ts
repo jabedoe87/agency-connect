@@ -91,7 +91,10 @@ Deno.serve(async (req) => {
     };
 
     if (checkoutMode === "trial") {
-      sessionConfig.subscription_data = { trial_period_days: 7 };
+      sessionConfig.subscription_data = {
+        trial_period_days: 7,
+        metadata: { user_id: userId, supabase_user_id: userId },
+      };
     }
 
     let session;
