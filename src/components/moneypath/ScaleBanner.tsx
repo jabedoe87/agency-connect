@@ -31,21 +31,21 @@ export default function ScaleBanner({ platform, hookType, outcome, onConfirm }: 
         <div className="flex-1 min-w-0">
           <p className="label-uppercase text-success text-[10px] font-semibold mb-1">▸ This worked — do more of this</p>
           <p className="text-sm text-foreground">
-            Your <span className="font-semibold">{platform || 'recent'}</span> ad with <span className="font-semibold">Hook {hookType}</span> got <span className="font-semibold">{outcome === 'client' ? 'a client' : 'leads'}</span>.
+            Your <span className="font-semibold">{platform || 'recent'}</span> message with <span className="font-semibold">Hook {hookType}</span> got <span className="font-semibold">{outcome === 'client' ? 'a client' : 'leads'}</span>.
           </p>
-          <p className="text-[11px] text-muted-foreground italic mt-1">Scale this before momentum drops.</p>
+          <p className="text-[12px] text-success font-semibold mt-1">This is how you get more clients faster.</p>
         </div>
         <Button size="sm" className="cta-primary gap-1.5 shrink-0" onClick={() => setOpen(true)}>
-          <Rocket className="w-3.5 h-3.5" /> Create 3 variations of this winner
+          <Rocket className="w-3.5 h-3.5" /> Double down on this winner
         </Button>
       </div>
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Use this winning setup for variations?</AlertDialogTitle>
+            <AlertDialogTitle>Use this winning setup for more messages?</AlertDialogTitle>
             <AlertDialogDescription>
-              We'll lock your niche, platform, and Hook {hookType} structure, then generate 3 fresh variations that vary the opening and CTA.
+              We'll lock your niche, channel, and Hook {hookType} structure, then generate 3 fresh variations that vary the opening and CTA.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
