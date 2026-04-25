@@ -417,6 +417,83 @@ function validateAds(content: any): { valid: boolean; errors: string[] } {
   return { valid: errors.length === 0, errors };
 }
 
+// ============================================================
+// NICHE ENGINE V5 — deep-conversion copy for ONE exact person
+// ============================================================
+const NICHE_SYSTEM_PROMPT = `You write copy that feels written for ONE exact person in a specific niche. Your job is precision, not breadth.
+
+ROLE:
+Write copy that feels written for ONE exact person.
+
+RULES:
+- If a line could fit another niche → rewrite it
+- Use real situations, not abstract language
+- Include ONE uncomfortable truth per version
+
+REALITY ANCHOR (MANDATORY):
+At least one line per version must describe a real moment from their week — something visual and specific (e.g. "after your last client of the day", "the third unanswered DM this week").
+
+NICHE SIGNALS — use at least one per version:
+- a real moment ("after your last client", "before your Monday meeting")
+- a specific number or situation
+- the natural language of that niche
+
+STRUCTURE PER VERSION:
+- hook (1 line — a specific moment)
+- pain (2–3 lines — emotional + real)
+- shift (2 lines — new belief)
+- offer (2 lines — proof + difference)
+- cta (1 line — action + outcome)
+- truth (1 line — the uncomfortable truth, placed per version rules below)
+
+TWO VERSIONS:
+- Version A — Cost of staying stuck → the uncomfortable truth lands at the END of PAIN. Append it as the "truth" field, but it should feel like the closing line of the pain section.
+- Version B — Identity contrast → the uncomfortable truth lands at the START of SHIFT. Append it as the "truth" field, but it should feel like the opening line of the shift section.
+
+SELF-CHECK BEFORE RETURNING:
+- Could this be generic? → rewrite
+- Can you picture it? → if not, rewrite
+
+SCORING:
+Score each version 1–10 on:
+- niche (does it feel built for THIS niche only)
+- clarity (is it instantly understood)
+- conversion (would it move a reader to act)
+
+WINNER: pick A or B.
+
+FINAL — rewrite the winner:
+- shorter
+- more specific
+- sharper truth
+- stronger CTA
+
+OUTPUT FORMAT — return ONLY valid JSON, no markdown, no fences:
+{
+  "version_a": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "", "truth": "" },
+  "version_b": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "", "truth": "" },
+  "scores": {
+    "a": { "niche": 0, "clarity": 0, "conversion": 0 },
+    "b": { "niche": 0, "clarity": 0, "conversion": 0 }
+  },
+  "winner": "a",
+  "final": { "hook": "", "pain": "", "shift": "", "offer": "", "cta": "", "truth": "", "improved_from": "a" }
+}`;
+
+function validateNiche(content: any): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!content || typeof content !== "object") return { valid: false, errors: ["not an object"] };
+  for (const key of ["version_a", "version_b", "final"]) {
+    const v = content[key];
+    if (!v || typeof v !== "object") { errors.push(`Missing ${key}`); continue; }
+    for (const f of ["hook", "pain", "shift", "offer", "cta", "truth"]) {
+      if (!v[f] || typeof v[f] !== "string") errors.push(`${key}.${f} missing`);
+    }
+  }
+  if (!content.scores || !content.winner || !content.final) errors.push("missing scores/winner/final");
+  return { valid: errors.length === 0, errors };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -427,9 +504,19 @@ serve(async (req) => {
 
     const isCopywriter = preset === "copywriter";
     const isAds = preset === "ads";
+    const isNiche = preset === "niche";
     const styleInstruction = STYLE_PRESETS[preset] || STYLE_PRESETS["high-converting"];
 
-    const userPrompt = isAds ? `Write 3 scroll-stopping ads for this business, score each, pick a winner, and rewrite the winner as the final.
+    const userPrompt = isNiche ? `Write 2 deep-conversion copy versions for this exact niche, score them, pick a winner, and rewrite the winner as the final.
+
+NICHE + AUDIENCE: ${niche}${businessContext?.target_audience ? ` — ${businessContext.target_audience}` : ''}
+PAIN: derive from the niche — make it real and visual
+DESIRE: derive from the niche — make it concrete
+OFFER: ${businessContext?.offer || niche}
+
+Every version MUST feel built for this niche only. Include at least one real moment from their week. Include ONE uncomfortable truth (placed per the version rules in the system prompt).
+
+Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${assistInstruction ? `\n\n${assistInstruction}` : ''}` : isAds ? `Write 3 scroll-stopping ads for this business, score each, pick a winner, and rewrite the winner as the final.
 
 AUDIENCE: ${businessContext?.target_audience || "Local customers"}
 PAIN: derive from the niche/offer below — make it visceral and specific
