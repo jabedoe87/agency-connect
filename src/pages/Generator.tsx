@@ -60,6 +60,7 @@ export default function Generator() {
   const [preset, setPreset] = useState('high-converting');
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
+  const [copywriterOutput, setCopywriterOutput] = useState<CopywriterOutput | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [assistLoading, setAssistLoading] = useState(false);
