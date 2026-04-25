@@ -432,34 +432,44 @@ export default function Generator() {
 
             <div className="glass-card p-6 space-y-5">
               <div>
-                <Label className="label-uppercase text-foreground">Your Niche / Business *</Label>
+                <Label className="label-uppercase text-foreground">Describe what you sell in 1 sentence *</Label>
                 <Textarea
                   ref={nicheRef}
-                  placeholder="e.g. Personal trainer helping busy professionals get fit"
+                  placeholder="Example: I help gym owners get more members"
                   value={niche}
                   onChange={(e) => setNiche(e.target.value)}
                   className="mt-2 transition-colors duration-150 focus:ring-2 focus:ring-primary/30"
                   rows={2}
                 />
               </div>
+
+              {/* Action selector — replaces Niche/Audience/Offer cognitive load */}
               <div>
-                <Label className="label-uppercase text-foreground">Target Audience</Label>
-                <Input
-                  placeholder="e.g. Busy professionals aged 30-50"
-                  value={targetAudience}
-                  onChange={(e) => setTargetAudience(e.target.value)}
-                  className="mt-2 transition-colors duration-150 focus:ring-2 focus:ring-primary/30"
-                />
+                <Label className="label-uppercase text-foreground">What do you want to do?</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {ACTION_OPTIONS.map((opt) => {
+                    const isActive = actionType === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setActionType(opt)}
+                        className={`p-3 rounded-xl border text-left text-sm transition-all duration-150 ${
+                          isActive
+                            ? 'border-primary/40 bg-primary/10 text-foreground shadow-sm font-medium'
+                            : 'border-white/10 bg-white/[0.04] text-muted-foreground hover:bg-white/[0.07] hover:text-foreground'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div>
-                <Label className="label-uppercase text-foreground">Your Offer</Label>
-                <Input
-                  placeholder="e.g. 12-week body transformation program"
-                  value={offer}
-                  onChange={(e) => setOffer(e.target.value)}
-                  className="mt-2 transition-colors duration-150 focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
+
+              {/* Hidden — kept for state/validation/bindings; auto-filled from niche if empty */}
+              <input type="hidden" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} />
+              <input type="hidden" value={offer} onChange={(e) => setOffer(e.target.value)} />
             </div>
 
             <div className="glass-card p-6">
