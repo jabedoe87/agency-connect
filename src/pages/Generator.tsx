@@ -780,6 +780,10 @@ export default function Generator() {
                   </div>
                 )}
 
+                {nicheOutput.final && (
+                  <p className="text-[11px] text-muted-foreground italic -mt-2">This message is structured to get replies.</p>
+                )}
+
                 {/* ── Money Path: Conversion Layer (Section 2) ── */}
                 {nicheOutput.final && (
                   <ConversionLayer
@@ -789,6 +793,7 @@ export default function Generator() {
                     offer={nicheOutput.final.offer}
                     cta={nicheOutput.final.cta}
                     niche={niche}
+                    actionType={actionType}
                   />
                 )}
               </div>
