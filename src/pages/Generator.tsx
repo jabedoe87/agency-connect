@@ -716,6 +716,14 @@ export default function Generator() {
                   </Button>
                 </div>
 
+                {/* Output context (Section 4) */}
+                <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
+                  <p className="text-xs text-foreground">
+                    <span className="text-muted-foreground">This is for:</span>{' '}
+                    <span className="font-semibold text-primary">{actionType}</span>
+                  </p>
+                </div>
+
                 {(['a', 'b'] as const).map((key) => {
                   const v = nicheOutput[`version_${key}` as 'version_a'];
                   const s = nicheOutput.scores?.[key];
