@@ -47,10 +47,23 @@ interface AdsOutput {
   final: CopyVersion;
 }
 
+interface NicheVersion extends CopyVersion {
+  truth: string;
+}
+
+interface NicheOutput {
+  version_a: NicheVersion;
+  version_b: NicheVersion;
+  scores: Record<'a' | 'b', { niche: number; clarity: number; conversion: number }>;
+  winner: 'a' | 'b';
+  final: NicheVersion;
+}
+
 const STYLE_PRESETS = [
   { id: 'high-converting', label: 'High-Converting', desc: 'Proven direct-response style' },
   { id: 'copywriter', label: 'Copywriter Pro', desc: '3 versions, scored, with final' },
   { id: 'ads', label: 'Ads Engine', desc: 'Scroll → click ads, scored' },
+  { id: 'niche', label: 'Niche Engine', desc: 'Deep-conversion for ONE person' },
   { id: 'luxury', label: 'Luxury', desc: 'Sophisticated & exclusive' },
   { id: 'aggressive', label: 'Aggressive', desc: 'Bold & urgent' },
   { id: 'tiktok', label: 'TikTok', desc: 'Casual & scroll-stopping' },
