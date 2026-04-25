@@ -30,7 +30,7 @@ const STYLE_PRESETS = [
 const DEMO_NICHE = 'Personal trainer helping busy professionals get fit';
 
 export default function Generator() {
-  const { user, profile } = useAuth();
+  const { user, profile, subscription } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const nicheRef = useRef<HTMLTextAreaElement>(null);
@@ -47,7 +47,14 @@ export default function Generator() {
   const [variations, setVariations] = useState<GeneratedContent[] | null>(null);
   const [previousOutput, setPreviousOutput] = useState<GeneratedContent | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
-  const isFreePlan = !profile?.plan || profile.plan === 'trial';
+  // Access gate — paid plan from profiles OR live Stripe subscription unlocks everything.
+  const hasPaidPlan =
+    profile?.plan === 'starter' ||
+    profile?.plan === 'pro' ||
+    profile?.plan === 'business';
+  const isPaidUser = hasPaidPlan || subscription?.subscribed === true;
+  const isFreePlan = !isPaidUser;
+  console.log('[access] plan:', profile?.plan, 'subscribed:', subscription?.subscribed, 'isPaidUser:', isPaidUser);
 
   const handleGenerate = async (demoMode = false) => {
     if (!user) return;
