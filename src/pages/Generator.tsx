@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Copy, Check, Loader2, RefreshCw, Lock, Save, ArrowLeft } from 'lucide-react';
+import { Sparkles, Copy, Check, Loader2, RefreshCw, Lock, Save, ArrowLeft, Wand2 } from 'lucide-react';
 
 interface GeneratedContent {
   hook: string;
@@ -93,6 +93,40 @@ export default function Generator() {
   const [variations, setVariations] = useState<GeneratedContent[] | null>(null);
   const [previousOutput, setPreviousOutput] = useState<GeneratedContent | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
+  const [rawIdea, setRawIdea] = useState('');
+  const [autoFilling, setAutoFilling] = useState(false);
+
+  const handleAutoFill = async () => {
+    if (!rawIdea.trim()) {
+      toast({ title: 'Type a quick idea or niche first', variant: 'destructive' });
+      return;
+    }
+    setAutoFilling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-content', {
+        body: {
+          action: 'auto_input',
+          rawInput: rawIdea.trim(),
+          targetEngine: preset === 'ads' || preset === 'niche' || preset === 'copywriter' ? preset : 'ads',
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const c = data.content || {};
+      if (c.niche_audience) setNiche(c.niche_audience);
+      if (c.offer) setOffer(c.offer);
+
+      toast({
+        title: 'Inputs ready',
+        description: c.platform ? `Suggested platform: ${c.platform}` : 'Fields auto-filled — review and generate.',
+      });
+    } catch (err: any) {
+      toast({ title: 'Auto-fill failed', description: err.message || 'Try again.', variant: 'destructive' });
+    } finally {
+      setAutoFilling(false);
+    }
+  };
   // Access gate — paid plan from profiles OR live Stripe subscription unlocks everything.
   const hasPaidPlan =
     profile?.plan === 'starter' ||
@@ -271,6 +305,37 @@ export default function Generator() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Input column */}
           <div className="space-y-6">
+            {/* Auto Input Engine — quick start from a raw idea */}
+            <div className="glass-card p-5 space-y-3 border border-primary/20 bg-primary/[0.04]">
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-4 h-4 text-primary" />
+                <p className="label-uppercase text-primary text-[10px] font-semibold">Quick Start — Auto Input</p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Drop a niche or rough idea. We'll auto-fill audience, offer, and pain points so you can generate faster.
+              </p>
+              <Textarea
+                placeholder="e.g. coach for solo female founders who burn out before $10k/mo"
+                value={rawIdea}
+                onChange={(e) => setRawIdea(e.target.value)}
+                rows={2}
+                className="transition-colors duration-150 focus:ring-2 focus:ring-primary/30"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={handleAutoFill}
+                disabled={autoFilling}
+              >
+                {autoFilling ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Auto-filling...</>
+                ) : (
+                  <><Wand2 className="w-3.5 h-3.5" /> Auto-fill inputs</>
+                )}
+              </Button>
+            </div>
+
             <div className="glass-card p-6 space-y-5">
               <div>
                 <Label className="label-uppercase text-foreground">Your Niche / Business *</Label>
