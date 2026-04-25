@@ -52,7 +52,23 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .single();
 
-    let customerId = profile?.stripe_customer_id;
+    let customerId: string | null = profile?.stripe_customer_id ?? null;
+
+    // Validate cached customer exists in current Stripe mode (test/live).
+    // If it was created in the other mode, Stripe returns resource_missing — recreate it.
+    if (customerId) {
+      try {
+        const existing = await stripe.customers.retrieve(customerId);
+        if ((existing as any).deleted) customerId = null;
+      } catch (err: any) {
+        if (err?.code === "resource_missing") {
+          console.log('[EDGE] cached customer not found in current mode, recreating');
+          customerId = null;
+        } else {
+          throw err;
+        }
+      }
+    }
 
     if (!customerId) {
       const customer = await stripe.customers.create({ email, metadata: { user_id: userId } });
