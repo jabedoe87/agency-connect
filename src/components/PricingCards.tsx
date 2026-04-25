@@ -8,11 +8,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useState, type MouseEvent } from 'react';
 
-// Map plan names to Stripe price IDs — TEST MODE (€19/mo recurring)
+// Map plan names to Stripe price IDs — TEST MODE (per-plan recurring)
 const PRICE_IDS: Record<string, string> = {
-  Starter: 'price_1TPtf8Au1BgRc5ul69Jpoew8', // TEST
-  Pro: 'price_1TPtf8Au1BgRc5ul69Jpoew8',     // TEST
-  Business: 'price_1TPtf8Au1BgRc5ul69Jpoew8',// TEST
+  Starter: 'price_1TGgrbAu1BgRc5ulqTuDzcer',  // TEST €49/mo
+  Pro: 'price_1TGgrdAu1BgRc5ulzP7eBSW9',      // TEST €99/mo
+  Business: 'price_1TGgreAu1BgRc5ulrOh3mr4u', // TEST €149/mo
 };
 
 interface PricingCardsProps {
