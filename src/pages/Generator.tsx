@@ -407,6 +407,63 @@ export default function Generator() {
               </div>
             )}
 
+            {adsOutput && !loading && (
+              <div className="glass-card-raised p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="label-uppercase font-semibold">Ads Engine — Scroll → Click</p>
+                  <Button variant="ghost" size="sm" className="gap-1.5 opacity-70 hover:opacity-100" onClick={() => handleGenerate(false)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+                  </Button>
+                </div>
+
+                {(['a', 'b', 'c'] as const).map((key) => {
+                  const v = adsOutput[`version_${key}` as 'version_a'];
+                  const s = adsOutput.scores?.[key];
+                  const isWinner = adsOutput.winner === key;
+                  const labels = { a: 'A — Curiosity Gap', b: 'B — Bold Contrast', c: 'C — Pain Mirror' };
+                  const fullText = `${v.hook}\n\n${v.pain}\n\n${v.shift}\n\n${v.offer}\n\n${v.cta}`;
+                  return (
+                    <div key={key} className={`glass-card p-5 space-y-3 relative ${isWinner ? 'ring-1 ring-primary/40' : ''}`}>
+                      <CopyButton text={fullText} field={`ad_${key}`} />
+                      <div className="flex items-center justify-between pr-8">
+                        <p className="label-uppercase text-primary text-[10px] font-semibold">{labels[key]}</p>
+                        {isWinner && <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">Winner</span>}
+                      </div>
+                      <p className="text-foreground font-medium leading-relaxed">{v.hook}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.pain}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.shift}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.offer}</p>
+                      <p className="text-foreground font-semibold leading-relaxed">{v.cta}</p>
+                      {s && (
+                        <div className="pt-2 border-t border-white/5">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="text-foreground font-medium">{s.stop}/10</span> stop · <span className="text-foreground font-medium">{s.click}/10</span> click
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {adsOutput.final && (
+                  <div className="glass-card-raised p-5 space-y-3 relative border border-primary/30">
+                    <CopyButton
+                      text={`${adsOutput.final.hook}\n\n${adsOutput.final.pain}\n\n${adsOutput.final.shift}\n\n${adsOutput.final.offer}\n\n${adsOutput.final.cta}`}
+                      field="ad_final"
+                    />
+                    <p className="label-uppercase text-primary text-[10px] font-semibold pr-8">
+                      ✦ Final Ad{adsOutput.final.improved_from ? ` (improved from ${adsOutput.final.improved_from.toUpperCase()})` : ''}
+                    </p>
+                    <p className="text-foreground font-medium leading-relaxed">{adsOutput.final.hook}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.pain}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.shift}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{adsOutput.final.offer}</p>
+                    <p className="text-foreground font-semibold leading-relaxed">{adsOutput.final.cta}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {content && (
               <div className="glass-card-raised p-6 space-y-6">
                 <div className="flex items-center justify-between">
