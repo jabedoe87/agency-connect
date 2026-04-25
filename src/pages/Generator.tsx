@@ -110,6 +110,77 @@ export default function Generator() {
   const [rawIdea, setRawIdea] = useState('');
   const [autoFilling, setAutoFilling] = useState(false);
 
+  // ── Money Path state ────────────────────────────────────────────────
+  // Tracks the current ads-winner result row (per generation) and all stored results.
+  const [results, setResults] = useState<MoneyResult[]>(() => readResults());
+  const [currentAdId, setCurrentAdId] = useState<string | null>(null);
+  const insights = useMemo(() => computeInsights(results), [results]);
+
+  // Reset the per-generation tracking row whenever a new ads output arrives.
+  useEffect(() => {
+    if (adsOutput) {
+      setCurrentAdId(genAdId());
+    } else {
+      setCurrentAdId(null);
+    }
+  }, [adsOutput]);
+
+  const currentResult = currentAdId ? results.find((r) => r.ad_id === currentAdId) ?? null : null;
+
+  const handleMarkPosted = () => {
+    if (!adsOutput || !currentAdId) return;
+    const winnerKey = (adsOutput.winner?.toUpperCase?.() || 'A') as 'A' | 'B' | 'C';
+    const row: MoneyResult = currentResult ?? {
+      ad_id: currentAdId,
+      hook_type: winnerKey,
+      niche: niche || '',
+      platform: targetAudience || '',
+      posted: false,
+      outcome: null,
+      created_at: Date.now(),
+    };
+    const updated: MoneyResult = { ...row, posted: true };
+    setResults(upsertResult(updated));
+  };
+
+  const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
+    if (!currentAdId) return;
+    setResults(updateOutcome(currentAdId, outcome));
+  };
+
+  const handleScaleVariations = async () => {
+    if (!adsOutput) return;
+    const winnerKey = (adsOutput.winner || 'a') as 'a' | 'b' | 'c';
+    const winnerVersion = adsOutput[`version_${winnerKey}` as 'version_a'];
+    // Reuse runAssistAction-equivalent path via direct invoke — keeps inputs locked.
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-content', {
+        body: {
+          niche: niche || DEMO_NICHE,
+          preset: 'ads',
+          businessContext: {
+            business_type: profile?.business_type || 'Service business',
+            target_audience: targetAudience || 'Local customers',
+            offer: offer || niche || DEMO_NICHE,
+          },
+          assistInstruction: `Winning ad (Hook ${winnerKey.toUpperCase()}):\n${JSON.stringify(winnerVersion, null, 2)}\n\nCreate 3 variations of this ad. Keep the hook structure and tone identical. Vary the opening line and the CTA only.`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAdsOutput(data.content as AdsOutput);
+      outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      toast({ title: '3 variations generated', description: 'Same winning hook, fresh openings + CTAs.' });
+    } catch (err: any) {
+      toast({ title: 'Variation failed', description: err.message || 'Try again.', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+  // ────────────────────────────────────────────────────────────────────
+
+
   const handleAutoFill = async () => {
     if (!rawIdea.trim()) {
       toast({ title: 'Type a quick idea or niche first', variant: 'destructive' });
