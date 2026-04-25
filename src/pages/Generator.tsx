@@ -19,8 +19,28 @@ interface GeneratedContent {
   cta: string;
 }
 
+interface CopyVersion {
+  hook: string;
+  pain: string;
+  shift: string;
+  offer: string;
+  cta: string;
+  improved_from?: string;
+}
+
+interface CopywriterOutput {
+  version_a: CopyVersion;
+  version_b: CopyVersion;
+  version_c: CopyVersion;
+  scores: Record<'a' | 'b' | 'c', { emotional: number; clarity: number; conversion: number; works: string; limits: string }>;
+  winner: 'a' | 'b' | 'c';
+  winner_reason: string;
+  final: CopyVersion;
+}
+
 const STYLE_PRESETS = [
   { id: 'high-converting', label: 'High-Converting', desc: 'Proven direct-response style' },
+  { id: 'copywriter', label: 'Copywriter Pro', desc: '3 versions, scored, with final' },
   { id: 'luxury', label: 'Luxury', desc: 'Sophisticated & exclusive' },
   { id: 'aggressive', label: 'Aggressive', desc: 'Bold & urgent' },
   { id: 'tiktok', label: 'TikTok', desc: 'Casual & scroll-stopping' },
@@ -40,6 +60,7 @@ export default function Generator() {
   const [preset, setPreset] = useState('high-converting');
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
+  const [copywriterOutput, setCopywriterOutput] = useState<CopywriterOutput | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [assistLoading, setAssistLoading] = useState(false);
@@ -66,6 +87,7 @@ export default function Generator() {
 
     setLoading(true);
     setContent(null);
+    setCopywriterOutput(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -83,8 +105,12 @@ export default function Generator() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const generated = data.content as GeneratedContent;
-      setContent(generated);
+      const generated = data.content;
+      if (preset === 'copywriter') {
+        setCopywriterOutput(generated as CopywriterOutput);
+      } else {
+        setContent(generated as GeneratedContent);
+      }
 
       await supabase.from('generated_content').insert({
         user_id: user.id,
@@ -291,13 +317,79 @@ export default function Generator() {
               </div>
             )}
 
-            {!content && !loading && (
+            {!content && !copywriterOutput && !loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
                 <Sparkles className="w-10 h-10 text-primary/30 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-1">Ready to generate</h3>
                 <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                   Fill in your business details and hit generate. Your content will appear here — ready to use, no editing needed.
                 </p>
+              </div>
+            )}
+
+            {copywriterOutput && !loading && (
+              <div className="glass-card-raised p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <p className="label-uppercase font-semibold">Copywriter Pro — 3 Versions + Final</p>
+                  <Button variant="ghost" size="sm" className="gap-1.5 opacity-70 hover:opacity-100" onClick={() => handleGenerate(false)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+                  </Button>
+                </div>
+
+                {(['a', 'b', 'c'] as const).map((key) => {
+                  const v = copywriterOutput[`version_${key}` as 'version_a'];
+                  const s = copywriterOutput.scores?.[key];
+                  const isWinner = copywriterOutput.winner === key;
+                  const labels = { a: 'Version A — Rational Urgency', b: 'Version B — Aggressive Contrast', c: 'Version C — Emotional Mirror' };
+                  const fullText = `${v.hook}\n\n${v.pain}\n\n${v.shift}\n\n${v.offer}\n\n${v.cta}`;
+                  return (
+                    <div key={key} className={`glass-card p-5 space-y-3 relative ${isWinner ? 'ring-1 ring-primary/40' : ''}`}>
+                      <CopyButton text={fullText} field={`v_${key}`} />
+                      <div className="flex items-center justify-between pr-8">
+                        <p className="label-uppercase text-primary text-[10px] font-semibold">{labels[key]}</p>
+                        {isWinner && <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">Winner</span>}
+                      </div>
+                      <p className="text-foreground font-medium leading-relaxed">{v.hook}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.pain}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.shift}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{v.offer}</p>
+                      <p className="text-foreground font-semibold leading-relaxed">{v.cta}</p>
+                      {s && (
+                        <div className="pt-2 border-t border-white/5 space-y-1">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="text-foreground font-medium">{s.emotional}/10</span> emotional · <span className="text-foreground font-medium">{s.clarity}/10</span> clarity · <span className="text-foreground font-medium">{s.conversion}/10</span> conversion
+                          </p>
+                          {s.works && <p className="text-xs text-muted-foreground"><span className="text-success">+</span> {s.works}</p>}
+                          {s.limits && <p className="text-xs text-muted-foreground"><span className="text-destructive">−</span> {s.limits}</p>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {copywriterOutput.winner_reason && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <p className="text-xs label-uppercase text-primary mb-1">Winner: Version {copywriterOutput.winner?.toUpperCase()}</p>
+                    <p className="text-sm text-foreground">{copywriterOutput.winner_reason}</p>
+                  </div>
+                )}
+
+                {copywriterOutput.final && (
+                  <div className="glass-card-raised p-5 space-y-3 relative border border-primary/30">
+                    <CopyButton
+                      text={`${copywriterOutput.final.hook}\n\n${copywriterOutput.final.pain}\n\n${copywriterOutput.final.shift}\n\n${copywriterOutput.final.offer}\n\n${copywriterOutput.final.cta}`}
+                      field="final"
+                    />
+                    <p className="label-uppercase text-primary text-[10px] font-semibold pr-8">
+                      ✦ Final Version{copywriterOutput.final.improved_from ? ` (improved from Version ${copywriterOutput.final.improved_from.toUpperCase()})` : ''}
+                    </p>
+                    <p className="text-foreground font-medium leading-relaxed">{copywriterOutput.final.hook}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.pain}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.shift}</p>
+                    <p className="text-foreground/90 text-sm leading-relaxed">{copywriterOutput.final.offer}</p>
+                    <p className="text-foreground font-semibold leading-relaxed">{copywriterOutput.final.cta}</p>
+                  </div>
+                )}
               </div>
             )}
 
