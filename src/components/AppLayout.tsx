@@ -32,7 +32,7 @@ const secondaryNav = [
 const mobileNavItems = primaryNav.filter(i => !i.locked).slice(0, 5);
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, subscription, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -43,7 +43,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const trialEndsAt = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const now = new Date();
   const daysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 7;
-  const trialExpired = profile?.plan === 'trial' && trialEndsAt && trialEndsAt < now;
+
+  // PAID PLAN = ALWAYS UNLOCK. Source of truth: live Stripe (subscription.subscribed) OR persisted plan.
+  const hasPaidPlan =
+    subscription?.subscribed === true ||
+    (profile?.plan === 'starter' || profile?.plan === 'pro' || profile?.plan === 'business');
+  const trialExpired = !hasPaidPlan && profile?.plan === 'trial' && trialEndsAt && trialEndsAt < now;
 
   useEffect(() => {
     if (trialExpired) setShowTrialExpired(true);
@@ -87,7 +92,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <span className="font-display text-xl text-foreground tracking-tight">AgencyOS</span>
         </div>
 
-        {profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
+        {!hasPaidPlan && profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
           <div className="mx-4 mt-4 p-3 rounded-xl bg-warning/10 border border-warning/20">
             <p className="text-xs text-warning font-medium">Your trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</p>
           </div>
