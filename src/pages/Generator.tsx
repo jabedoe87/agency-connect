@@ -630,6 +630,35 @@ export default function Generator() {
                     <p className="text-foreground font-semibold leading-relaxed">{adsOutput.final.cta}</p>
                   </div>
                 )}
+
+                {/* ── Money Path: Action Layer (Section 1) ── */}
+                {adsOutput.final && (
+                  <ActionLayer
+                    adText={`${adsOutput.final.hook}\n\n${adsOutput.final.pain}\n\n${adsOutput.final.shift}\n\n${adsOutput.final.offer}\n\n${adsOutput.final.cta}`}
+                    ctaText={adsOutput.final.cta}
+                    platform={targetAudience}
+                    alreadyPosted={!!currentResult?.posted}
+                    onPosted={handleMarkPosted}
+                  />
+                )}
+
+                {/* ── Money Path: Result Tracking (Section 3) — only after posted ── */}
+                {currentResult?.posted && (
+                  <ResultTracker
+                    currentOutcome={currentResult.outcome}
+                    onSelect={handleSelectOutcome}
+                  />
+                )}
+
+                {/* ── Money Path: Scale System (Section 5) — only on leads/client ── */}
+                {currentResult?.posted && (currentResult.outcome === 'leads' || currentResult.outcome === 'client') && (
+                  <ScaleBanner
+                    platform={targetAudience || 'this'}
+                    hookType={currentResult.hook_type}
+                    outcome={currentResult.outcome}
+                    onConfirm={handleScaleVariations}
+                  />
+                )}
               </div>
             )}
 
