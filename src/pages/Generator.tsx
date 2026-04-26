@@ -136,8 +136,8 @@ export default function Generator() {
   const [currentAdId, setCurrentAdId] = useState<string | null>(null);
   const insights = useMemo(() => computeInsights(results), [results]);
 
-  // ── Addiction System V4.1 ───────────────────────────────────────────
-  const { send: recordAddictionSend } = useAddiction();
+  // ── Addiction System V4.1 + V6 ──────────────────────────────────────
+  const { send: recordAddictionSend, state: addictionState, saveWinningInput } = useAddiction();
 
   // Reset the per-generation tracking row whenever a new ads output arrives.
   useEffect(() => {
