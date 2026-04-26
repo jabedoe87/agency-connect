@@ -14,6 +14,12 @@ export interface YesterdaySnapshot {
   revenue: number;
 }
 
+export interface WinningInput {
+  niche: string;
+  actionType: string;
+  savedAt: number;
+}
+
 export interface AddictionState {
   // V4 — habit
   streak: number;
@@ -27,6 +33,16 @@ export interface AddictionState {
   revenueToday: number;
   totalRevenue: number;
   yesterdaySnapshot: YesterdaySnapshot;
+  // V6 — scaling / session
+  sessionActive: boolean;
+  messagesThisSession: number;
+  // V6 — winning angle reuse
+  lastWinningInput: WinningInput | null;
+  // V6 — weekly tracking (rolling Mon-start week)
+  weekStartDate: string; // YYYY-MM-DD of Monday
+  weeklyMessages: number;
+  weeklyClients: number;
+  weeklyRevenue: number;
 }
 
 const defaultSnapshot: YesterdaySnapshot = { messagesSent: 0, replies: 0, revenue: 0 };
@@ -42,6 +58,13 @@ const defaultState: AddictionState = {
   revenueToday: 0,
   totalRevenue: 0,
   yesterdaySnapshot: { ...defaultSnapshot },
+  sessionActive: false,
+  messagesThisSession: 0,
+  lastWinningInput: null,
+  weekStartDate: '',
+  weeklyMessages: 0,
+  weeklyClients: 0,
+  weeklyRevenue: 0,
 };
 
 /* ───────────────────── date helpers ───────────────────── */
