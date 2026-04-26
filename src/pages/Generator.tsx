@@ -696,6 +696,7 @@ export default function Generator() {
                     actionType={actionType}
                     alreadyPosted={!!currentResult?.posted}
                     onPosted={handleMarkPosted}
+                    onGenerateAnother={() => handleGenerate(false)}
                   />
                 )}
 
