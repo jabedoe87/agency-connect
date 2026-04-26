@@ -80,7 +80,21 @@ export default function ActionLayer({
     setMarking(true);
     dismissIdle();
     onPosted();
-    toast({ title: '✓ You took action', description: 'Now check back in 24–48h.' });
+
+    // V8.3 — Fix 7: first-send reward (once, 3s, persisted)
+    let alreadyDone = false;
+    try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
+    if (!alreadyDone) {
+      try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
+      setFirstSendBurst(true);
+      setTimeout(() => setFirstSendBurst(false), 3000);
+      toast({
+        title: '🔥 You just did what most users never do',
+        description: 'This is how clients start.',
+      });
+    } else {
+      toast({ title: '✓ You took action', description: 'Now check back in 24–48h.' });
+    }
   };
 
   const setReminder = (choice: '24h' | '48h') => {
