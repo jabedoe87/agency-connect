@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
+  dismissDailyPlan,
   endSession,
   logClient,
   logLead,
   logReply,
   readAddiction,
   recordSend,
+  setAutopilot,
   setWinningInput,
   startSession,
   type AddictionState,
