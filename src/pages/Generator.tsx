@@ -15,6 +15,9 @@ import ConversionLayer from '@/components/moneypath/ConversionLayer';
 import ResultTracker from '@/components/moneypath/ResultTracker';
 import FeedbackBanner from '@/components/moneypath/FeedbackBanner';
 import ScaleBanner from '@/components/moneypath/ScaleBanner';
+import StreakBanner from '@/components/moneypath/StreakBanner';
+import DailyTracker from '@/components/moneypath/DailyTracker';
+import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
   genAdId,
@@ -125,6 +128,9 @@ export default function Generator() {
   const [currentAdId, setCurrentAdId] = useState<string | null>(null);
   const insights = useMemo(() => computeInsights(results), [results]);
 
+  // ── Addiction System V4.1 ───────────────────────────────────────────
+  const { send: recordAddictionSend } = useAddiction();
+
   // Reset the per-generation tracking row whenever a new ads output arrives.
   useEffect(() => {
     if (adsOutput) {
@@ -150,6 +156,10 @@ export default function Generator() {
     };
     const updated: MoneyResult = { ...row, posted: true };
     setResults(upsertResult(updated));
+    // V4.1 — count this as a "send" for streak/target/today counters.
+    // Only fires once per generation row because ActionLayer's "I've sent it"
+    // is locked after click and the row's `posted` flips to true.
+    recordAddictionSend();
   };
 
   const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
@@ -384,6 +394,11 @@ export default function Generator() {
   return (
     <AppLayout>
       <div className="px-4 md:px-6 py-6 md:py-8 fade-in">
+        {/* V4.1 — Streak banner: always visible, top of screen */}
+        <div className="mb-5">
+          <StreakBanner />
+        </div>
+
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
             <h1 className="font-display text-2xl md:text-3xl text-foreground">Content Generator</h1>
@@ -508,6 +523,8 @@ export default function Generator() {
 
           {/* Output column */}
           <div ref={outputRef} className="space-y-6">
+            {/* V4.1 — Daily output, target, social proof, loss aversion, end-of-day */}
+            <DailyTracker onJumpToCompose={() => nicheRef.current?.focus()} />
             {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
             <FeedbackBanner insight={insights} />
             {loading && (
