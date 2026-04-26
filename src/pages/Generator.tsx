@@ -599,6 +599,14 @@ export default function Generator() {
             <ResultLogger />
             {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
             <FeedbackBanner insight={insights} />
+
+            {/* V6 — Scaling engine */}
+            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} />
+            <MomentumScore />
+            <SprintMode />
+            <WinningAngle onReuse={handleReuseWinning} />
+            <WeeklyView />
+
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
