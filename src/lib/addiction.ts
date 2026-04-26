@@ -101,6 +101,9 @@ const defaultState: AddictionState = {
   actionClientCounts: {},
   nicheRevenueMap: {},
   dailyPlanDismissed: false,
+  pipeline: [],
+  crmExpanded: false,
+  totalClientsClosed: 0,
 };
 
 /* ───────────────────── date helpers ───────────────────── */
