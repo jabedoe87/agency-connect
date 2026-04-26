@@ -169,7 +169,7 @@ export default function Generator() {
     // V4.1 — count this as a "send" for streak/target/today counters.
     // Only fires once per generation row because ActionLayer's "I've sent it"
     // is locked after click and the row's `posted` flips to true.
-    recordAddictionSend();
+    recordAddictionSend(actionType);
   };
 
   const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
