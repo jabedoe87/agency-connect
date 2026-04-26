@@ -245,6 +245,14 @@ export default function ActionLayer({
           {copied === 'msg' ? 'Copied ✓' : 'Copy Message'}
         </Button>
 
+        {/* V8.3 — Fix 3: Copy dominance reinforcement */}
+        {!hasCopied && (
+          <p className="text-[11px] text-muted-foreground leading-snug px-1">
+            Most users stop here.<br />
+            The ones who send get clients.
+          </p>
+        )}
+
         {/* SECONDARY — Copy CTA */}
         <Button
           variant="outline"
@@ -256,12 +264,12 @@ export default function ActionLayer({
           Copy CTA
         </Button>
 
-        {/* Section 4 — Post-copy commitment prompt */}
+        {/* Section 4 — Post-copy commitment prompt (V8.3 — Fix 4: exact "5 people") */}
         {hasCopied && (
           <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2.5 mt-1">
             <p className="text-[12px] text-foreground font-semibold flex items-center gap-1.5">
               <Send className="w-3.5 h-3.5 text-primary" />
-              Now send this to 5–10 people.
+              Now send this to 5 people.
             </p>
           </div>
         )}
