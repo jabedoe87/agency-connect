@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
+  dismissDailyPlan,
   endSession,
   logClient,
   logLead,
   logReply,
   readAddiction,
   recordSend,
+  setAutopilot,
   setWinningInput,
   startSession,
   type AddictionState,
@@ -54,8 +56,8 @@ export function useAddiction() {
     return () => clearTimeout(t);
   }, [justSent]);
 
-  const send = useCallback(() => {
-    const next = recordSend();
+  const send = useCallback((actionType?: string) => {
+    const next = recordSend(actionType);
     setState(next);
     setJustSent(true);
     dispatch();
@@ -76,12 +78,15 @@ export function useAddiction() {
     return next;
   }, []);
 
-  const client = useCallback((amountEUR: number) => {
-    const next = logClient(amountEUR);
-    setState(next);
-    dispatch();
-    return next;
-  }, []);
+  const client = useCallback(
+    (amountEUR: number, opts?: { niche?: string; actionType?: string }) => {
+      const next = logClient(amountEUR, opts);
+      setState(next);
+      dispatch();
+      return next;
+    },
+    [],
+  );
 
   // V6 — session control
   const beginSession = useCallback(() => {
@@ -106,6 +111,21 @@ export function useAddiction() {
     return next;
   }, []);
 
+  // V7 — autopilot toggle + daily plan dismissal
+  const setAutopilotEnabled = useCallback((enabled: boolean) => {
+    const next = setAutopilot(enabled);
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
+  const dismissPlan = useCallback(() => {
+    const next = dismissDailyPlan();
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
   return {
     state,
     justSent,
@@ -117,5 +137,8 @@ export function useAddiction() {
     beginSession,
     stopSession,
     saveWinningInput,
+    setAutopilotEnabled,
+    dismissPlan,
   };
 }
+

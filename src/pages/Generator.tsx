@@ -25,6 +25,8 @@ import SprintMode from '@/components/moneypath/SprintMode';
 import MomentumScore from '@/components/moneypath/MomentumScore';
 import WeeklyView from '@/components/moneypath/WeeklyView';
 import WinningAngle from '@/components/moneypath/WinningAngle';
+import AutopilotPanel from '@/components/moneypath/AutopilotPanel';
+import DailyPlan from '@/components/moneypath/DailyPlan';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
@@ -138,6 +140,8 @@ export default function Generator() {
 
   // ── Addiction System V4.1 + V6 ──────────────────────────────────────
   const { send: recordAddictionSend, state: addictionState, saveWinningInput } = useAddiction();
+  // V7 — bumping this triggers BatchSession to start a new batch externally
+  const [batchTrigger, setBatchTrigger] = useState(0);
 
   // Reset the per-generation tracking row whenever a new ads output arrives.
   useEffect(() => {
@@ -167,7 +171,7 @@ export default function Generator() {
     // V4.1 — count this as a "send" for streak/target/today counters.
     // Only fires once per generation row because ActionLayer's "I've sent it"
     // is locked after click and the row's `posted` flips to true.
-    recordAddictionSend();
+    recordAddictionSend(actionType);
   };
 
   const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
@@ -596,12 +600,20 @@ export default function Generator() {
             {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}
             <MoneyDashboard onScale={handleScaleVariations} />
             {/* V5.1 — Quick result logging */}
-            <ResultLogger />
+            <ResultLogger niche={niche} actionType={actionType} />
             {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
             <FeedbackBanner insight={insights} />
 
+            {/* V7 — Autopilot + Daily Plan */}
+            <DailyPlan onStart={() => setBatchTrigger((k) => k + 1)} />
+            <AutopilotPanel
+              onGenerateOne={() => handleGenerate(false)}
+              onContinueBatch={() => setBatchTrigger((k) => k + 1)}
+              loading={loading}
+            />
+
             {/* V6 — Scaling engine */}
-            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} />
+            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} triggerKey={batchTrigger} />
             <MomentumScore />
             <SprintMode />
             <WinningAngle onReuse={handleReuseWinning} />

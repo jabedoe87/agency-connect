@@ -9,6 +9,12 @@ interface BatchSessionProps {
   onGenerateBatch: (count: number) => Promise<string[]>;
   /** Default batch size. */
   size?: number;
+  /**
+   * V7 (additive) — increment to imperatively start a new batch from outside
+   * (e.g. AutopilotPanel "Continue batch" or DailyPlan "Start now").
+   * Initial mount value is ignored; only later changes trigger a new batch.
+   */
+  triggerKey?: number;
 }
 
 /**
@@ -25,7 +31,7 @@ interface BatchSessionProps {
  * Session is started/ended via the shared addiction state so the
  * "Send Mode" bar reflects per-session output.
  */
-export default function BatchSession({ onGenerateBatch, size = 5 }: BatchSessionProps) {
+export default function BatchSession({ onGenerateBatch, size = 5, triggerKey }: BatchSessionProps) {
   const { toast } = useToast();
   const { state, send, beginSession, stopSession } = useAddiction();
   const [messages, setMessages] = useState<string[]>([]);
@@ -47,6 +53,18 @@ export default function BatchSession({ onGenerateBatch, size = 5 }: BatchSession
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [index, active]);
+
+  // V7 (additive) — external trigger: increment triggerKey to start a fresh batch.
+  // Initial-mount value is captured in a ref so we don't auto-fire on first render.
+  const lastTriggerRef = useRef<number | undefined>(triggerKey);
+  useEffect(() => {
+    if (triggerKey === undefined) return;
+    if (triggerKey === lastTriggerRef.current) return;
+    lastTriggerRef.current = triggerKey;
+    if (loading) return;
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerKey]);
 
   const generate = async () => {
     setLoading(true);
