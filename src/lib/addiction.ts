@@ -340,12 +340,14 @@ export function recordSend(actionType?: string): AddictionState {
 
 export function logReply(): AddictionState {
   const s = rollIfNewWeek(rollIfNewDay(readRaw()));
-  return write({ ...s, repliesToday: s.repliesToday + 1 });
+  const pipeline = promoteLatestToStatus(s.pipeline, 'replied');
+  return write({ ...s, repliesToday: s.repliesToday + 1, pipeline });
 }
 
 export function logLead(): AddictionState {
   const s = rollIfNewWeek(rollIfNewDay(readRaw()));
-  return write({ ...s, leadsToday: s.leadsToday + 1 });
+  const pipeline = promoteLatestToStatus(s.pipeline, 'lead');
+  return write({ ...s, leadsToday: s.leadsToday + 1, pipeline });
 }
 
 /**
