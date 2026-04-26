@@ -367,3 +367,29 @@ export function formatEUR(n: number): string {
   if (Math.round(n) === n) return `€${n.toLocaleString('en-IE')}`;
   return `€${n.toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+/* ───────────────────── V6 — scaling helpers ───────────────────── */
+
+/**
+ * Performance score = messages sent today + clients * 10.
+ * Used by MomentumScore widget (System 6).
+ */
+export function performanceScore(state: AddictionState): number {
+  return state.messagesSentToday + state.clientsToday * 10;
+}
+
+/** Momentum copy (System 7) keyed off messagesSentToday. */
+export function momentumLabel(messagesSentToday: number): string {
+  if (messagesSentToday >= 20) return "🔥 Full momentum — you're compounding";
+  if (messagesSentToday >= 10) return "Momentum is strong — don't stop";
+  if (messagesSentToday >= 5) return 'Momentum is building';
+  if (messagesSentToday >= 1) return "You're in motion";
+  return 'Start sending — momentum builds fast';
+}
+
+/** Volume boost copy (System 3). Returns '' when below 10. */
+export function volumeBoostLabel(messagesSentToday: number): string {
+  if (messagesSentToday >= 20) return 'High output — this is where results compound';
+  if (messagesSentToday >= 10) return "You're just getting started — go to 20";
+  return '';
+}
