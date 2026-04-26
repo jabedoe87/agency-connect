@@ -118,6 +118,14 @@ export default function ActionLayer({
   if (alreadyPosted) {
     return (
       <div className="rounded-xl border border-success/40 bg-success/[0.08] p-5 space-y-4">
+        {/* V8.3 — Fix 7: First-send reward (auto-hides 3s, shown once) */}
+        {firstSendBurst && (
+          <div className="rounded-lg border border-primary/40 bg-primary/[0.08] px-3 py-2.5">
+            <p className="text-[12px] font-semibold text-foreground">
+              🔥 You just did what most users never do — this is how clients start
+            </p>
+          </div>
+        )}
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-4 h-4 text-success" />
