@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, CheckCircle2, Bell, Send, Sparkles } from 'lucide-react';
+import { Copy, Check, CheckCircle2, Bell, Send, Sparkles, ExternalLink, Mail, Instagram, Megaphone, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
@@ -17,6 +17,17 @@ interface ActionLayerProps {
 const REMINDER_KEY = 'agencyos_reminder';
 const IDLE_FLAG_KEY = 'agencyos_idle_pressure_shown';
 const FIRST_SEND_KEY = 'agencyos_first_send_done'; // V8.3 — Fix 7
+
+// V8.4 — categorize action for low-friction validation
+type ActionKind = 'email' | 'dm' | 'post' | 'ad' | 'comment' | 'fallback';
+function actionKindOf(actionType: string): ActionKind {
+  if (/email/i.test(actionType)) return 'email';
+  if (/dm|message/i.test(actionType)) return 'dm';
+  if (/post|story/i.test(actionType)) return 'post';
+  if (/ad/i.test(actionType)) return 'ad';
+  if (/comment/i.test(actionType)) return 'comment';
+  return 'fallback';
+}
 
 // CTA Command System (Section 8) — direct commands, no choices
 function commandFor(actionType: string): string {
