@@ -36,6 +36,7 @@ export default function ActionLayer({
   onGenerateAnother,
 }: ActionLayerProps) {
   const { toast } = useToast();
+  const { state: addiction } = useAddiction();
   const [copied, setCopied] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
   const [marking, setMarking] = useState(false);
