@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, CheckCircle2, Bell } from 'lucide-react';
+import { Copy, Check, CheckCircle2, Bell, Send, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ActionLayerProps {
@@ -9,26 +9,71 @@ interface ActionLayerProps {
   actionType: string;
   onPosted: () => void;
   alreadyPosted: boolean;
+  onGenerateAnother?: () => void;
 }
 
 const REMINDER_KEY = 'agencyos_reminder';
+const IDLE_FLAG_KEY = 'agencyos_idle_pressure_shown';
 
-export default function ActionLayer({ adText, ctaText, actionType, onPosted, alreadyPosted }: ActionLayerProps) {
+// CTA Command System (Section 8) — direct commands, no choices
+function commandFor(actionType: string): string {
+  if (/dm|message/i.test(actionType)) return 'Send this as a DM right now';
+  if (/email/i.test(actionType)) return 'Send this as an email right now';
+  if (/post/i.test(actionType)) return 'Post this right now';
+  if (/story/i.test(actionType)) return 'Share this in your story right now';
+  if (/ad/i.test(actionType)) return 'Run this as an ad right now';
+  return 'Send this right now';
+}
+
+export default function ActionLayer({
+  adText,
+  ctaText,
+  actionType,
+  onPosted,
+  alreadyPosted,
+  onGenerateAnother,
+}: ActionLayerProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState<string | null>(null);
+  const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
+  const [idlePressure, setIdlePressure] = useState(false);
+  const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
+
+  // Section 7 — idle pressure after 7s, once per session, vanishes on interaction
+  useEffect(() => {
+    if (alreadyPosted) return;
+    let shownThisSession = false;
+    try { shownThisSession = sessionStorage.getItem(IDLE_FLAG_KEY) === '1'; } catch { /* ignore */ }
+    if (shownThisSession) return;
+
+    const t = setTimeout(() => {
+      if (!hasCopied && !alreadyPosted) {
+        setIdlePressure(true);
+        try { sessionStorage.setItem(IDLE_FLAG_KEY, '1'); } catch { /* ignore */ }
+      }
+    }, 7000);
+    return () => clearTimeout(t);
+  }, [hasCopied, alreadyPosted]);
+
+  const dismissIdle = () => setIdlePressure(false);
 
   const copy = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(key);
+    setHasCopied(true);
+    dismissIdle();
     setTimeout(() => setCopied(null), 2000);
-    toast({ title: key === 'cta' ? '✓ CTA copied — ready to send' : '✓ Message copied — ready to send' });
+    toast({
+      title: key === 'cta' ? '✓ CTA copied — ready to send' : '✓ Message copied — ready to send',
+    });
   };
 
   const handleMarkSent = () => {
-    if (marking || alreadyPosted) return;
+    if (marking || alreadyPosted || !hasCopied) return;
     setMarking(true);
+    dismissIdle();
     onPosted();
     toast({ title: '✓ You took action', description: 'Now check back in 24–48h.' });
   };
@@ -48,71 +93,31 @@ export default function ActionLayer({ adText, ctaText, actionType, onPosted, alr
     toast({ title: 'Reminder set', description: `Check back in ${choice}.` });
   };
 
-  // Action-type aware copy
-  const verb = /dm|message|email/i.test(actionType) ? 'Send it to 5–10 people' : 'Post it now';
-  const channelNoun = /email/i.test(actionType)
-    ? 'inbox'
-    : /ad/i.test(actionType)
-    ? 'ad account'
-    : 'feed';
+  const command = commandFor(actionType);
 
-  return (
-    <div className="rounded-xl border border-primary/40 bg-primary/[0.08] p-5 space-y-4">
-      <div>
-        <p className="label-uppercase text-primary text-[11px] font-bold mb-1 tracking-wider">▸ POST THIS NOW</p>
-        <p className="text-xs text-muted-foreground">Three steps. Then mark it sent. That's it.</p>
-      </div>
-
-      <ol className="space-y-2 text-sm text-foreground">
-        <li className="flex gap-2"><span className="text-primary font-semibold">1.</span> Copy this message</li>
-        <li className="flex gap-2"><span className="text-primary font-semibold">2.</span> {verb} from your {channelNoun}</li>
-        <li className="flex gap-2"><span className="text-primary font-semibold">3.</span> Use the CTA exactly as written</li>
-      </ol>
-
-      <p className="text-[12px] text-foreground font-semibold bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2">
-        Do not edit it. Just send.
-      </p>
-
-      <div className="flex flex-col sm:flex-row gap-2 pt-1">
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 flex-1" onClick={() => copy(adText, 'msg')}>
-          {copied === 'msg' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-          Copy Message
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 flex-1" onClick={() => copy(ctaText, 'cta')}>
-          {copied === 'cta' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-          Copy CTA
-        </Button>
-        <Button
-          size="sm"
-          className="gap-1.5 cta-primary flex-1"
-          onClick={handleMarkSent}
-          disabled={alreadyPosted || marking}
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          {alreadyPosted ? 'Sent ✓' : 'Mark as Sent'}
-        </Button>
-      </div>
-
-      {/* Money Path visual (Section 6) */}
-      <div className="pt-3 border-t border-white/10 space-y-2">
-        <p className="label-uppercase text-foreground text-[10px] font-semibold">▸ How this makes you money</p>
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-foreground">Send message</span>
-          <span className="text-primary">→</span>
-          <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-foreground">Get replies</span>
-          <span className="text-primary">→</span>
-          <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-foreground">Book call</span>
-          <span className="text-primary">→</span>
-          <span className="px-2 py-1 rounded-md bg-success/15 border border-success/30 text-success font-semibold">Close client</span>
+  // ─── Section 9 — Completion state replaces the entire Action Layer ─────
+  if (alreadyPosted) {
+    return (
+      <div className="rounded-xl border border-success/40 bg-success/[0.08] p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-4 h-4 text-success" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-foreground font-semibold">✓ Message sent</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Check replies later — or send another now.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Reminder (Section 8) — appears after marking sent */}
-      {alreadyPosted && (
+        {/* Reminder option (Section 8) — kept as light tracking */}
         <div className="pt-3 border-t border-white/10 space-y-2">
           <div className="flex items-center gap-2">
             <Bell className="w-3.5 h-3.5 text-primary" />
-            <p className="label-uppercase text-foreground text-[10px] font-semibold">Set a reminder to check results?</p>
+            <p className="label-uppercase text-foreground text-[10px] font-semibold">
+              Set a reminder to check results?
+            </p>
           </div>
           {reminderChoice ? (
             <p className="text-xs text-success">Reminder set. Check back in {reminderChoice}.</p>
@@ -126,6 +131,140 @@ export default function ActionLayer({ adText, ctaText, actionType, onPosted, alr
               </Button>
             </div>
           )}
+        </div>
+
+        {/* Section 6 — feedback loop after "I've sent it" */}
+        <div className="pt-3 border-t border-white/10 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">🔥 You took action — you're ahead of most users.</p>
+            <p className="text-xs text-muted-foreground mt-1">You are now in the game. Replies start here.</p>
+          </div>
+
+          {postSendChoice === 'done' ? (
+            <p className="text-xs text-success">Got it. Come back when you're ready to send another.</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="label-uppercase text-foreground text-[10px] font-semibold">Next message?</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5 flex-1"
+                  autoFocus
+                  onClick={() => {
+                    setPostSendChoice('continue');
+                    onGenerateAnother?.();
+                  }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generate another
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 border-white/10"
+                  onClick={() => setPostSendChoice('done')}
+                >
+                  Done for now
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Active Action Layer ───────────────────────────────────────────────
+  return (
+    <div className="rounded-xl border border-primary/40 bg-primary/[0.08] p-5 space-y-4">
+      {/* Section 2 — title + action pressure */}
+      <div className="space-y-1.5">
+        <p className="label-uppercase text-primary text-[11px] font-bold tracking-wider">▸ POST THIS NOW</p>
+        <p className="text-xs text-muted-foreground">Three steps. Then mark it sent. That's it.</p>
+      </div>
+
+      <ol className="space-y-2 text-sm text-foreground">
+        <li className="flex gap-2"><span className="text-primary font-semibold">1.</span> Copy this message</li>
+        <li className="flex gap-2"><span className="text-primary font-semibold">2.</span> {command}</li>
+        <li className="flex gap-2"><span className="text-primary font-semibold">3.</span> Use the CTA exactly as written</li>
+      </ol>
+
+      {/* Section 2 — pressure block */}
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 space-y-1">
+        <p className="text-[12px] text-foreground font-semibold">Most people won't send this. That's why they don't get clients.</p>
+        <p className="text-[11px] text-muted-foreground">If you wait, this does nothing.</p>
+      </div>
+
+      {/* Section 1 — suppress editing */}
+      <div className="text-[11px] text-muted-foreground italic leading-relaxed">
+        Do not edit this. It's optimized for replies.<br />
+        Messages like this are sent daily by people getting clients.
+      </div>
+
+      {/* Section 3 — Button hierarchy */}
+      <div className="space-y-2 pt-1">
+        {/* PRIMARY — Copy Message (largest, primary color, one-time pulse) */}
+        <Button
+          size="lg"
+          className={`w-full gap-2 cta-primary min-h-[52px] text-base ${!hasCopied ? 'pulse-once' : ''}`}
+          onClick={() => copy(adText, 'msg')}
+          onMouseEnter={dismissIdle}
+        >
+          {copied === 'msg' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {copied === 'msg' ? 'Copied ✓' : 'Copy Message'}
+        </Button>
+
+        {/* SECONDARY — Copy CTA */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full gap-1.5 border-white/10"
+          onClick={() => copy(ctaText, 'cta')}
+        >
+          {copied === 'cta' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+          Copy CTA
+        </Button>
+
+        {/* Section 4 — Post-copy commitment prompt */}
+        {hasCopied && (
+          <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2.5 mt-1">
+            <p className="text-[12px] text-foreground font-semibold flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-primary" />
+              Now send this to 5–10 people.
+            </p>
+          </div>
+        )}
+
+        {/* FINAL — I've sent it (locked until Copy clicked) */}
+        <Button
+          size="lg"
+          className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
+          onClick={handleMarkSent}
+          disabled={!hasCopied || marking}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          I've sent it
+        </Button>
+      </div>
+
+      {/* Money Path visual (Section 6 of V2 — kept) */}
+      <div className="pt-3 border-t border-white/10 space-y-2">
+        <p className="label-uppercase text-foreground text-[10px] font-semibold">▸ How this makes you money</p>
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-foreground">Send message</span>
+          <span className="text-primary">→</span>
+          <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-foreground">Get replies</span>
+          <span className="text-primary">→</span>
+          <span className="px-2 py-1 rounded-md bg-white/[0.04] border border-white/10 text-foreground">Book call</span>
+          <span className="text-primary">→</span>
+          <span className="px-2 py-1 rounded-md bg-success/15 border border-success/30 text-success font-semibold">Close client</span>
+        </div>
+      </div>
+
+      {/* Section 7 — idle pressure (inline, dismissable, once per session) */}
+      {idlePressure && !hasCopied && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/[0.06] px-3 py-2.5">
+          <p className="text-[12px] text-destructive font-semibold">No message sent = zero chance of a client.</p>
         </div>
       )}
     </div>
