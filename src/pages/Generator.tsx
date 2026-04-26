@@ -619,7 +619,37 @@ export default function Generator() {
             />
 
             {/* V6 — Scaling engine */}
-            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} triggerKey={batchTrigger} />
+            <BatchSession
+              onGenerateBatch={handleGenerateBatch}
+              size={5}
+              triggerKey={batchTrigger}
+              onAfterSend={(text) =>
+                pipelineSent({
+                  messagePreview: text.split('\n').filter(Boolean).slice(0, 2).join(' — '),
+                  actionType,
+                  niche,
+                })
+              }
+            />
+            {/* V8 — Outbound pipeline */}
+            <OutboundPipeline
+              onGenerateFollowUp={() => {
+                setPreset('ads');
+                handleGenerate(false);
+                toast({ title: 'Follow-up generated', description: 'Use it to re-engage.' });
+              }}
+              onGenerateReply={() => {
+                setPreset('ads');
+                handleGenerate(false);
+                toast({ title: 'Reply generated', description: 'Keep the conversation moving.' });
+              }}
+              onGenerateClosing={() => {
+                setPreset('ads');
+                handleGenerate(false);
+                toast({ title: 'Closing message generated', description: 'Push your leads.' });
+              }}
+              onRepeatFlow={() => setBatchTrigger((k) => k + 1)}
+            />
             <MomentumScore />
             <SprintMode />
             <WinningAngle onReuse={handleReuseWinning} />
