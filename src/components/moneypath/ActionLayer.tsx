@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, CheckCircle2, Bell, Send, Sparkles } from 'lucide-react';
+import { Copy, Check, CheckCircle2, Bell, Send, Sparkles, ExternalLink, Mail, Instagram, Megaphone, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
@@ -17,6 +17,17 @@ interface ActionLayerProps {
 const REMINDER_KEY = 'agencyos_reminder';
 const IDLE_FLAG_KEY = 'agencyos_idle_pressure_shown';
 const FIRST_SEND_KEY = 'agencyos_first_send_done'; // V8.3 — Fix 7
+
+// V8.4 — categorize action for low-friction validation
+type ActionKind = 'email' | 'dm' | 'post' | 'ad' | 'comment' | 'fallback';
+function actionKindOf(actionType: string): ActionKind {
+  if (/email/i.test(actionType)) return 'email';
+  if (/dm|message/i.test(actionType)) return 'dm';
+  if (/post|story/i.test(actionType)) return 'post';
+  if (/ad/i.test(actionType)) return 'ad';
+  if (/comment/i.test(actionType)) return 'comment';
+  return 'fallback';
+}
 
 // CTA Command System (Section 8) — direct commands, no choices
 function commandFor(actionType: string): string {
@@ -40,11 +51,15 @@ export default function ActionLayer({
   const { state: addiction } = useAddiction();
   const [copied, setCopied] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
+  const [validationComplete, setValidationComplete] = useState(false); // V8.4 — action launched/confirmed
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [idlePressure, setIdlePressure] = useState(false);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
   const [firstSendBurst, setFirstSendBurst] = useState(false); // V8.3 — Fix 7
+
+  const kind = actionKindOf(actionType);
+  const [emailRecipient, setEmailRecipient] = useState(''); // V8.4 — optional
 
   // Section 7 — idle pressure after 7s, once per session, vanishes on interaction
   useEffect(() => {
@@ -76,18 +91,18 @@ export default function ActionLayer({
   };
 
   const handleMarkSent = () => {
-    if (marking || alreadyPosted || !hasCopied) return;
+    if (marking || alreadyPosted || !hasCopied || !validationComplete) return;
     setMarking(true);
     dismissIdle();
     onPosted();
 
-    // V8.3 — Fix 7: first-send reward (once, 3s, persisted)
+    // V8.3 — Fix 7 / V8.4: first-send reward (once, 4s, persisted)
     let alreadyDone = false;
     try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
     if (!alreadyDone) {
       try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
       setFirstSendBurst(true);
-      setTimeout(() => setFirstSendBurst(false), 3000);
+      setTimeout(() => setFirstSendBurst(false), 4000);
       toast({
         title: '🔥 You just did what most users never do',
         description: 'This is how clients start.',
@@ -282,12 +297,152 @@ export default function ActionLayer({
           </div>
         )}
 
-        {/* FINAL — I've sent it (locked until Copy clicked) */}
+        {/* V8.4 — Action Validator (low-friction, action-type aware) */}
+        {hasCopied && !validationComplete && (
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2">
+            <p className="text-[11px] text-muted-foreground">
+              One quick step — then mark it sent.
+            </p>
+
+            {kind === 'email' && (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                  placeholder="Add recipient (optional)"
+                  className="w-full text-xs bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
+                />
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5 w-full"
+                  onClick={() => {
+                    const to = emailRecipient.trim();
+                    const body = encodeURIComponent(adText);
+                    const subject = encodeURIComponent(ctaText.slice(0, 60) || 'Quick note');
+                    const href = `mailto:${to}?subject=${subject}&body=${body}`;
+                    try { window.open(href, '_blank'); } catch { /* ignore */ }
+                    setValidationComplete(true);
+                  }}
+                >
+                  <Mail className="w-3.5 h-3.5" /> Open Email App
+                </Button>
+                <p className="text-[11px] text-muted-foreground">
+                  Send it from your email app, then confirm.
+                </p>
+              </div>
+            )}
+
+            {kind === 'dm' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5"
+                  onClick={() => {
+                    try { window.open('https://www.instagram.com/direct/inbox/', '_blank'); } catch { /* ignore */ }
+                    setValidationComplete(true);
+                  }}
+                >
+                  <Instagram className="w-3.5 h-3.5" /> Open Instagram DM
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => setValidationComplete(true)}
+                >
+                  I'll send it manually
+                </Button>
+              </div>
+            )}
+
+            {kind === 'post' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => copy(adText, 'msg')}
+                >
+                  <Copy className="w-3.5 h-3.5" /> Copy caption
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => {
+                    try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
+                  }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
+                </Button>
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5"
+                  onClick={() => setValidationComplete(true)}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> I posted it
+                </Button>
+              </div>
+            )}
+
+            {kind === 'ad' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => {
+                    try { window.open('https://www.facebook.com/adsmanager/', '_blank'); } catch { /* ignore */ }
+                  }}
+                >
+                  <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
+                </Button>
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5"
+                  onClick={() => setValidationComplete(true)}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> I launched it
+                </Button>
+              </div>
+            )}
+
+            {kind === 'comment' && (
+              <Button
+                size="sm"
+                className="cta-primary gap-1.5 w-full"
+                onClick={() => setValidationComplete(true)}
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> I commented
+              </Button>
+            )}
+
+            {kind === 'fallback' && (
+              <Button
+                size="sm"
+                className="cta-primary gap-1.5 w-full"
+                onClick={() => setValidationComplete(true)}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> I sent it somewhere
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* V8.4 — confirmation hint once validated */}
+        {hasCopied && validationComplete && (
+          <p className="text-[11px] text-success font-medium px-1">
+            ✓ Action confirmed — now mark it sent.
+          </p>
+        )}
+
+        {/* FINAL — I've sent it (locked until Copy + Validation complete) */}
         <Button
           size="lg"
           className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
           onClick={handleMarkSent}
-          disabled={!hasCopied || marking}
+          disabled={!hasCopied || !validationComplete || marking}
         >
           <CheckCircle2 className="w-4 h-4" />
           I've sent it
