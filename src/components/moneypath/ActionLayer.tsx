@@ -91,18 +91,18 @@ export default function ActionLayer({
   };
 
   const handleMarkSent = () => {
-    if (marking || alreadyPosted || !hasCopied) return;
+    if (marking || alreadyPosted || !hasCopied || !validationComplete) return;
     setMarking(true);
     dismissIdle();
     onPosted();
 
-    // V8.3 — Fix 7: first-send reward (once, 3s, persisted)
+    // V8.3 — Fix 7 / V8.4: first-send reward (once, 4s, persisted)
     let alreadyDone = false;
     try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
     if (!alreadyDone) {
       try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
       setFirstSendBurst(true);
-      setTimeout(() => setFirstSendBurst(false), 3000);
+      setTimeout(() => setFirstSendBurst(false), 4000);
       toast({
         title: '🔥 You just did what most users never do',
         description: 'This is how clients start.',
