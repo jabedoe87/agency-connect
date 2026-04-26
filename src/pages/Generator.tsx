@@ -15,6 +15,9 @@ import ConversionLayer from '@/components/moneypath/ConversionLayer';
 import ResultTracker from '@/components/moneypath/ResultTracker';
 import FeedbackBanner from '@/components/moneypath/FeedbackBanner';
 import ScaleBanner from '@/components/moneypath/ScaleBanner';
+import StreakBanner from '@/components/moneypath/StreakBanner';
+import DailyTracker from '@/components/moneypath/DailyTracker';
+import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
   genAdId,
