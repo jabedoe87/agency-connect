@@ -394,6 +394,11 @@ export default function Generator() {
   return (
     <AppLayout>
       <div className="px-4 md:px-6 py-6 md:py-8 fade-in">
+        {/* V4.1 — Streak banner: always visible, top of screen */}
+        <div className="mb-5">
+          <StreakBanner />
+        </div>
+
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
             <h1 className="font-display text-2xl md:text-3xl text-foreground">Content Generator</h1>
