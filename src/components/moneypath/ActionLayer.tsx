@@ -51,11 +51,15 @@ export default function ActionLayer({
   const { state: addiction } = useAddiction();
   const [copied, setCopied] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
+  const [validationComplete, setValidationComplete] = useState(false); // V8.4 — action launched/confirmed
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [idlePressure, setIdlePressure] = useState(false);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
   const [firstSendBurst, setFirstSendBurst] = useState(false); // V8.3 — Fix 7
+
+  const kind = actionKindOf(actionType);
+  const [emailRecipient, setEmailRecipient] = useState(''); // V8.4 — optional
 
   // Section 7 — idle pressure after 7s, once per session, vanishes on interaction
   useEffect(() => {
