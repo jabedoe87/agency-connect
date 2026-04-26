@@ -128,6 +128,9 @@ export default function Generator() {
   const [currentAdId, setCurrentAdId] = useState<string | null>(null);
   const insights = useMemo(() => computeInsights(results), [results]);
 
+  // ── Addiction System V4.1 ───────────────────────────────────────────
+  const { send: recordAddictionSend } = useAddiction();
+
   // Reset the per-generation tracking row whenever a new ads output arrives.
   useEffect(() => {
     if (adsOutput) {
@@ -153,6 +156,10 @@ export default function Generator() {
     };
     const updated: MoneyResult = { ...row, posted: true };
     setResults(upsertResult(updated));
+    // V4.1 — count this as a "send" for streak/target/today counters.
+    // Only fires once per generation row because ActionLayer's "I've sent it"
+    // is locked after click and the row's `posted` flips to true.
+    recordAddictionSend();
   };
 
   const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
