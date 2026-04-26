@@ -44,6 +44,7 @@ export default function ActionLayer({
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [idlePressure, setIdlePressure] = useState(false);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
+  const [firstSendBurst, setFirstSendBurst] = useState(false); // V8.3 — Fix 7
 
   // Section 7 — idle pressure after 7s, once per session, vanishes on interaction
   useEffect(() => {
