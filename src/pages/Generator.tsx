@@ -953,10 +953,17 @@ export default function Generator() {
                 )}
 
                 {nicheOutput.final && (
-                  <p className="text-[11px] text-muted-foreground italic -mt-2 leading-relaxed">
-                    This message is structured to get replies.<br />
-                    Businesses use messages like this daily to get clients.
-                  </p>
+                  <div className="-mt-2 space-y-1">
+                    {/* V8.3 — Fix 1: Trust injection */}
+                    <p className="text-[12px] text-foreground leading-relaxed">
+                      This message is based on real outreach that gets replies.
+                      Do not change it. Send it as-is.
+                    </p>
+                    {/* V8.3 — Fix 2: Editing suppression */}
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Editing this reduces your chances of getting a reply.
+                    </p>
+                  </div>
                 )}
 
                 {/* ── Money Path: Conversion Layer (Section 2) ── */}
