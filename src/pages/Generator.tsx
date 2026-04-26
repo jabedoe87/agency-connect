@@ -17,6 +17,9 @@ import FeedbackBanner from '@/components/moneypath/FeedbackBanner';
 import ScaleBanner from '@/components/moneypath/ScaleBanner';
 import StreakBanner from '@/components/moneypath/StreakBanner';
 import DailyTracker from '@/components/moneypath/DailyTracker';
+import MoneyDashboard from '@/components/moneypath/MoneyDashboard';
+import ResultLogger from '@/components/moneypath/ResultLogger';
+import YesterdaySummary from '@/components/moneypath/YesterdaySummary';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
