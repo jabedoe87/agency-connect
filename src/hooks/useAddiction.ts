@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
+  addPipelineSent,
   dismissDailyPlan,
   endSession,
   logClient,
@@ -8,6 +9,7 @@ import {
   readAddiction,
   recordSend,
   setAutopilot,
+  setCrmExpanded,
   setWinningInput,
   startSession,
   type AddictionState,
