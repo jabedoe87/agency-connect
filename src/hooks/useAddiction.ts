@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
+  endSession,
   logClient,
   logLead,
   logReply,
   readAddiction,
   recordSend,
+  setWinningInput,
+  startSession,
   type AddictionState,
 } from '@/lib/addiction';
 
@@ -19,10 +22,10 @@ function dispatch() {
 }
 
 /**
- * Single source of truth for the V4/V5 addiction + money state.
+ * Single source of truth for the V4/V5/V6 addiction + money + session state.
  * Subscribes to a global window event so every mounted consumer
- * (top banner, output panel, money dashboard) re-reads in lockstep
- * after a state-mutating call.
+ * (top banner, output panel, money dashboard, batch session, sprint)
+ * re-reads in lockstep after a state-mutating call.
  */
 export function useAddiction() {
   const [state, setState] = useState<AddictionState>(() => readAddiction());
@@ -80,5 +83,39 @@ export function useAddiction() {
     return next;
   }, []);
 
-  return { state, justSent, send, reply, lead, client, refresh };
+  // V6 — session control
+  const beginSession = useCallback(() => {
+    const next = startSession();
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
+  const stopSession = useCallback(() => {
+    const next = endSession();
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
+  // V6 — winning angle reuse
+  const saveWinningInput = useCallback((niche: string, actionType: string) => {
+    const next = setWinningInput(niche, actionType);
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
+  return {
+    state,
+    justSent,
+    send,
+    reply,
+    lead,
+    client,
+    refresh,
+    beginSession,
+    stopSession,
+    saveWinningInput,
+  };
 }

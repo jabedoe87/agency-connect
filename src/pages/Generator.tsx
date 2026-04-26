@@ -20,6 +20,11 @@ import DailyTracker from '@/components/moneypath/DailyTracker';
 import MoneyDashboard from '@/components/moneypath/MoneyDashboard';
 import ResultLogger from '@/components/moneypath/ResultLogger';
 import YesterdaySummary from '@/components/moneypath/YesterdaySummary';
+import BatchSession from '@/components/moneypath/BatchSession';
+import SprintMode from '@/components/moneypath/SprintMode';
+import MomentumScore from '@/components/moneypath/MomentumScore';
+import WeeklyView from '@/components/moneypath/WeeklyView';
+import WinningAngle from '@/components/moneypath/WinningAngle';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
@@ -131,8 +136,8 @@ export default function Generator() {
   const [currentAdId, setCurrentAdId] = useState<string | null>(null);
   const insights = useMemo(() => computeInsights(results), [results]);
 
-  // ── Addiction System V4.1 ───────────────────────────────────────────
-  const { send: recordAddictionSend } = useAddiction();
+  // ── Addiction System V4.1 + V6 ──────────────────────────────────────
+  const { send: recordAddictionSend, state: addictionState, saveWinningInput } = useAddiction();
 
   // Reset the per-generation tracking row whenever a new ads output arrives.
   useEffect(() => {
@@ -202,6 +207,61 @@ export default function Generator() {
   };
   // ────────────────────────────────────────────────────────────────────
 
+  // ── V6: Winning Angle capture (System 4) ─────────────────────────────
+  // When clientsToday transitions 0 → ≥1 with a real niche on screen,
+  // persist that niche/actionType combo as the winning input.
+  const prevClientsRef = useRef(addictionState.clientsToday);
+  useEffect(() => {
+    const prev = prevClientsRef.current;
+    if (prev === 0 && addictionState.clientsToday >= 1 && niche.trim()) {
+      saveWinningInput(niche, actionType);
+    }
+    prevClientsRef.current = addictionState.clientsToday;
+  }, [addictionState.clientsToday, niche, actionType, saveWinningInput]);
+
+  // ── V6: Batch Generation (System 1) ─────────────────────────────────
+  // Generates `count` ads sequentially, returning the winner text from each.
+  // Fails gracefully — partial batches still surface to the user.
+  const handleGenerateBatch = async (count: number): Promise<string[]> => {
+    const nicheValue = niche.trim() || DEMO_NICHE;
+    const out: string[] = [];
+    for (let i = 0; i < count; i += 1) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-content', {
+          body: {
+            niche: nicheValue,
+            preset: 'ads',
+            businessContext: {
+              business_type: profile?.business_type || 'Service business',
+              target_audience: targetAudience || 'Local customers',
+              offer: offer || nicheValue,
+            },
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        const ads = data.content as AdsOutput;
+        const winnerKey = (ads.winner || 'a') as 'a' | 'b' | 'c';
+        const w = ads[`version_${winnerKey}` as 'version_a'] || ads.final;
+        if (w) {
+          const text = `${w.hook}\n\n${w.pain}\n\n${w.shift}\n\n${w.offer}\n\n${w.cta}`;
+          out.push(text);
+        }
+      } catch (err) {
+        console.error('[batch] message', i + 1, 'failed:', err);
+        // continue — user still gets the rest
+      }
+    }
+    return out;
+  };
+
+  // ── V6: Winning Angle reuse (System 4) ──────────────────────────────
+  const handleReuseWinning = (savedNiche: string, savedAction: string) => {
+    setNiche(savedNiche);
+    if (savedAction) setActionType(savedAction as ActionType);
+    setPreset('ads');
+    setTimeout(() => handleGenerate(false), 50);
+  };
 
   const handleAutoFill = async () => {
     if (!rawIdea.trim()) {
@@ -539,6 +599,14 @@ export default function Generator() {
             <ResultLogger />
             {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
             <FeedbackBanner insight={insights} />
+
+            {/* V6 — Scaling engine */}
+            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} />
+            <MomentumScore />
+            <SprintMode />
+            <WinningAngle onReuse={handleReuseWinning} />
+            <WeeklyView />
+
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
