@@ -159,6 +159,28 @@ function readRaw(): AddictionState {
         if (v > 0 && typeof k === 'string') nicheRevenueMap[k] = v;
       }
     }
+    // V8 — sanitize pipeline array
+    const rawPipe = parsed.pipeline;
+    const pipeline: PipelineEntry[] = [];
+    if (Array.isArray(rawPipe)) {
+      for (const e of rawPipe) {
+        if (!e || typeof e !== 'object') continue;
+        const status = e.status;
+        if (status !== 'sent' && status !== 'replied' && status !== 'lead' && status !== 'client') continue;
+        const id = typeof e.id === 'string' && e.id ? e.id : '';
+        if (!id) continue;
+        pipeline.push({
+          id,
+          status,
+          messagePreview: typeof e.messagePreview === 'string' ? e.messagePreview.slice(0, 200) : '',
+          actionType: typeof e.actionType === 'string' ? e.actionType : '',
+          niche: typeof e.niche === 'string' ? e.niche : '',
+          date: typeof e.date === 'string' ? e.date : '',
+          updatedAt: num(e.updatedAt),
+        });
+        if (pipeline.length >= PIPELINE_MAX) break;
+      }
+    }
     return {
       streak: num(parsed.streak),
       lastSentDate: typeof parsed.lastSentDate === 'string' ? parsed.lastSentDate : '',
