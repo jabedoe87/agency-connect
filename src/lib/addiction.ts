@@ -118,6 +118,23 @@ function readRaw(): AddictionState {
             savedAt: num(win.savedAt),
           }
         : null;
+    // V7 — sanitize maps to plain {string: number} records
+    const rawACC = parsed.actionClientCounts;
+    const actionClientCounts: Record<string, number> = {};
+    if (rawACC && typeof rawACC === 'object') {
+      for (const k of Object.keys(rawACC)) {
+        const v = num((rawACC as any)[k]);
+        if (v > 0 && typeof k === 'string') actionClientCounts[k] = v;
+      }
+    }
+    const rawNRM = parsed.nicheRevenueMap;
+    const nicheRevenueMap: Record<string, number> = {};
+    if (rawNRM && typeof rawNRM === 'object') {
+      for (const k of Object.keys(rawNRM)) {
+        const v = num((rawNRM as any)[k]);
+        if (v > 0 && typeof k === 'string') nicheRevenueMap[k] = v;
+      }
+    }
     return {
       streak: num(parsed.streak),
       lastSentDate: typeof parsed.lastSentDate === 'string' ? parsed.lastSentDate : '',
@@ -140,6 +157,13 @@ function readRaw(): AddictionState {
       weeklyMessages: num(parsed.weeklyMessages),
       weeklyClients: num(parsed.weeklyClients),
       weeklyRevenue: num(parsed.weeklyRevenue),
+      autopilotEnabled: !!parsed.autopilotEnabled,
+      lastActionUsed: typeof parsed.lastActionUsed === 'string' ? parsed.lastActionUsed : '',
+      bestPerformingAction: typeof parsed.bestPerformingAction === 'string' ? parsed.bestPerformingAction : '',
+      bestPerformingNiche: typeof parsed.bestPerformingNiche === 'string' ? parsed.bestPerformingNiche : '',
+      actionClientCounts,
+      nicheRevenueMap,
+      dailyPlanDismissed: !!parsed.dailyPlanDismissed,
     };
   } catch {
     return { ...defaultState, yesterdaySnapshot: { ...defaultSnapshot } };
