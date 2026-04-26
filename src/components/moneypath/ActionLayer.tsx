@@ -16,6 +16,7 @@ interface ActionLayerProps {
 
 const REMINDER_KEY = 'agencyos_reminder';
 const IDLE_FLAG_KEY = 'agencyos_idle_pressure_shown';
+const FIRST_SEND_KEY = 'agencyos_first_send_done'; // V8.3 — Fix 7
 
 // CTA Command System (Section 8) — direct commands, no choices
 function commandFor(actionType: string): string {
