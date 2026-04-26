@@ -794,9 +794,14 @@ export default function Generator() {
                             </p>
                           </div>
                         )}
-                        <p className="text-[11px] text-muted-foreground italic pt-1 leading-relaxed">
-                          This message is structured to get replies.<br />
-                          Businesses use messages like this daily to get clients.
+                        {/* V8.3 — Fix 1: Trust injection (always when message exists) */}
+                        <p className="text-[12px] text-foreground pt-1 leading-relaxed">
+                          This message is based on real outreach that gets replies.
+                          Do not change it. Send it as-is.
+                        </p>
+                        {/* V8.3 — Fix 2: Editing suppression (muted, no bold) */}
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Editing this reduces your chances of getting a reply.
                         </p>
                       </div>
 
