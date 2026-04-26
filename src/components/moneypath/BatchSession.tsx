@@ -15,6 +15,11 @@ interface BatchSessionProps {
    * Initial mount value is ignored; only later changes trigger a new batch.
    */
   triggerKey?: number;
+  /**
+   * V8 (additive) — fired after each send so the parent can log the message
+   * to the outbound pipeline. Receives the raw message text that was sent.
+   */
+  onAfterSend?: (text: string) => void;
 }
 
 /**
@@ -31,7 +36,7 @@ interface BatchSessionProps {
  * Session is started/ended via the shared addiction state so the
  * "Send Mode" bar reflects per-session output.
  */
-export default function BatchSession({ onGenerateBatch, size = 5, triggerKey }: BatchSessionProps) {
+export default function BatchSession({ onGenerateBatch, size = 5, triggerKey, onAfterSend }: BatchSessionProps) {
   const { toast } = useToast();
   const { state, send, beginSession, stopSession } = useAddiction();
   const [messages, setMessages] = useState<string[]>([]);
@@ -115,6 +120,7 @@ export default function BatchSession({ onGenerateBatch, size = 5, triggerKey }: 
       /* clipboard may be denied — still count the send */
     }
     send();
+    onAfterSend?.(text);
     sentThisBatch.current += 1;
     toast({ title: '✓ Copied & sent', description: 'Paste it now. Don\'t overthink.' });
     advance();

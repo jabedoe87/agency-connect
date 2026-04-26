@@ -27,6 +27,7 @@ import WeeklyView from '@/components/moneypath/WeeklyView';
 import WinningAngle from '@/components/moneypath/WinningAngle';
 import AutopilotPanel from '@/components/moneypath/AutopilotPanel';
 import DailyPlan from '@/components/moneypath/DailyPlan';
+import OutboundPipeline from '@/components/moneypath/OutboundPipeline';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
@@ -139,7 +140,7 @@ export default function Generator() {
   const insights = useMemo(() => computeInsights(results), [results]);
 
   // ── Addiction System V4.1 + V6 ──────────────────────────────────────
-  const { send: recordAddictionSend, state: addictionState, saveWinningInput } = useAddiction();
+  const { send: recordAddictionSend, state: addictionState, saveWinningInput, pipelineSent } = useAddiction();
   // V7 — bumping this triggers BatchSession to start a new batch externally
   const [batchTrigger, setBatchTrigger] = useState(0);
 
@@ -172,6 +173,11 @@ export default function Generator() {
     // Only fires once per generation row because ActionLayer's "I've sent it"
     // is locked after click and the row's `posted` flips to true.
     recordAddictionSend(actionType);
+    // V8 — log to outbound pipeline so it shows up in counts + CRM
+    const wKey = (adsOutput.winner || 'a') as 'a' | 'b' | 'c';
+    const wv = adsOutput[`version_${wKey}` as 'version_a'];
+    const preview = wv ? `${wv.hook} — ${wv.cta}` : '';
+    pipelineSent({ messagePreview: preview, actionType, niche });
   };
 
   const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
@@ -613,7 +619,37 @@ export default function Generator() {
             />
 
             {/* V6 — Scaling engine */}
-            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} triggerKey={batchTrigger} />
+            <BatchSession
+              onGenerateBatch={handleGenerateBatch}
+              size={5}
+              triggerKey={batchTrigger}
+              onAfterSend={(text) =>
+                pipelineSent({
+                  messagePreview: text.split('\n').filter(Boolean).slice(0, 2).join(' — '),
+                  actionType,
+                  niche,
+                })
+              }
+            />
+            {/* V8 — Outbound pipeline */}
+            <OutboundPipeline
+              onGenerateFollowUp={() => {
+                setPreset('ads');
+                handleGenerate(false);
+                toast({ title: 'Follow-up generated', description: 'Use it to re-engage.' });
+              }}
+              onGenerateReply={() => {
+                setPreset('ads');
+                handleGenerate(false);
+                toast({ title: 'Reply generated', description: 'Keep the conversation moving.' });
+              }}
+              onGenerateClosing={() => {
+                setPreset('ads');
+                handleGenerate(false);
+                toast({ title: 'Closing message generated', description: 'Push your leads.' });
+              }}
+              onRepeatFlow={() => setBatchTrigger((k) => k + 1)}
+            />
             <MomentumScore />
             <SprintMode />
             <WinningAngle onReuse={handleReuseWinning} />

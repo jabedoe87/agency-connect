@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
+  addPipelineSent,
   dismissDailyPlan,
   endSession,
   logClient,
@@ -8,6 +9,7 @@ import {
   readAddiction,
   recordSend,
   setAutopilot,
+  setCrmExpanded,
   setWinningInput,
   startSession,
   type AddictionState,
@@ -126,6 +128,24 @@ export function useAddiction() {
     return next;
   }, []);
 
+  // V8 — outbound pipeline
+  const pipelineSent = useCallback(
+    (opts: { messagePreview?: string; actionType?: string; niche?: string } = {}) => {
+      const next = addPipelineSent(opts);
+      setState(next);
+      dispatch();
+      return next;
+    },
+    [],
+  );
+
+  const toggleCrm = useCallback((expanded: boolean) => {
+    const next = setCrmExpanded(expanded);
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
   return {
     state,
     justSent,
@@ -139,6 +159,8 @@ export function useAddiction() {
     saveWinningInput,
     setAutopilotEnabled,
     dismissPlan,
+    pipelineSent,
+    toggleCrm,
   };
 }
 
