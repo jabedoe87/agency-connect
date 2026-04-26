@@ -11,7 +11,13 @@ import { formatEUR } from '@/lib/addiction';
  * Three quick-log buttons (+ Reply, + Lead, + Client).
  * Client opens an inline € input — validated as a non-negative finite number.
  */
-export default function ResultLogger() {
+interface ResultLoggerProps {
+  /** V7 (additive) — feeds best-performer learning maps when a client is logged. */
+  niche?: string;
+  actionType?: string;
+}
+
+export default function ResultLogger({ niche, actionType }: ResultLoggerProps = {}) {
   const { toast } = useToast();
   const { state, reply, lead, client } = useAddiction();
   const [showAmount, setShowAmount] = useState(false);
@@ -59,7 +65,7 @@ export default function ResultLogger() {
       setError('Amount looks too high');
       return;
     }
-    client(n);
+    client(n, { niche, actionType });
     toast({
       title: '✓ Client logged',
       description: n > 0 ? `${formatEUR(n)} added to today's revenue.` : 'Saved without revenue.',
