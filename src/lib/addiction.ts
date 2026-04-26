@@ -172,13 +172,37 @@ function rollIfNewDay(s: AddictionState): AddictionState {
   };
 }
 
+/* ───────────────────── V6 — weekly rollover ───────────────────── */
+
+/** Returns the Monday of the given date as YYYY-MM-DD. */
+export function weekStartStr(d: Date = new Date()): string {
+  const x = new Date(d);
+  const day = x.getDay(); // 0 Sun .. 6 Sat
+  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+  x.setDate(x.getDate() + diff);
+  return todayStr(x);
+}
+
+function rollIfNewWeek(s: AddictionState): AddictionState {
+  const wk = weekStartStr();
+  if (s.weekStartDate === wk) return s;
+  // Either first-ever or a new week — reset weekly counters.
+  return {
+    ...s,
+    weekStartDate: wk,
+    weeklyMessages: 0,
+    weeklyClients: 0,
+    weeklyRevenue: 0,
+  };
+}
+
 /**
- * Returns the current state, applying the daily rollover if needed.
+ * Returns the current state, applying daily + weekly rollover if needed.
  * The rollover is persisted so all readers agree on a single source of truth.
  */
 export function readAddiction(): AddictionState {
   const s = readRaw();
-  const rolled = rollIfNewDay(s);
+  const rolled = rollIfNewWeek(rollIfNewDay(s));
   if (rolled !== s) return write(rolled);
   return s;
 }
