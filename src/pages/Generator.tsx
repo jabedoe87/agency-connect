@@ -17,6 +17,9 @@ import FeedbackBanner from '@/components/moneypath/FeedbackBanner';
 import ScaleBanner from '@/components/moneypath/ScaleBanner';
 import StreakBanner from '@/components/moneypath/StreakBanner';
 import DailyTracker from '@/components/moneypath/DailyTracker';
+import MoneyDashboard from '@/components/moneypath/MoneyDashboard';
+import ResultLogger from '@/components/moneypath/ResultLogger';
+import YesterdaySummary from '@/components/moneypath/YesterdaySummary';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
@@ -395,8 +398,13 @@ export default function Generator() {
     <AppLayout>
       <div className="px-4 md:px-6 py-6 md:py-8 fade-in">
         {/* V4.1 — Streak banner: always visible, top of screen */}
-        <div className="mb-5">
+        <div className="mb-3">
           <StreakBanner />
+        </div>
+
+        {/* V5.1 — Yesterday summary (dismissable, daily) */}
+        <div className="mb-5">
+          <YesterdaySummary />
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
@@ -525,6 +533,10 @@ export default function Generator() {
           <div ref={outputRef} className="space-y-6">
             {/* V4.1 — Daily output, target, social proof, loss aversion, end-of-day */}
             <DailyTracker onJumpToCompose={() => nicheRef.current?.focus()} />
+            {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}
+            <MoneyDashboard onScale={handleScaleVariations} />
+            {/* V5.1 — Quick result logging */}
+            <ResultLogger />
             {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
             <FeedbackBanner insight={insights} />
             {loading && (

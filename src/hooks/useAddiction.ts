@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
+  logClient,
+  logLead,
+  logReply,
   readAddiction,
   recordSend,
   type AddictionState,
@@ -7,11 +10,19 @@ import {
 
 const EVENT = 'agencyos:addiction-changed';
 
+function dispatch() {
+  try {
+    window.dispatchEvent(new Event(EVENT));
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
- * Single source of truth for the V4.1 addiction state across the app.
+ * Single source of truth for the V4/V5 addiction + money state.
  * Subscribes to a global window event so every mounted consumer
- * (top banner, output panel, sidebar widget) re-reads in lockstep
- * after a `recordSend()` call.
+ * (top banner, output panel, money dashboard) re-reads in lockstep
+ * after a state-mutating call.
  */
 export function useAddiction() {
   const [state, setState] = useState<AddictionState>(() => readAddiction());
@@ -25,8 +36,7 @@ export function useAddiction() {
     const handler = () => refresh();
     window.addEventListener(EVENT, handler);
     window.addEventListener('storage', handler); // cross-tab sync
-    // Re-read at midnight crossover risk: refresh on focus
-    window.addEventListener('focus', handler);
+    window.addEventListener('focus', handler);   // catch midnight crossover
     return () => {
       window.removeEventListener(EVENT, handler);
       window.removeEventListener('storage', handler);
@@ -45,13 +55,30 @@ export function useAddiction() {
     const next = recordSend();
     setState(next);
     setJustSent(true);
-    try {
-      window.dispatchEvent(new Event(EVENT));
-    } catch {
-      // ignore (e.g. SSR)
-    }
+    dispatch();
     return next;
   }, []);
 
-  return { state, justSent, send, refresh };
+  const reply = useCallback(() => {
+    const next = logReply();
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
+  const lead = useCallback(() => {
+    const next = logLead();
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
+  const client = useCallback((amountEUR: number) => {
+    const next = logClient(amountEUR);
+    setState(next);
+    dispatch();
+    return next;
+  }, []);
+
+  return { state, justSent, send, reply, lead, client, refresh };
 }

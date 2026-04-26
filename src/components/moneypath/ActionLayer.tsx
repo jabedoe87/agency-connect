@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, CheckCircle2, Bell, Send, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAddiction } from '@/hooks/useAddiction';
+import { formatEUR } from '@/lib/addiction';
 
 interface ActionLayerProps {
   adText: string;
@@ -34,6 +36,7 @@ export default function ActionLayer({
   onGenerateAnother,
 }: ActionLayerProps) {
   const { toast } = useToast();
+  const { state: addiction } = useAddiction();
   const [copied, setCopied] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
   const [marking, setMarking] = useState(false);
@@ -107,6 +110,18 @@ export default function ActionLayer({
             <p className="text-foreground font-semibold">✓ Message sent</p>
             <p className="text-sm text-muted-foreground mt-0.5">
               Check replies later — or send another now.
+            </p>
+            {/* V5.1 — System 6: Action → Money link */}
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Each message increases your chances of a client.
+              {addiction.revenueToday > 0 && (
+                <>
+                  {' '}
+                  <span className="text-success font-semibold">
+                    This already made you {formatEUR(addiction.revenueToday)} today.
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>
