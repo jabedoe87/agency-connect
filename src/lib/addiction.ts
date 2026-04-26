@@ -94,6 +94,15 @@ function readRaw(): AddictionState {
     if (!raw) return { ...defaultState, yesterdaySnapshot: { ...defaultSnapshot } };
     const parsed = JSON.parse(raw) ?? {};
     const snap = parsed.yesterdaySnapshot ?? {};
+    const win = parsed.lastWinningInput;
+    const lastWinningInput: WinningInput | null =
+      win && typeof win === 'object' && typeof win.niche === 'string'
+        ? {
+            niche: win.niche,
+            actionType: typeof win.actionType === 'string' ? win.actionType : '',
+            savedAt: num(win.savedAt),
+          }
+        : null;
     return {
       streak: num(parsed.streak),
       lastSentDate: typeof parsed.lastSentDate === 'string' ? parsed.lastSentDate : '',
@@ -109,6 +118,13 @@ function readRaw(): AddictionState {
         replies: num(snap.replies),
         revenue: num(snap.revenue),
       },
+      sessionActive: !!parsed.sessionActive,
+      messagesThisSession: num(parsed.messagesThisSession),
+      lastWinningInput,
+      weekStartDate: typeof parsed.weekStartDate === 'string' ? parsed.weekStartDate : '',
+      weeklyMessages: num(parsed.weeklyMessages),
+      weeklyClients: num(parsed.weeklyClients),
+      weeklyRevenue: num(parsed.weeklyRevenue),
     };
   } catch {
     return { ...defaultState, yesterdaySnapshot: { ...defaultSnapshot } };
