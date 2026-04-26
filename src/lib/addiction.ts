@@ -375,6 +375,9 @@ export function logClient(
   const bestPerformingAction = argmax(actionClientCounts) || s.bestPerformingAction;
   const bestPerformingNiche = argmax(nicheRevenueMap) || s.bestPerformingNiche;
 
+  // V8 — pipeline: promote latest 'lead' (or fallback to latest 'replied'/'sent') to 'client'
+  const pipeline = promoteLatestToStatus(s.pipeline, 'client', { actionType: action, niche });
+
   return write({
     ...s,
     clientsToday: s.clientsToday + 1,
@@ -388,6 +391,9 @@ export function logClient(
     nicheRevenueMap,
     bestPerformingAction,
     bestPerformingNiche,
+    // V8 — outbound
+    pipeline,
+    totalClientsClosed: s.totalClientsClosed + 1,
   });
 }
 
