@@ -533,6 +533,10 @@ export default function Generator() {
           <div ref={outputRef} className="space-y-6">
             {/* V4.1 — Daily output, target, social proof, loss aversion, end-of-day */}
             <DailyTracker onJumpToCompose={() => nicheRef.current?.focus()} />
+            {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}
+            <MoneyDashboard onScale={handleScaleVariations} />
+            {/* V5.1 — Quick result logging */}
+            <ResultLogger />
             {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
             <FeedbackBanner insight={insights} />
             {loading && (
