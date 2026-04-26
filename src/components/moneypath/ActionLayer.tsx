@@ -297,12 +297,152 @@ export default function ActionLayer({
           </div>
         )}
 
-        {/* FINAL — I've sent it (locked until Copy clicked) */}
+        {/* V8.4 — Action Validator (low-friction, action-type aware) */}
+        {hasCopied && !validationComplete && (
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2">
+            <p className="text-[11px] text-muted-foreground">
+              One quick step — then mark it sent.
+            </p>
+
+            {kind === 'email' && (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                  placeholder="Add recipient (optional)"
+                  className="w-full text-xs bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
+                />
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5 w-full"
+                  onClick={() => {
+                    const to = emailRecipient.trim();
+                    const body = encodeURIComponent(adText);
+                    const subject = encodeURIComponent(ctaText.slice(0, 60) || 'Quick note');
+                    const href = `mailto:${to}?subject=${subject}&body=${body}`;
+                    try { window.open(href, '_blank'); } catch { /* ignore */ }
+                    setValidationComplete(true);
+                  }}
+                >
+                  <Mail className="w-3.5 h-3.5" /> Open Email App
+                </Button>
+                <p className="text-[11px] text-muted-foreground">
+                  Send it from your email app, then confirm.
+                </p>
+              </div>
+            )}
+
+            {kind === 'dm' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5"
+                  onClick={() => {
+                    try { window.open('https://www.instagram.com/direct/inbox/', '_blank'); } catch { /* ignore */ }
+                    setValidationComplete(true);
+                  }}
+                >
+                  <Instagram className="w-3.5 h-3.5" /> Open Instagram DM
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => setValidationComplete(true)}
+                >
+                  I'll send it manually
+                </Button>
+              </div>
+            )}
+
+            {kind === 'post' && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => copy(adText, 'msg')}
+                >
+                  <Copy className="w-3.5 h-3.5" /> Copy caption
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => {
+                    try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
+                  }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
+                </Button>
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5"
+                  onClick={() => setValidationComplete(true)}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> I posted it
+                </Button>
+              </div>
+            )}
+
+            {kind === 'ad' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/10 gap-1.5"
+                  onClick={() => {
+                    try { window.open('https://www.facebook.com/adsmanager/', '_blank'); } catch { /* ignore */ }
+                  }}
+                >
+                  <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
+                </Button>
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5"
+                  onClick={() => setValidationComplete(true)}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> I launched it
+                </Button>
+              </div>
+            )}
+
+            {kind === 'comment' && (
+              <Button
+                size="sm"
+                className="cta-primary gap-1.5 w-full"
+                onClick={() => setValidationComplete(true)}
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> I commented
+              </Button>
+            )}
+
+            {kind === 'fallback' && (
+              <Button
+                size="sm"
+                className="cta-primary gap-1.5 w-full"
+                onClick={() => setValidationComplete(true)}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> I sent it somewhere
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* V8.4 — confirmation hint once validated */}
+        {hasCopied && validationComplete && (
+          <p className="text-[11px] text-success font-medium px-1">
+            ✓ Action confirmed — now mark it sent.
+          </p>
+        )}
+
+        {/* FINAL — I've sent it (locked until Copy + Validation complete) */}
         <Button
           size="lg"
           className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
           onClick={handleMarkSent}
-          disabled={!hasCopied || marking}
+          disabled={!hasCopied || !validationComplete || marking}
         >
           <CheckCircle2 className="w-4 h-4" />
           I've sent it
