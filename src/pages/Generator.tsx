@@ -173,6 +173,11 @@ export default function Generator() {
     // Only fires once per generation row because ActionLayer's "I've sent it"
     // is locked after click and the row's `posted` flips to true.
     recordAddictionSend(actionType);
+    // V8 — log to outbound pipeline so it shows up in counts + CRM
+    const wKey = (adsOutput.winner || 'a') as 'a' | 'b' | 'c';
+    const wv = adsOutput[`version_${wKey}` as 'version_a'];
+    const preview = wv ? `${wv.hook} — ${wv.cta}` : '';
+    pipelineSent({ messagePreview: preview, actionType, niche });
   };
 
   const handleSelectOutcome = (outcome: Exclude<Outcome, null>) => {
