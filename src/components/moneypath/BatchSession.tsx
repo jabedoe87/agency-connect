@@ -9,6 +9,12 @@ interface BatchSessionProps {
   onGenerateBatch: (count: number) => Promise<string[]>;
   /** Default batch size. */
   size?: number;
+  /**
+   * V7 (additive) — increment to imperatively start a new batch from outside
+   * (e.g. AutopilotPanel "Continue batch" or DailyPlan "Start now").
+   * Initial mount value is ignored; only later changes trigger a new batch.
+   */
+  triggerKey?: number;
 }
 
 /**
