@@ -1,5 +1,5 @@
 /**
- * Addiction System V4.1 — local-only retention engine.
+ * Addiction System V4.1 + Money System V5.1 — local-only retention engine.
  *
  * Pure frontend. Uses localStorage. No backend, no schema, no AI calls.
  * Safe across SSR / disabled-storage environments — every accessor degrades
@@ -8,18 +8,40 @@
 
 const KEY = 'agencyos_addiction';
 
+export interface YesterdaySnapshot {
+  messagesSent: number;
+  replies: number;
+  revenue: number;
+}
+
 export interface AddictionState {
+  // V4 — habit
   streak: number;
   lastSentDate: string;        // YYYY-MM-DD or '' if never
   messagesSentToday: number;
   totalMessagesSent: number;
+  // V5 — money
+  repliesToday: number;
+  leadsToday: number;
+  clientsToday: number;
+  revenueToday: number;
+  totalRevenue: number;
+  yesterdaySnapshot: YesterdaySnapshot;
 }
+
+const defaultSnapshot: YesterdaySnapshot = { messagesSent: 0, replies: 0, revenue: 0 };
 
 const defaultState: AddictionState = {
   streak: 0,
   lastSentDate: '',
   messagesSentToday: 0,
   totalMessagesSent: 0,
+  repliesToday: 0,
+  leadsToday: 0,
+  clientsToday: 0,
+  revenueToday: 0,
+  totalRevenue: 0,
+  yesterdaySnapshot: { ...defaultSnapshot },
 };
 
 /* ───────────────────── date helpers ───────────────────── */
@@ -39,19 +61,34 @@ function yesterdayStr(d: Date = new Date()): string {
 
 /* ───────────────────── storage ───────────────────── */
 
+function num(v: unknown, fallback = 0): number {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
 function readRaw(): AddictionState {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...defaultState };
-    const parsed = JSON.parse(raw);
+    if (!raw) return { ...defaultState, yesterdaySnapshot: { ...defaultSnapshot } };
+    const parsed = JSON.parse(raw) ?? {};
+    const snap = parsed.yesterdaySnapshot ?? {};
     return {
-      streak: Number.isFinite(parsed.streak) ? parsed.streak : 0,
+      streak: num(parsed.streak),
       lastSentDate: typeof parsed.lastSentDate === 'string' ? parsed.lastSentDate : '',
-      messagesSentToday: Number.isFinite(parsed.messagesSentToday) ? parsed.messagesSentToday : 0,
-      totalMessagesSent: Number.isFinite(parsed.totalMessagesSent) ? parsed.totalMessagesSent : 0,
+      messagesSentToday: num(parsed.messagesSentToday),
+      totalMessagesSent: num(parsed.totalMessagesSent),
+      repliesToday: num(parsed.repliesToday),
+      leadsToday: num(parsed.leadsToday),
+      clientsToday: num(parsed.clientsToday),
+      revenueToday: num(parsed.revenueToday),
+      totalRevenue: num(parsed.totalRevenue),
+      yesterdaySnapshot: {
+        messagesSent: num(snap.messagesSent),
+        replies: num(snap.replies),
+        revenue: num(snap.revenue),
+      },
     };
   } catch {
-    return { ...defaultState };
+    return { ...defaultState, yesterdaySnapshot: { ...defaultSnapshot } };
   }
 }
 
@@ -65,15 +102,45 @@ function write(state: AddictionState): AddictionState {
 }
 
 /**
- * Returns the current state, applying the daily reset if the stored
- * lastSentDate is not today. The reset is persisted so all readers agree.
+ * Apply a daily rollover when stored lastSentDate is not today.
+ * Snapshots yesterday's totals into `yesterdaySnapshot` (only when there
+ * was prior activity to remember) and resets all "*Today" counters.
+ *
+ * IMPORTANT: never resets `totalRevenue` or `totalMessagesSent`.
+ */
+function rollIfNewDay(s: AddictionState): AddictionState {
+  const today = todayStr();
+  if (s.lastSentDate === today) return s;
+  if (s.lastSentDate === '') return s; // never sent — nothing to roll
+
+  const hadActivity =
+    s.messagesSentToday > 0 || s.repliesToday > 0 || s.revenueToday > 0;
+
+  return {
+    ...s,
+    yesterdaySnapshot: hadActivity
+      ? {
+          messagesSent: s.messagesSentToday,
+          replies: s.repliesToday,
+          revenue: s.revenueToday,
+        }
+      : s.yesterdaySnapshot,
+    messagesSentToday: 0,
+    repliesToday: 0,
+    leadsToday: 0,
+    clientsToday: 0,
+    revenueToday: 0,
+  };
+}
+
+/**
+ * Returns the current state, applying the daily rollover if needed.
+ * The rollover is persisted so all readers agree on a single source of truth.
  */
 export function readAddiction(): AddictionState {
   const s = readRaw();
-  const today = todayStr();
-  if (s.lastSentDate !== today && s.messagesSentToday !== 0) {
-    return write({ ...s, messagesSentToday: 0 });
-  }
+  const rolled = rollIfNewDay(s);
+  if (rolled !== s) return write(rolled);
   return s;
 }
 
@@ -82,9 +149,11 @@ export function readAddiction(): AddictionState {
  * - streak += 1 if last send was yesterday
  * - streak = 1 if last send was earlier (or never)
  * - streak unchanged if already sent today (still increments today + total)
+ *
+ * Also performs the daily rollover snapshot before counting.
  */
 export function recordSend(): AddictionState {
-  const s = readRaw();
+  const s = rollIfNewDay(readRaw());
   const today = todayStr();
   const yest = yesterdayStr();
 
@@ -92,23 +161,46 @@ export function recordSend(): AddictionState {
   let nextToday = s.messagesSentToday;
 
   if (s.lastSentDate === today) {
-    // Same day — streak stays, today counter increments
     nextToday = nextToday + 1;
   } else {
-    // New day — reset today counter, then count this send as the first
     nextToday = 1;
-    if (s.lastSentDate === yest) {
-      nextStreak = s.streak + 1;
-    } else {
-      nextStreak = 1;
-    }
+    nextStreak = s.lastSentDate === yest ? s.streak + 1 : 1;
   }
 
   return write({
+    ...s,
     streak: nextStreak,
     lastSentDate: today,
     messagesSentToday: nextToday,
     totalMessagesSent: s.totalMessagesSent + 1,
+  });
+}
+
+/* ───────────────────── V5 — money result loggers ───────────────────── */
+
+export function logReply(): AddictionState {
+  const s = rollIfNewDay(readRaw());
+  return write({ ...s, repliesToday: s.repliesToday + 1 });
+}
+
+export function logLead(): AddictionState {
+  const s = rollIfNewDay(readRaw());
+  return write({ ...s, leadsToday: s.leadsToday + 1 });
+}
+
+/**
+ * Log a paying client. `amountEUR` must be a finite number ≥ 0.
+ * Returns the unchanged state if validation fails.
+ */
+export function logClient(amountEUR: number): AddictionState {
+  const s = rollIfNewDay(readRaw());
+  if (!Number.isFinite(amountEUR) || amountEUR < 0) return s;
+  const amount = Math.round(amountEUR * 100) / 100; // 2dp guard
+  return write({
+    ...s,
+    clientsToday: s.clientsToday + 1,
+    revenueToday: Math.round((s.revenueToday + amount) * 100) / 100,
+    totalRevenue: Math.round((s.totalRevenue + amount) * 100) / 100,
   });
 }
 
@@ -119,41 +211,31 @@ export interface StreakBadge {
   tone: 'idle' | 'warn' | 'fire' | 'hot' | 'elite';
 }
 
-/**
- * Top-of-screen streak banner copy (System 1).
- * `justSent` flips the post-send confirmation copy for one render cycle.
- */
 export function streakBadge(state: AddictionState, justSent = false): StreakBadge {
   const { streak, messagesSentToday } = state;
 
   if (justSent && streak >= 1) {
     return { label: `🔥 Streak extended — Day ${streak}`, tone: 'fire' };
   }
-
-  // Streak about to break: had a streak, none sent today
   if (streak > 0 && messagesSentToday === 0) {
     return { label: `You're about to lose your ${streak}-day streak`, tone: 'warn' };
   }
-
   if (streak === 0) {
     return { label: "You haven't sent today yet", tone: 'idle' };
   }
-
   if (streak >= 10) return { label: `🔥 Day ${streak} — You're ahead of most users`, tone: 'elite' };
   if (streak >= 5) return { label: `🔥 Day ${streak} — You're building momentum`, tone: 'hot' };
   return { label: `🔥 Day ${streak} — Don't break the chain`, tone: 'fire' };
 }
 
-/* Social proof percentile (System 6) */
 export function socialProofPct(messagesSentToday: number): number | null {
   if (messagesSentToday <= 0) return null;
   if (messagesSentToday >= 10) return 90;
   if (messagesSentToday >= 5) return 75;
   if (messagesSentToday >= 3) return 60;
-  return 40; // 1–2
+  return 40;
 }
 
-/* Daily target (System 5) */
 export const DAILY_TARGET = 10;
 export function targetProgress(messagesSentToday: number) {
   const pct = Math.min(100, Math.round((messagesSentToday / DAILY_TARGET) * 100));
@@ -161,7 +243,6 @@ export function targetProgress(messagesSentToday: number) {
   return { pct, remaining, hit: messagesSentToday >= DAILY_TARGET };
 }
 
-/* Micro-reward copy (System 3) */
 export function microReward(messagesSentToday: number): string {
   if (messagesSentToday >= 5) return "You're doing more than most";
   if (messagesSentToday === 2) return 'Momentum building';
@@ -169,11 +250,26 @@ export function microReward(messagesSentToday: number): string {
   return '';
 }
 
-/* Loss-aversion / end-of-day windows */
 export function isAfternoonAndIdle(state: AddictionState, now: Date = new Date()): boolean {
   return state.messagesSentToday === 0 && now.getHours() >= 12;
 }
 export function isEndOfDayAndIdle(state: AddictionState, now: Date = new Date()): boolean {
   const h = now.getHours();
   return state.messagesSentToday === 0 && h >= 18 && h <= 23;
+}
+
+/* ───────────────────── V5 — money helpers ───────────────────── */
+
+/** Money earned per message sent today. Returns null if no revenue yet. */
+export function moneyPerMessage(state: AddictionState): number | null {
+  if (state.revenueToday <= 0 || state.messagesSentToday <= 0) return null;
+  return Math.round((state.revenueToday / state.messagesSentToday) * 100) / 100;
+}
+
+/** Format euro values consistently across the UI. */
+export function formatEUR(n: number): string {
+  if (!Number.isFinite(n)) return '€0';
+  // Whole numbers: no decimals; otherwise 2dp. Keeps the dashboard clean.
+  if (Math.round(n) === n) return `€${n.toLocaleString('en-IE')}`;
+  return `€${n.toLocaleString('en-IE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
