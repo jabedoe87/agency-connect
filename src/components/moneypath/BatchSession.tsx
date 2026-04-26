@@ -36,7 +36,7 @@ interface BatchSessionProps {
  * Session is started/ended via the shared addiction state so the
  * "Send Mode" bar reflects per-session output.
  */
-export default function BatchSession({ onGenerateBatch, size = 5, triggerKey }: BatchSessionProps) {
+export default function BatchSession({ onGenerateBatch, size = 5, triggerKey, onAfterSend }: BatchSessionProps) {
   const { toast } = useToast();
   const { state, send, beginSession, stopSession } = useAddiction();
   const [messages, setMessages] = useState<string[]>([]);
