@@ -216,7 +216,7 @@ export function readAddiction(): AddictionState {
  * Also performs the daily rollover snapshot before counting.
  */
 export function recordSend(): AddictionState {
-  const s = rollIfNewDay(readRaw());
+  const s = rollIfNewWeek(rollIfNewDay(readRaw()));
   const today = todayStr();
   const yest = yesterdayStr();
 
@@ -236,18 +236,21 @@ export function recordSend(): AddictionState {
     lastSentDate: today,
     messagesSentToday: nextToday,
     totalMessagesSent: s.totalMessagesSent + 1,
+    // V6 — weekly + session counters
+    weeklyMessages: s.weeklyMessages + 1,
+    messagesThisSession: s.sessionActive ? s.messagesThisSession + 1 : s.messagesThisSession,
   });
 }
 
 /* ───────────────────── V5 — money result loggers ───────────────────── */
 
 export function logReply(): AddictionState {
-  const s = rollIfNewDay(readRaw());
+  const s = rollIfNewWeek(rollIfNewDay(readRaw()));
   return write({ ...s, repliesToday: s.repliesToday + 1 });
 }
 
 export function logLead(): AddictionState {
-  const s = rollIfNewDay(readRaw());
+  const s = rollIfNewWeek(rollIfNewDay(readRaw()));
   return write({ ...s, leadsToday: s.leadsToday + 1 });
 }
 
@@ -256,7 +259,7 @@ export function logLead(): AddictionState {
  * Returns the unchanged state if validation fails.
  */
 export function logClient(amountEUR: number): AddictionState {
-  const s = rollIfNewDay(readRaw());
+  const s = rollIfNewWeek(rollIfNewDay(readRaw()));
   if (!Number.isFinite(amountEUR) || amountEUR < 0) return s;
   const amount = Math.round(amountEUR * 100) / 100; // 2dp guard
   return write({
@@ -264,6 +267,34 @@ export function logClient(amountEUR: number): AddictionState {
     clientsToday: s.clientsToday + 1,
     revenueToday: Math.round((s.revenueToday + amount) * 100) / 100,
     totalRevenue: Math.round((s.totalRevenue + amount) * 100) / 100,
+    // V6 — weekly money tracking
+    weeklyClients: s.weeklyClients + 1,
+    weeklyRevenue: Math.round((s.weeklyRevenue + amount) * 100) / 100,
+  });
+}
+
+/* ───────────────────── V6 — session + winning angle ───────────────────── */
+
+export function startSession(): AddictionState {
+  const s = rollIfNewWeek(rollIfNewDay(readRaw()));
+  return write({ ...s, sessionActive: true, messagesThisSession: 0 });
+}
+
+export function endSession(): AddictionState {
+  const s = readRaw();
+  return write({ ...s, sessionActive: false, messagesThisSession: 0 });
+}
+
+export function setWinningInput(niche: string, actionType: string): AddictionState {
+  const s = readRaw();
+  if (!niche || !niche.trim()) return s;
+  return write({
+    ...s,
+    lastWinningInput: {
+      niche: niche.trim(),
+      actionType: actionType || '',
+      savedAt: Date.now(),
+    },
   });
 }
 
