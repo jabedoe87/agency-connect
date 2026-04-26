@@ -631,25 +631,33 @@ export default function Generator() {
                 })
               }
             />
-            {/* V8 — Outbound pipeline */}
-            <OutboundPipeline
-              onGenerateFollowUp={() => {
-                setPreset('ads');
-                handleGenerate(false);
-                toast({ title: 'Follow-up generated', description: 'Use it to re-engage.' });
-              }}
-              onGenerateReply={() => {
-                setPreset('ads');
-                handleGenerate(false);
-                toast({ title: 'Reply generated', description: 'Keep the conversation moving.' });
-              }}
-              onGenerateClosing={() => {
-                setPreset('ads');
-                handleGenerate(false);
-                toast({ title: 'Closing message generated', description: 'Push your leads.' });
-              }}
-              onRepeatFlow={() => setBatchTrigger((k) => k + 1)}
-            />
+            {/* V8 — Outbound pipeline (V8.3 — Fix 5: gated until 3 sends today) */}
+            {addictionState.messagesSentToday >= 3 ? (
+              <OutboundPipeline
+                onGenerateFollowUp={() => {
+                  setPreset('ads');
+                  handleGenerate(false);
+                  toast({ title: 'Follow-up generated', description: 'Use it to re-engage.' });
+                }}
+                onGenerateReply={() => {
+                  setPreset('ads');
+                  handleGenerate(false);
+                  toast({ title: 'Reply generated', description: 'Keep the conversation moving.' });
+                }}
+                onGenerateClosing={() => {
+                  setPreset('ads');
+                  handleGenerate(false);
+                  toast({ title: 'Closing message generated', description: 'Push your leads.' });
+                }}
+                onRepeatFlow={() => setBatchTrigger((k) => k + 1)}
+              />
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-center">
+                <p className="text-[12px] text-muted-foreground">
+                  Send <span className="text-foreground font-semibold">{3 - addictionState.messagesSentToday}</span> more {3 - addictionState.messagesSentToday === 1 ? 'message' : 'messages'} to unlock your pipeline.
+                </p>
+              </div>
+            )}
             <MomentumScore />
             <SprintMode />
             <WinningAngle onReuse={handleReuseWinning} />
