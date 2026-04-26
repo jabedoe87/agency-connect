@@ -111,6 +111,18 @@ export default function ActionLayer({
             <p className="text-sm text-muted-foreground mt-0.5">
               Check replies later — or send another now.
             </p>
+            {/* V5.1 — System 6: Action → Money link */}
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              Each message increases your chances of a client.
+              {addiction.revenueToday > 0 && (
+                <>
+                  {' '}
+                  <span className="text-success font-semibold">
+                    This already made you {formatEUR(addiction.revenueToday)} today.
+                  </span>
+                </>
+              )}
+            </p>
           </div>
         </div>
 
