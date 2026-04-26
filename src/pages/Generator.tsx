@@ -441,6 +441,7 @@ export default function Generator() {
                   className="mt-2 transition-colors duration-150 focus:ring-2 focus:ring-primary/30"
                   rows={2}
                 />
+                <p className="text-[11px] text-muted-foreground mt-1.5 italic">This does not need to be perfect.</p>
               </div>
 
               {/* Action selector — replaces Niche/Audience/Offer cognitive load */}
@@ -603,12 +604,21 @@ export default function Generator() {
                 </div>
 
                 {/* Output context (Section 4) */}
-                <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
-                  <p className="text-xs text-foreground">
-                    <span className="text-muted-foreground">This is for:</span>{' '}
-                    <span className="font-semibold text-primary">{actionType}</span>
-                  </p>
-                </div>
+                {(() => {
+                  const ctxLabel =
+                    /email/i.test(actionType) ? 'Email outreach' :
+                    /^post/i.test(actionType) ? 'Instagram post' :
+                    /ad/i.test(actionType) ? 'Paid ad' :
+                    'Instagram DM outreach';
+                  return (
+                    <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
+                      <p className="text-xs text-foreground">
+                        <span className="text-muted-foreground">This is for:</span>{' '}
+                        <span className="font-semibold text-primary">{ctxLabel}</span>
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* Auto-selected winner — shown prominently FIRST (Section 3) */}
                 {(() => {
@@ -626,6 +636,7 @@ export default function Generator() {
                           <p className="label-uppercase text-primary text-[11px] font-bold">🔥 Best performing version (recommended)</p>
                           <span className="text-[10px] uppercase tracking-wide text-primary font-semibold">{labels[winnerKey]}</span>
                         </div>
+                        <p className="text-[11px] text-muted-foreground -mt-1">This version was selected because it is most likely to get a response.</p>
                         <p className="text-foreground font-medium leading-relaxed">{wv.hook}</p>
                         <p className="text-foreground/90 text-sm leading-relaxed">{wv.pain}</p>
                         <p className="text-foreground/90 text-sm leading-relaxed">{wv.shift}</p>
@@ -638,7 +649,10 @@ export default function Generator() {
                             </p>
                           </div>
                         )}
-                        <p className="text-[11px] text-muted-foreground italic pt-1">This message is structured to get replies.</p>
+                        <p className="text-[11px] text-muted-foreground italic pt-1 leading-relaxed">
+                          This message is structured to get replies.<br />
+                          Businesses use messages like this daily to get clients.
+                        </p>
                       </div>
 
                       {/* Other versions — de-emphasized */}
@@ -715,12 +729,21 @@ export default function Generator() {
                 </div>
 
                 {/* Output context (Section 4) */}
-                <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
-                  <p className="text-xs text-foreground">
-                    <span className="text-muted-foreground">This is for:</span>{' '}
-                    <span className="font-semibold text-primary">{actionType}</span>
-                  </p>
-                </div>
+                {(() => {
+                  const ctxLabel =
+                    /email/i.test(actionType) ? 'Email outreach' :
+                    /^post/i.test(actionType) ? 'Instagram post' :
+                    /ad/i.test(actionType) ? 'Paid ad' :
+                    'Instagram DM outreach';
+                  return (
+                    <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5">
+                      <p className="text-xs text-foreground">
+                        <span className="text-muted-foreground">This is for:</span>{' '}
+                        <span className="font-semibold text-primary">{ctxLabel}</span>
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {(['a', 'b'] as const).map((key) => {
                   const v = nicheOutput[`version_${key}` as 'version_a'];
@@ -779,7 +802,10 @@ export default function Generator() {
                 )}
 
                 {nicheOutput.final && (
-                  <p className="text-[11px] text-muted-foreground italic -mt-2">This message is structured to get replies.</p>
+                  <p className="text-[11px] text-muted-foreground italic -mt-2 leading-relaxed">
+                    This message is structured to get replies.<br />
+                    Businesses use messages like this daily to get clients.
+                  </p>
                 )}
 
                 {/* ── Money Path: Conversion Layer (Section 2) ── */}

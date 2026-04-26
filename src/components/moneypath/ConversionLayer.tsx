@@ -71,7 +71,7 @@ export default function ConversionLayer({ hook, pain, shift, offer, cta, actionT
     await navigator.clipboard.writeText(text);
     setCopied(key);
     setTimeout(() => setCopied(null), 2000);
-    toast({ title: 'Copied to clipboard' });
+    toast({ title: '✓ Reply copied — ready to send' });
   };
 
   // Pick ONE variant based on actionType (Section 7)

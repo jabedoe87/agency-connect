@@ -23,13 +23,14 @@ export default function ActionLayer({ adText, ctaText, actionType, onPosted, alr
     await navigator.clipboard.writeText(text);
     setCopied(key);
     setTimeout(() => setCopied(null), 2000);
-    toast({ title: 'Copied to clipboard' });
+    toast({ title: key === 'cta' ? '✓ CTA copied — ready to send' : '✓ Message copied — ready to send' });
   };
 
   const handleMarkSent = () => {
     if (marking || alreadyPosted) return;
     setMarking(true);
     onPosted();
+    toast({ title: '✓ You took action', description: 'Now check back in 24–48h.' });
   };
 
   const setReminder = (choice: '24h' | '48h') => {
@@ -58,7 +59,7 @@ export default function ActionLayer({ adText, ctaText, actionType, onPosted, alr
   return (
     <div className="rounded-xl border border-primary/40 bg-primary/[0.08] p-5 space-y-4">
       <div>
-        <p className="label-uppercase text-primary text-[11px] font-bold mb-1 tracking-wider">▸ POST THIS NOW — DO NOT OVERTHINK IT</p>
+        <p className="label-uppercase text-primary text-[11px] font-bold mb-1 tracking-wider">▸ POST THIS NOW</p>
         <p className="text-xs text-muted-foreground">Three steps. Then mark it sent. That's it.</p>
       </div>
 
