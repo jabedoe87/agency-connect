@@ -120,6 +120,7 @@ export default function BatchSession({ onGenerateBatch, size = 5, triggerKey, on
       /* clipboard may be denied — still count the send */
     }
     send();
+    onAfterSend?.(text);
     sentThisBatch.current += 1;
     toast({ title: '✓ Copied & sent', description: 'Paste it now. Don\'t overthink.' });
     advance();
