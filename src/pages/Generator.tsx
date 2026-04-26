@@ -598,12 +598,20 @@ export default function Generator() {
             {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}
             <MoneyDashboard onScale={handleScaleVariations} />
             {/* V5.1 — Quick result logging */}
-            <ResultLogger />
+            <ResultLogger niche={niche} actionType={actionType} />
             {/* Money Path: feedback banner — only when ≥3 results + ≥1 positive outcome */}
             <FeedbackBanner insight={insights} />
 
+            {/* V7 — Autopilot + Daily Plan */}
+            <DailyPlan onStart={() => setBatchTrigger((k) => k + 1)} />
+            <AutopilotPanel
+              onGenerateOne={() => handleGenerate(false)}
+              onContinueBatch={() => setBatchTrigger((k) => k + 1)}
+              loading={loading}
+            />
+
             {/* V6 — Scaling engine */}
-            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} />
+            <BatchSession onGenerateBatch={handleGenerateBatch} size={5} triggerKey={batchTrigger} />
             <MomentumScore />
             <SprintMode />
             <WinningAngle onReuse={handleReuseWinning} />
