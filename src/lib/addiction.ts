@@ -208,6 +208,8 @@ function rollIfNewDay(s: AddictionState): AddictionState {
     leadsToday: 0,
     clientsToday: 0,
     revenueToday: 0,
+    // V7 — reset daily plan dismissal so the prompt returns each morning
+    dailyPlanDismissed: false,
   };
 }
 
