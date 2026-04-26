@@ -94,4 +94,14 @@
   .card-interactive {
     @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
   }
+
+  /* One-time attention pulse for the dominant Copy button */
+  @keyframes pulse-once {
+    0%   { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.55); }
+    70%  { box-shadow: 0 0 0 14px hsl(var(--primary) / 0); }
+    100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  }
+  .pulse-once {
+    animation: pulse-once 1.6s ease-out 1;
+  }
 }
