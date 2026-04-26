@@ -15,6 +15,11 @@ interface BatchSessionProps {
    * Initial mount value is ignored; only later changes trigger a new batch.
    */
   triggerKey?: number;
+  /**
+   * V8 (additive) — fired after each send so the parent can log the message
+   * to the outbound pipeline. Receives the raw message text that was sent.
+   */
+  onAfterSend?: (text: string) => void;
 }
 
 /**
