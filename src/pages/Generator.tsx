@@ -441,6 +441,7 @@ export default function Generator() {
                   className="mt-2 transition-colors duration-150 focus:ring-2 focus:ring-primary/30"
                   rows={2}
                 />
+                <p className="text-[11px] text-muted-foreground mt-1.5 italic">This does not need to be perfect.</p>
               </div>
 
               {/* Action selector — replaces Niche/Audience/Offer cognitive load */}
