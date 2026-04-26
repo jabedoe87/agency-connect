@@ -43,6 +43,14 @@ export interface AddictionState {
   weeklyMessages: number;
   weeklyClients: number;
   weeklyRevenue: number;
+  // V7 — autopilot + learning
+  autopilotEnabled: boolean;
+  lastActionUsed: string;
+  bestPerformingAction: string;
+  bestPerformingNiche: string;
+  actionClientCounts: Record<string, number>;
+  nicheRevenueMap: Record<string, number>;
+  dailyPlanDismissed: boolean;
 }
 
 const defaultSnapshot: YesterdaySnapshot = { messagesSent: 0, replies: 0, revenue: 0 };
@@ -65,6 +73,13 @@ const defaultState: AddictionState = {
   weeklyMessages: 0,
   weeklyClients: 0,
   weeklyRevenue: 0,
+  autopilotEnabled: false,
+  lastActionUsed: '',
+  bestPerformingAction: '',
+  bestPerformingNiche: '',
+  actionClientCounts: {},
+  nicheRevenueMap: {},
+  dailyPlanDismissed: false,
 };
 
 /* ───────────────────── date helpers ───────────────────── */
