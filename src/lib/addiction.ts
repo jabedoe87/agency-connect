@@ -210,6 +210,9 @@ function readRaw(): AddictionState {
       actionClientCounts,
       nicheRevenueMap,
       dailyPlanDismissed: !!parsed.dailyPlanDismissed,
+      pipeline,
+      crmExpanded: !!parsed.crmExpanded,
+      totalClientsClosed: num(parsed.totalClientsClosed),
     };
   } catch {
     return { ...defaultState, yesterdaySnapshot: { ...defaultSnapshot } };
