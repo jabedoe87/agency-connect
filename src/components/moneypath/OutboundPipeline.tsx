@@ -221,8 +221,8 @@ export default function OutboundPipeline({
         </div>
       )}
 
-      {/* System 2 — Follow-up */}
-      {followUps.length > 0 && (
+      {/* System 2 — Follow-up (V8.3 — Fix 6: requires ≥1 send today) */}
+      {followUps.length > 0 && state.messagesSentToday >= 1 && (
         <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 space-y-2">
           <div className="flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5 text-warning" />

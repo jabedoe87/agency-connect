@@ -16,6 +16,7 @@ interface ActionLayerProps {
 
 const REMINDER_KEY = 'agencyos_reminder';
 const IDLE_FLAG_KEY = 'agencyos_idle_pressure_shown';
+const FIRST_SEND_KEY = 'agencyos_first_send_done'; // V8.3 — Fix 7
 
 // CTA Command System (Section 8) — direct commands, no choices
 function commandFor(actionType: string): string {
@@ -43,6 +44,7 @@ export default function ActionLayer({
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [idlePressure, setIdlePressure] = useState(false);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
+  const [firstSendBurst, setFirstSendBurst] = useState(false); // V8.3 — Fix 7
 
   // Section 7 — idle pressure after 7s, once per session, vanishes on interaction
   useEffect(() => {
@@ -78,7 +80,21 @@ export default function ActionLayer({
     setMarking(true);
     dismissIdle();
     onPosted();
-    toast({ title: '✓ You took action', description: 'Now check back in 24–48h.' });
+
+    // V8.3 — Fix 7: first-send reward (once, 3s, persisted)
+    let alreadyDone = false;
+    try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
+    if (!alreadyDone) {
+      try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
+      setFirstSendBurst(true);
+      setTimeout(() => setFirstSendBurst(false), 3000);
+      toast({
+        title: '🔥 You just did what most users never do',
+        description: 'This is how clients start.',
+      });
+    } else {
+      toast({ title: '✓ You took action', description: 'Now check back in 24–48h.' });
+    }
   };
 
   const setReminder = (choice: '24h' | '48h') => {
@@ -102,6 +118,14 @@ export default function ActionLayer({
   if (alreadyPosted) {
     return (
       <div className="rounded-xl border border-success/40 bg-success/[0.08] p-5 space-y-4">
+        {/* V8.3 — Fix 7: First-send reward (auto-hides 3s, shown once) */}
+        {firstSendBurst && (
+          <div className="rounded-lg border border-primary/40 bg-primary/[0.08] px-3 py-2.5">
+            <p className="text-[12px] font-semibold text-foreground">
+              🔥 You just did what most users never do — this is how clients start
+            </p>
+          </div>
+        )}
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-4 h-4 text-success" />
@@ -229,6 +253,14 @@ export default function ActionLayer({
           {copied === 'msg' ? 'Copied ✓' : 'Copy Message'}
         </Button>
 
+        {/* V8.3 — Fix 3: Copy dominance reinforcement */}
+        {!hasCopied && (
+          <p className="text-[11px] text-muted-foreground leading-snug px-1">
+            Most users stop here.<br />
+            The ones who send get clients.
+          </p>
+        )}
+
         {/* SECONDARY — Copy CTA */}
         <Button
           variant="outline"
@@ -240,12 +272,12 @@ export default function ActionLayer({
           Copy CTA
         </Button>
 
-        {/* Section 4 — Post-copy commitment prompt */}
+        {/* Section 4 — Post-copy commitment prompt (V8.3 — Fix 4: exact "5 people") */}
         {hasCopied && (
           <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2.5 mt-1">
             <p className="text-[12px] text-foreground font-semibold flex items-center gap-1.5">
               <Send className="w-3.5 h-3.5 text-primary" />
-              Now send this to 5–10 people.
+              Now send this to 5 people.
             </p>
           </div>
         )}

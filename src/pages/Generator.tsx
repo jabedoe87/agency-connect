@@ -631,25 +631,33 @@ export default function Generator() {
                 })
               }
             />
-            {/* V8 — Outbound pipeline */}
-            <OutboundPipeline
-              onGenerateFollowUp={() => {
-                setPreset('ads');
-                handleGenerate(false);
-                toast({ title: 'Follow-up generated', description: 'Use it to re-engage.' });
-              }}
-              onGenerateReply={() => {
-                setPreset('ads');
-                handleGenerate(false);
-                toast({ title: 'Reply generated', description: 'Keep the conversation moving.' });
-              }}
-              onGenerateClosing={() => {
-                setPreset('ads');
-                handleGenerate(false);
-                toast({ title: 'Closing message generated', description: 'Push your leads.' });
-              }}
-              onRepeatFlow={() => setBatchTrigger((k) => k + 1)}
-            />
+            {/* V8 — Outbound pipeline (V8.3 — Fix 5: gated until 3 sends today) */}
+            {addictionState.messagesSentToday >= 3 ? (
+              <OutboundPipeline
+                onGenerateFollowUp={() => {
+                  setPreset('ads');
+                  handleGenerate(false);
+                  toast({ title: 'Follow-up generated', description: 'Use it to re-engage.' });
+                }}
+                onGenerateReply={() => {
+                  setPreset('ads');
+                  handleGenerate(false);
+                  toast({ title: 'Reply generated', description: 'Keep the conversation moving.' });
+                }}
+                onGenerateClosing={() => {
+                  setPreset('ads');
+                  handleGenerate(false);
+                  toast({ title: 'Closing message generated', description: 'Push your leads.' });
+                }}
+                onRepeatFlow={() => setBatchTrigger((k) => k + 1)}
+              />
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-center">
+                <p className="text-[12px] text-muted-foreground">
+                  Send <span className="text-foreground font-semibold">{3 - addictionState.messagesSentToday}</span> more {3 - addictionState.messagesSentToday === 1 ? 'message' : 'messages'} to unlock your pipeline.
+                </p>
+              </div>
+            )}
             <MomentumScore />
             <SprintMode />
             <WinningAngle onReuse={handleReuseWinning} />
@@ -794,9 +802,14 @@ export default function Generator() {
                             </p>
                           </div>
                         )}
-                        <p className="text-[11px] text-muted-foreground italic pt-1 leading-relaxed">
-                          This message is structured to get replies.<br />
-                          Businesses use messages like this daily to get clients.
+                        {/* V8.3 — Fix 1: Trust injection (always when message exists) */}
+                        <p className="text-[12px] text-foreground pt-1 leading-relaxed">
+                          This message is based on real outreach that gets replies.
+                          Do not change it. Send it as-is.
+                        </p>
+                        {/* V8.3 — Fix 2: Editing suppression (muted, no bold) */}
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Editing this reduces your chances of getting a reply.
                         </p>
                       </div>
 
@@ -948,10 +961,17 @@ export default function Generator() {
                 )}
 
                 {nicheOutput.final && (
-                  <p className="text-[11px] text-muted-foreground italic -mt-2 leading-relaxed">
-                    This message is structured to get replies.<br />
-                    Businesses use messages like this daily to get clients.
-                  </p>
+                  <div className="-mt-2 space-y-1">
+                    {/* V8.3 — Fix 1: Trust injection */}
+                    <p className="text-[12px] text-foreground leading-relaxed">
+                      This message is based on real outreach that gets replies.
+                      Do not change it. Send it as-is.
+                    </p>
+                    {/* V8.3 — Fix 2: Editing suppression */}
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Editing this reduces your chances of getting a reply.
+                    </p>
+                  </div>
                 )}
 
                 {/* ── Money Path: Conversion Layer (Section 2) ── */}
