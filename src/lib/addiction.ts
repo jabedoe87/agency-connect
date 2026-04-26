@@ -256,7 +256,7 @@ export function readAddiction(): AddictionState {
  *
  * Also performs the daily rollover snapshot before counting.
  */
-export function recordSend(): AddictionState {
+export function recordSend(actionType?: string): AddictionState {
   const s = rollIfNewWeek(rollIfNewDay(readRaw()));
   const today = todayStr();
   const yest = yesterdayStr();
@@ -271,6 +271,8 @@ export function recordSend(): AddictionState {
     nextStreak = s.lastSentDate === yest ? s.streak + 1 : 1;
   }
 
+  const action = (actionType ?? '').trim();
+
   return write({
     ...s,
     streak: nextStreak,
@@ -280,6 +282,8 @@ export function recordSend(): AddictionState {
     // V6 — weekly + session counters
     weeklyMessages: s.weeklyMessages + 1,
     messagesThisSession: s.sessionActive ? s.messagesThisSession + 1 : s.messagesThisSession,
+    // V7 — Action Memory (System 6)
+    lastActionUsed: action || s.lastActionUsed,
   });
 }
 
@@ -297,12 +301,31 @@ export function logLead(): AddictionState {
 
 /**
  * Log a paying client. `amountEUR` must be a finite number ≥ 0.
+ * Optional `niche` and `actionType` feed V7 best-performer learning maps.
  * Returns the unchanged state if validation fails.
  */
-export function logClient(amountEUR: number): AddictionState {
+export function logClient(
+  amountEUR: number,
+  opts: { niche?: string; actionType?: string } = {},
+): AddictionState {
   const s = rollIfNewWeek(rollIfNewDay(readRaw()));
   if (!Number.isFinite(amountEUR) || amountEUR < 0) return s;
   const amount = Math.round(amountEUR * 100) / 100; // 2dp guard
+  const action = (opts.actionType ?? '').trim();
+  const niche = (opts.niche ?? '').trim();
+
+  // V7 — best-performer maps (silent, System 3)
+  const actionClientCounts = { ...s.actionClientCounts };
+  if (action) actionClientCounts[action] = (actionClientCounts[action] || 0) + 1;
+
+  const nicheRevenueMap = { ...s.nicheRevenueMap };
+  if (niche) {
+    nicheRevenueMap[niche] = Math.round(((nicheRevenueMap[niche] || 0) + amount) * 100) / 100;
+  }
+
+  const bestPerformingAction = argmax(actionClientCounts) || s.bestPerformingAction;
+  const bestPerformingNiche = argmax(nicheRevenueMap) || s.bestPerformingNiche;
+
   return write({
     ...s,
     clientsToday: s.clientsToday + 1,
@@ -311,7 +334,71 @@ export function logClient(amountEUR: number): AddictionState {
     // V6 — weekly money tracking
     weeklyClients: s.weeklyClients + 1,
     weeklyRevenue: Math.round((s.weeklyRevenue + amount) * 100) / 100,
+    // V7 — learning
+    actionClientCounts,
+    nicheRevenueMap,
+    bestPerformingAction,
+    bestPerformingNiche,
   });
+}
+
+/* Returns the key with the largest numeric value, '' if empty. */
+function argmax(map: Record<string, number>): string {
+  let best = '';
+  let bestVal = -Infinity;
+  for (const k of Object.keys(map)) {
+    const v = map[k];
+    if (v > bestVal) {
+      bestVal = v;
+      best = k;
+    }
+  }
+  return best;
+}
+
+/* ───────────────────── V7 — autopilot + daily plan ───────────────────── */
+
+export function setAutopilot(enabled: boolean): AddictionState {
+  const s = readRaw();
+  return write({ ...s, autopilotEnabled: !!enabled });
+}
+
+export function dismissDailyPlan(): AddictionState {
+  const s = rollIfNewWeek(rollIfNewDay(readRaw()));
+  return write({ ...s, dailyPlanDismissed: true });
+}
+
+/**
+ * Resolves the prefill priority for autopilot:
+ *   1. lastWinningInput
+ *   2. bestPerformingAction + bestPerformingNiche
+ *   3. lastActionUsed
+ *   4. null
+ */
+export interface PrefillSuggestion {
+  niche: string;
+  actionType: string;
+  source: 'winning' | 'best' | 'last' | 'none';
+}
+export function resolvePrefill(state: AddictionState): PrefillSuggestion {
+  if (state.lastWinningInput && state.lastWinningInput.niche) {
+    return {
+      niche: state.lastWinningInput.niche,
+      actionType: state.lastWinningInput.actionType || state.lastActionUsed || '',
+      source: 'winning',
+    };
+  }
+  if (state.bestPerformingAction || state.bestPerformingNiche) {
+    return {
+      niche: state.bestPerformingNiche,
+      actionType: state.bestPerformingAction,
+      source: 'best',
+    };
+  }
+  if (state.lastActionUsed) {
+    return { niche: '', actionType: state.lastActionUsed, source: 'last' };
+  }
+  return { niche: '', actionType: '', source: 'none' };
 }
 
 /* ───────────────────── V6 — session + winning angle ───────────────────── */
