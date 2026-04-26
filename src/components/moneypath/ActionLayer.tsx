@@ -59,7 +59,7 @@ export default function ActionLayer({ adText, ctaText, actionType, onPosted, alr
   return (
     <div className="rounded-xl border border-primary/40 bg-primary/[0.08] p-5 space-y-4">
       <div>
-        <p className="label-uppercase text-primary text-[11px] font-bold mb-1 tracking-wider">▸ POST THIS NOW — DO NOT OVERTHINK IT</p>
+        <p className="label-uppercase text-primary text-[11px] font-bold mb-1 tracking-wider">▸ POST THIS NOW</p>
         <p className="text-xs text-muted-foreground">Three steps. Then mark it sent. That's it.</p>
       </div>
 
