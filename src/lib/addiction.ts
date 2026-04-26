@@ -51,7 +51,28 @@ export interface AddictionState {
   actionClientCounts: Record<string, number>;
   nicheRevenueMap: Record<string, number>;
   dailyPlanDismissed: boolean;
+  // V8 — outbound pipeline
+  pipeline: PipelineEntry[];
+  crmExpanded: boolean;
+  totalClientsClosed: number;
 }
+
+/* V8 — Outbound pipeline entry */
+export type PipelineStatus = 'sent' | 'replied' | 'lead' | 'client';
+
+export interface PipelineEntry {
+  id: string;
+  status: PipelineStatus;
+  messagePreview: string;
+  actionType: string;
+  niche: string;
+  /** YYYY-MM-DD of when first sent */
+  date: string;
+  /** ms epoch — last status change, used for sort + follow-up detection */
+  updatedAt: number;
+}
+
+const PIPELINE_MAX = 50;
 
 const defaultSnapshot: YesterdaySnapshot = { messagesSent: 0, replies: 0, revenue: 0 };
 
