@@ -20,6 +20,11 @@ import DailyTracker from '@/components/moneypath/DailyTracker';
 import MoneyDashboard from '@/components/moneypath/MoneyDashboard';
 import ResultLogger from '@/components/moneypath/ResultLogger';
 import YesterdaySummary from '@/components/moneypath/YesterdaySummary';
+import BatchSession from '@/components/moneypath/BatchSession';
+import SprintMode from '@/components/moneypath/SprintMode';
+import MomentumScore from '@/components/moneypath/MomentumScore';
+import WeeklyView from '@/components/moneypath/WeeklyView';
+import WinningAngle from '@/components/moneypath/WinningAngle';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
