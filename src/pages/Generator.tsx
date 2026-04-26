@@ -140,6 +140,8 @@ export default function Generator() {
 
   // ── Addiction System V4.1 + V6 ──────────────────────────────────────
   const { send: recordAddictionSend, state: addictionState, saveWinningInput } = useAddiction();
+  // V7 — bumping this triggers BatchSession to start a new batch externally
+  const [batchTrigger, setBatchTrigger] = useState(0);
 
   // Reset the per-generation tracking row whenever a new ads output arrives.
   useEffect(() => {
