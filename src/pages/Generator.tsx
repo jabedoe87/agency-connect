@@ -398,8 +398,13 @@ export default function Generator() {
     <AppLayout>
       <div className="px-4 md:px-6 py-6 md:py-8 fade-in">
         {/* V4.1 — Streak banner: always visible, top of screen */}
-        <div className="mb-5">
+        <div className="mb-3">
           <StreakBanner />
+        </div>
+
+        {/* V5.1 — Yesterday summary (dismissable, daily) */}
+        <div className="mb-5">
+          <YesterdaySummary />
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
