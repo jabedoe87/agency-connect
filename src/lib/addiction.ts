@@ -578,3 +578,144 @@ export function volumeBoostLabel(messagesSentToday: number): string {
   if (messagesSentToday >= 10) return "You're just getting started — go to 20";
   return '';
 }
+
+/* ───────────────────── V8 — outbound pipeline ───────────────────── */
+
+const PIPELINE_RANK: Record<PipelineStatus, number> = {
+  sent: 0,
+  replied: 1,
+  lead: 2,
+  client: 3,
+};
+
+function genId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  } catch {
+    /* ignore */
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function trimPreview(text: string): string {
+  const t = (text ?? '').toString().replace(/\s+/g, ' ').trim();
+  return t.length <= 140 ? t : `${t.slice(0, 140)}…`;
+}
+
+/**
+ * Append a 'sent' entry to the pipeline. Caps at PIPELINE_MAX (newest kept).
+ */
+export function addPipelineSent(opts: {
+  messagePreview?: string;
+  actionType?: string;
+  niche?: string;
+}): AddictionState {
+  const s = rollIfNewWeek(rollIfNewDay(readRaw()));
+  const entry: PipelineEntry = {
+    id: genId(),
+    status: 'sent',
+    messagePreview: trimPreview(opts.messagePreview ?? ''),
+    actionType: (opts.actionType ?? '').trim(),
+    niche: (opts.niche ?? '').trim(),
+    date: todayStr(),
+    updatedAt: Date.now(),
+  };
+  const next = [entry, ...s.pipeline].slice(0, PIPELINE_MAX);
+  return write({ ...s, pipeline: next });
+}
+
+/**
+ * Promote the most-recent entry whose status is < target rank to `target`.
+ * Falls back to creating a new entry if no candidate exists (so result-logging
+ * always reflects in the pipeline even when the user never logged a "sent").
+ */
+function promoteLatestToStatus(
+  pipeline: PipelineEntry[],
+  target: PipelineStatus,
+  fallback?: { actionType?: string; niche?: string },
+): PipelineEntry[] {
+  const targetRank = PIPELINE_RANK[target];
+  // Pipeline is stored newest-first; find first promotable.
+  const idx = pipeline.findIndex((e) => PIPELINE_RANK[e.status] < targetRank);
+  if (idx >= 0) {
+    const next = pipeline.slice();
+    next[idx] = { ...next[idx], status: target, updatedAt: Date.now() };
+    return next;
+  }
+  // No candidate — synthesize a minimal entry so the pipeline still reflects this.
+  const synth: PipelineEntry = {
+    id: genId(),
+    status: target,
+    messagePreview: '',
+    actionType: (fallback?.actionType ?? '').trim(),
+    niche: (fallback?.niche ?? '').trim(),
+    date: todayStr(),
+    updatedAt: Date.now(),
+  };
+  return [synth, ...pipeline].slice(0, PIPELINE_MAX);
+}
+
+export function setCrmExpanded(expanded: boolean): AddictionState {
+  const s = readRaw();
+  return write({ ...s, crmExpanded: !!expanded });
+}
+
+/** Counts of each status in the current pipeline. */
+export interface PipelineCounts {
+  sent: number;
+  replied: number;
+  lead: number;
+  client: number;
+  total: number;
+}
+export function pipelineCounts(state: AddictionState): PipelineCounts {
+  const c: PipelineCounts = { sent: 0, replied: 0, lead: 0, client: 0, total: 0 };
+  for (const e of state.pipeline) {
+    c[e.status] += 1;
+    c.total += 1;
+  }
+  return c;
+}
+
+/**
+ * Old "sent" entries needing a follow-up: status === 'sent' and date < today.
+ * Returns at most `limit` newest first.
+ */
+export function followUpCandidates(state: AddictionState, limit = 5): PipelineEntry[] {
+  const today = todayStr();
+  return state.pipeline
+    .filter((e) => e.status === 'sent' && e.date && e.date !== today)
+    .slice(0, limit);
+}
+
+/** Latest "replied" entry — used by the conversation loop CTA. */
+export function latestReplied(state: AddictionState): PipelineEntry | null {
+  return state.pipeline.find((e) => e.status === 'replied') ?? null;
+}
+
+/** Pipeline-momentum copy (System 6). */
+export function pipelineMomentumLabel(c: PipelineCounts): string {
+  if (c.lead >= 3) return "You're close to closing more clients — push the leads";
+  if (c.replied >= 3) return 'Replies are turning into leads — keep going';
+  if (c.sent >= 10) return "You're building conversations — replies come from volume";
+  if (c.sent >= 1) return 'Pipeline started — keep sending to fill it';
+  return '';
+}
+
+/** Daily pipeline goal progress (System 7). */
+export interface PipelineGoalProgress {
+  messages: { current: number; target: number; hit: boolean };
+  replies: { current: number; target: number; hit: boolean };
+  leads: { current: number; target: number; hit: boolean };
+  complete: boolean;
+}
+export const PIPELINE_GOAL = { messages: 10, replies: 2, leads: 1 } as const;
+export function pipelineGoalProgress(state: AddictionState): PipelineGoalProgress {
+  const m = state.messagesSentToday;
+  const r = state.repliesToday;
+  const l = state.leadsToday;
+  const messages = { current: m, target: PIPELINE_GOAL.messages, hit: m >= PIPELINE_GOAL.messages };
+  const replies = { current: r, target: PIPELINE_GOAL.replies, hit: r >= PIPELINE_GOAL.replies };
+  const leads = { current: l, target: PIPELINE_GOAL.leads, hit: l >= PIPELINE_GOAL.leads };
+  return { messages, replies, leads, complete: messages.hit && replies.hit && leads.hit };
+}
