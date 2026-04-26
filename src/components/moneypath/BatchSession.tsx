@@ -54,6 +54,18 @@ export default function BatchSession({ onGenerateBatch, size = 5, triggerKey }: 
     }
   }, [index, active]);
 
+  // V7 (additive) — external trigger: increment triggerKey to start a fresh batch.
+  // Initial-mount value is captured in a ref so we don't auto-fire on first render.
+  const lastTriggerRef = useRef<number | undefined>(triggerKey);
+  useEffect(() => {
+    if (triggerKey === undefined) return;
+    if (triggerKey === lastTriggerRef.current) return;
+    lastTriggerRef.current = triggerKey;
+    if (loading) return;
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerKey]);
+
   const generate = async () => {
     setLoading(true);
     try {
