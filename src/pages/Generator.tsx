@@ -802,7 +802,10 @@ export default function Generator() {
                 )}
 
                 {nicheOutput.final && (
-                  <p className="text-[11px] text-muted-foreground italic -mt-2">This message is structured to get replies.</p>
+                  <p className="text-[11px] text-muted-foreground italic -mt-2 leading-relaxed">
+                    This message is structured to get replies.<br />
+                    Businesses use messages like this daily to get clients.
+                  </p>
                 )}
 
                 {/* ── Money Path: Conversion Layer (Section 2) ── */}
