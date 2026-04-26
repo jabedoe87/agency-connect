@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, CheckCircle2, Bell, Send, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAddiction } from '@/hooks/useAddiction';
+import { formatEUR } from '@/lib/addiction';
 
 interface ActionLayerProps {
   adText: string;
