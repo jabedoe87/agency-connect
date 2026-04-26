@@ -140,7 +140,7 @@ export default function Generator() {
   const insights = useMemo(() => computeInsights(results), [results]);
 
   // ── Addiction System V4.1 + V6 ──────────────────────────────────────
-  const { send: recordAddictionSend, state: addictionState, saveWinningInput } = useAddiction();
+  const { send: recordAddictionSend, state: addictionState, saveWinningInput, pipelineSent } = useAddiction();
   // V7 — bumping this triggers BatchSession to start a new batch externally
   const [batchTrigger, setBatchTrigger] = useState(0);
 
