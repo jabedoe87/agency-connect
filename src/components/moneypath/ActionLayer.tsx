@@ -176,7 +176,7 @@ export default function ActionLayer({
   };
 
   const handleMarkSent = () => {
-    if (marking || alreadyPosted || !hasCopied || !validationComplete) return;
+    if (marking || alreadyPosted || !hasCopied || !commitChecked || !validationComplete) return;
     setMarking(true);
     dismissIdle();
     onPosted();
