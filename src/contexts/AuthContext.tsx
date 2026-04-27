@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 const SUBSCRIPTION_CACHE_KEY = 'agencyos_subscription_cache_v1';
 const SUBSCRIPTION_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const SUBSCRIPTION_HEALTH_TTL_MS = 60 * 1000; // 1 minute
 const MAX_RETRIES = 3;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -90,8 +91,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const failureToastShownRef = useRef(false);
+  const subscriptionRef = useRef<SubscriptionStatus | null>(null);
+  const subscriptionCheckInFlightRef = useRef<Promise<void> | null>(null);
+  const healthReadyUntilRef = useRef(0);
+
+  useEffect(() => {
+    subscriptionRef.current = subscription;
+  }, [subscription]);
 
   const checkSubscription = useCallback(async () => {
+    if (subscriptionCheckInFlightRef.current) return subscriptionCheckInFlightRef.current;
+
+    const runCheck = async () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
@@ -100,7 +111,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Hydrate from cache immediately so UI never blank-screens during transient errors
       const cached = readSubscriptionCache(userId);
-      if (cached && !subscription) setSubscription(cached);
+      if (cached && !subscriptionRef.current) setSubscription(cached);
+
+      if (Date.now() > healthReadyUntilRef.current) {
+        const health = await supabase.functions.invoke('check-subscription/health');
+        if (health.error || health.data?.ready !== true) {
+          throw health.error ?? new Error('check-subscription is not ready');
+        }
+        healthReadyUntilRef.current = Date.now() + SUBSCRIPTION_HEALTH_TTL_MS;
+      }
 
       // Retry with exponential backoff on 503 / network errors
       let lastErr: unknown = null;
@@ -158,7 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // silently fail — UI keeps last known subscription
     }
-  }, [subscription]);
+    };
+
+    subscriptionCheckInFlightRef.current = runCheck().finally(() => {
+      subscriptionCheckInFlightRef.current = null;
+    });
+    return subscriptionCheckInFlightRef.current;
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
