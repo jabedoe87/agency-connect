@@ -6,9 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+const logStep = (step: string, details?: any, level: "info" | "warn" | "error" = "info") => {
+  const payload = {
+    fn: "check-subscription",
+    step,
+    level,
+    ts: new Date().toISOString(),
+    ...(details ? { details } : {}),
+  };
+  const line = JSON.stringify(payload);
+  if (level === "error") console.error(line);
+  else if (level === "warn") console.warn(line);
+  else console.log(line);
 };
 
 Deno.serve(async (req) => {
@@ -16,10 +25,37 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const url = new URL(req.url);
+  const requestId = crypto.randomUUID();
+
+  // Lightweight health route — no Stripe / no auth, just confirms the function is up
+  // and required env vars are present. Frontend can call this before the full check.
+  if (url.pathname.endsWith("/health")) {
+    const hasStripe = !!Deno.env.get("STRIPE_SECRET_KEY");
+    const hasSupaUrl = !!Deno.env.get("SUPABASE_URL");
+    const hasServiceKey = !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const ready = hasStripe && hasSupaUrl && hasServiceKey;
+    logStep("health", { ready, hasStripe, hasSupaUrl, hasServiceKey, requestId });
+    return new Response(
+      JSON.stringify({
+        ready,
+        checks: { stripe: hasStripe, supabase_url: hasSupaUrl, service_key: hasServiceKey },
+        ts: new Date().toISOString(),
+      }),
+      {
+        status: ready ? 200 : 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
+    if (!stripeKey) {
+      logStep("missing_env", { key: "STRIPE_SECRET_KEY", requestId }, "error");
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+    logStep("stripe_key_verified", { requestId });
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -29,6 +65,7 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      logStep("unauthorized_missing_header", { requestId }, "warn");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -38,6 +75,7 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !userData?.user) {
+      logStep("unauthorized_invalid_token", { requestId, error: userError?.message }, "warn");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -45,33 +83,40 @@ Deno.serve(async (req) => {
     }
 
     const user = userData.user;
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("user_authenticated", { userId: user.id, email: user.email, requestId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    const customers = await stripe.customers.list({ email: user.email!, limit: 1 });
+    let customers;
+    try {
+      customers = await stripe.customers.list({ email: user.email!, limit: 1 });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logStep("stripe_customers_list_failed", { requestId, error: msg }, "error");
+      throw new Error(`Stripe customers.list failed: ${msg}`);
+    }
 
     if (customers.data.length === 0) {
-      logStep("No Stripe customer found");
+      logStep("no_stripe_customer", { requestId });
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const customerId = customers.data[0].id;
-    logStep("Found customer", { customerId });
+    logStep("found_customer", { customerId, requestId });
 
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 10,
-    });
-
-    const trialingSubs = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "trialing",
-      limit: 10,
-    });
+    let subscriptions, trialingSubs;
+    try {
+      [subscriptions, trialingSubs] = await Promise.all([
+        stripe.subscriptions.list({ customer: customerId, status: "active", limit: 10 }),
+        stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 10 }),
+      ]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logStep("stripe_subscriptions_list_failed", { requestId, customerId, error: msg }, "error");
+      throw new Error(`Stripe subscriptions.list failed: ${msg}`);
+    }
 
     const allActive = [...subscriptions.data, ...trialingSubs.data];
     const hasActiveSub = allActive.length > 0;
@@ -83,7 +128,6 @@ Deno.serve(async (req) => {
 
     if (hasActiveSub) {
       const sub = allActive[0] as any;
-      // Stripe API 2025-08-27.basil moved current_period_end to subscription items
       const periodEnd =
         sub.items?.data?.[0]?.current_period_end ??
         sub.current_period_end ??
@@ -96,26 +140,39 @@ Deno.serve(async (req) => {
       priceId = sub.items?.data?.[0]?.price?.id ?? null;
       productId = (sub.items?.data?.[0]?.price?.product as string) ?? null;
       status = sub.status;
-      logStep("Active subscription found", { subscriptionId: sub.id, priceId, productId, status, end: subscriptionEnd });
+      logStep("active_subscription_found", {
+        requestId,
+        subscriptionId: sub.id,
+        priceId,
+        productId,
+        status,
+        end: subscriptionEnd,
+      });
     } else {
-      logStep("No active subscription");
+      logStep("no_active_subscription", { requestId });
     }
 
-    return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      price_id: priceId,
-      product_id: productId,
-      subscription_end: subscriptionEnd,
-      status,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        subscribed: hasActiveSub,
+        price_id: priceId,
+        product_id: productId,
+        subscription_end: subscriptionEnd,
+        status,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: msg });
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const stack = error instanceof Error ? error.stack : undefined;
+    logStep("unhandled_error", { requestId, message: msg, stack }, "error");
+    // Return 200 with fallback flag so frontend doesn't blank-screen on transient errors
+    return new Response(
+      JSON.stringify({ error: msg, fallback: true, requestId }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });

@@ -1,6 +1,37 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+const SUBSCRIPTION_CACHE_KEY = 'agencyos_subscription_cache_v1';
+const SUBSCRIPTION_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_RETRIES = 3;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function readSubscriptionCache(userId: string): SubscriptionStatus | null {
+  try {
+    const raw = localStorage.getItem(SUBSCRIPTION_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { userId: string; ts: number; data: SubscriptionStatus };
+    if (parsed.userId !== userId) return null;
+    if (Date.now() - parsed.ts > SUBSCRIPTION_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeSubscriptionCache(userId: string, data: SubscriptionStatus) {
+  try {
+    localStorage.setItem(
+      SUBSCRIPTION_CACHE_KEY,
+      JSON.stringify({ userId, ts: Date.now(), data })
+    );
+  } catch {
+    // ignore quota errors
+  }
+}
 
 interface Profile {
   id: string;
@@ -58,21 +89,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(data as Profile | null);
   };
 
+  const failureToastShownRef = useRef(false);
+
   const checkSubscription = useCallback(async () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) return;
+      const userId = sessionData?.session?.user?.id;
+      if (!accessToken || !userId) return;
 
-      const res = await supabase.functions.invoke('check-subscription', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (res.error) return;
-      setSubscription(res.data as SubscriptionStatus);
+      // Hydrate from cache immediately so UI never blank-screens during transient errors
+      const cached = readSubscriptionCache(userId);
+      if (cached && !subscription) setSubscription(cached);
+
+      // Retry with exponential backoff on 503 / network errors
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const res = await supabase.functions.invoke('check-subscription', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+
+          if (res.error) {
+            const status = (res.error as any)?.context?.status ?? (res.error as any)?.status;
+            // Retry only on 5xx / 503; bail immediately on 4xx
+            if (status && status >= 400 && status < 500) {
+              lastErr = res.error;
+              break;
+            }
+            lastErr = res.error;
+            if (attempt < MAX_RETRIES - 1) {
+              await sleep(Math.pow(2, attempt) * 1000); // 1s, 2s, 4s
+              continue;
+            }
+            break;
+          }
+
+          const data = res.data as SubscriptionStatus & { fallback?: boolean; error?: string };
+          // Edge function returned soft-fallback (transient internal error)
+          if (data?.fallback) {
+            lastErr = new Error(data.error || 'fallback');
+            if (attempt < MAX_RETRIES - 1) {
+              await sleep(Math.pow(2, attempt) * 1000);
+              continue;
+            }
+            break;
+          }
+
+          setSubscription(data);
+          writeSubscriptionCache(userId, data);
+          failureToastShownRef.current = false;
+          return;
+        } catch (e) {
+          lastErr = e;
+          if (attempt < MAX_RETRIES - 1) {
+            await sleep(Math.pow(2, attempt) * 1000);
+          }
+        }
+      }
+
+      // All retries exhausted — keep cached value, show non-blocking toast once
+      if (lastErr && !failureToastShownRef.current) {
+        failureToastShownRef.current = true;
+        toast.error('Subscription status temporarily unavailable', {
+          description: 'Using last known status. We\'ll retry automatically.',
+        });
+      }
     } catch {
-      // silently fail
+      // silently fail — UI keeps last known subscription
     }
-  }, []);
+  }, [subscription]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
