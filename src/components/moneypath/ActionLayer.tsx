@@ -558,6 +558,17 @@ export default function ActionLayer({
           </div>
         )}
 
+        {/* V9.1 — System 5: Micro commitment checkbox (after copy, before send) */}
+        {hasCopied && !alreadyPosted && (
+          <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
+            <Checkbox
+              checked={commitChecked}
+              onCheckedChange={(v) => setCommitChecked(v === true)}
+            />
+            <span className="text-[12px] text-muted-foreground">I will send this now</span>
+          </label>
+        )}
+
         {/* V8.4 — confirmation hint once validated */}
         {hasCopied && validationComplete && (
           <p className="text-[11px] text-success font-medium px-1">
@@ -565,16 +576,26 @@ export default function ActionLayer({
           </p>
         )}
 
-        {/* FINAL — I've sent it (locked until Copy + Validation complete) */}
+        {/* V9.1 — Send it now. cue right above CTA */}
+        {hasCopied && (
+          <p className="text-[12px] text-foreground font-semibold px-1">Send it now.</p>
+        )}
+
+        {/* FINAL — I've sent it (locked until Copy + Commit + Validation complete) */}
         <Button
           size="lg"
           className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
           onClick={handleMarkSent}
-          disabled={!hasCopied || !validationComplete || marking}
+          disabled={!hasCopied || !commitChecked || !validationComplete || marking}
         >
           <CheckCircle2 className="w-4 h-4" />
           I've sent it
         </Button>
+
+        {/* V9.1 — System 2: Auto continuation banner */}
+        {autoNextReady && onGenerateAnother && (
+          <p className="text-[11px] text-primary font-medium px-1 mt-1">Next message ready.</p>
+        )}
       </div>
 
       {/* Money Path visual (Section 6 of V2 — kept) */}
