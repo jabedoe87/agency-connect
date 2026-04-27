@@ -159,6 +159,10 @@ export default function ActionLayer({
     return () => clearTimeout(id);
   }, [validationComplete, onGenerateAnother]);
 
+  const dismissIdle = () => {
+    setIdlePressure(false);
+    setRefocusMsg(null);
+  };
 
   const copy = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
