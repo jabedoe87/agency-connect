@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, CheckCircle2, Bell, Send, Sparkles, ExternalLink, Mail, Instagram, Megaphone, MessageSquare } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
