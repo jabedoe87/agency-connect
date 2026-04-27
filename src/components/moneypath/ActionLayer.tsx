@@ -53,11 +53,20 @@ export default function ActionLayer({
   const [copied, setCopied] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
   const [validationComplete, setValidationComplete] = useState(false); // V8.4 — action launched/confirmed
+  const [commitChecked, setCommitChecked] = useState(false); // V9.1 — micro commitment
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [idlePressure, setIdlePressure] = useState(false);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
   const [firstSendBurst, setFirstSendBurst] = useState(false); // V8.3 — Fix 7
+
+  // V9.1 — momentum timer (System 4) + refocus messages (System 3)
+  const [momentumLeft, setMomentumLeft] = useState<number>(20);
+  const [timerActive, setTimerActive] = useState<boolean>(true);
+  const [refocusMsg, setRefocusMsg] = useState<string | null>(null);
+  const [autoNextReady, setAutoNextReady] = useState<boolean>(false); // System 2
+  const autoContinuationAllowedRef = useRef<boolean>(true);
+  const validatedAtRef = useRef<number>(0);
 
   const kind = actionKindOf(actionType);
   const [emailRecipient, setEmailRecipient] = useState(''); // V8.4 — optional
