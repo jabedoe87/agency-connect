@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, CheckCircle2, Bell, Send, Sparkles, ExternalLink, Mail, Instagram, Megaphone, MessageSquare } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
@@ -52,11 +53,20 @@ export default function ActionLayer({
   const [copied, setCopied] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
   const [validationComplete, setValidationComplete] = useState(false); // V8.4 — action launched/confirmed
+  const [commitChecked, setCommitChecked] = useState(false); // V9.1 — micro commitment
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [idlePressure, setIdlePressure] = useState(false);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
   const [firstSendBurst, setFirstSendBurst] = useState(false); // V8.3 — Fix 7
+
+  // V9.1 — momentum timer (System 4) + refocus messages (System 3)
+  const [momentumLeft, setMomentumLeft] = useState<number>(20);
+  const [timerActive, setTimerActive] = useState<boolean>(true);
+  const [refocusMsg, setRefocusMsg] = useState<string | null>(null);
+  const [autoNextReady, setAutoNextReady] = useState<boolean>(false); // System 2
+  const autoContinuationAllowedRef = useRef<boolean>(true);
+  const validatedAtRef = useRef<number>(0);
 
   const kind = actionKindOf(actionType);
   const [emailRecipient, setEmailRecipient] = useState(''); // V8.4 — optional
@@ -77,7 +87,82 @@ export default function ActionLayer({
     return () => clearTimeout(t);
   }, [hasCopied, alreadyPosted]);
 
-  const dismissIdle = () => setIdlePressure(false);
+  // V9.1 — Reset all per-message state when a new message is generated
+  useEffect(() => {
+    setHasCopied(false);
+    setValidationComplete(false);
+    setCommitChecked(false);
+    setCopied(null);
+    setMomentumLeft(20);
+    setTimerActive(true);
+    setRefocusMsg(null);
+    setAutoNextReady(false);
+    autoContinuationAllowedRef.current = true;
+    validatedAtRef.current = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adText]);
+
+  // V9.1 — System 4: Momentum timer (20s). Disabled once user copies/validates or message gone.
+  useEffect(() => {
+    if (alreadyPosted) return;
+    if (!timerActive) return;
+    if (validationComplete) {
+      setTimerActive(false);
+      return;
+    }
+    const id = setInterval(() => {
+      setMomentumLeft((s) => {
+        if (s <= 1) {
+          clearInterval(id);
+          setTimerActive(false);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timerActive, validationComplete, alreadyPosted]);
+
+  // V9.1 — System 3 + 8: Auto refocus chain. Only when timer NOT active and not yet copied.
+  useEffect(() => {
+    if (alreadyPosted) return;
+    if (timerActive) return;
+    if (hasCopied) return;
+    const t1 = setTimeout(() => setRefocusMsg('Still here? Send it.'), 4000);
+    const t2 = setTimeout(() => setRefocusMsg('This takes 10 seconds.'), 8000);
+    const t3 = setTimeout(() => setRefocusMsg("Don't overthink it."), 12000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [timerActive, hasCopied, alreadyPosted, adText]);
+
+  // V9.1 — System 2: Auto continuation after validation (safe-guarded)
+  useEffect(() => {
+    if (!validationComplete) return;
+    validatedAtRef.current = Date.now();
+    if (!onGenerateAnother) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    if (!autoContinuationAllowedRef.current) return;
+    setAutoNextReady(true);
+    const id = setTimeout(() => {
+      const withinWindow = Date.now() - validatedAtRef.current <= 3000;
+      const visible = typeof document === 'undefined' || document.visibilityState === 'visible';
+      if (withinWindow && visible && autoContinuationAllowedRef.current) {
+        autoContinuationAllowedRef.current = false;
+        try { onGenerateAnother?.(); } catch { /* ignore */ }
+        // Scroll to top of viewport so the new message is visible
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* ignore */ }
+      }
+    }, 1200);
+    return () => clearTimeout(id);
+  }, [validationComplete, onGenerateAnother]);
+
+  const dismissIdle = () => {
+    setIdlePressure(false);
+    setRefocusMsg(null);
+  };
 
   const copy = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
@@ -91,7 +176,7 @@ export default function ActionLayer({
   };
 
   const handleMarkSent = () => {
-    if (marking || alreadyPosted || !hasCopied || !validationComplete) return;
+    if (marking || alreadyPosted || !hasCopied || !commitChecked || !validationComplete) return;
     setMarking(true);
     dismissIdle();
     onPosted();
@@ -249,23 +334,60 @@ export default function ActionLayer({
         <p className="text-[11px] text-muted-foreground">If you wait, this does nothing.</p>
       </div>
 
-      {/* Section 1 — suppress editing */}
-      <div className="text-[11px] text-muted-foreground italic leading-relaxed">
-        Do not edit this. It's optimized for replies.<br />
-        Messages like this are sent daily by people getting clients.
+      {/* V9.1 — Section 6: Thought reduction copy */}
+      <div className="text-[11px] text-muted-foreground leading-relaxed space-y-0.5">
+        <p className="text-foreground">This already works. Don't change it.</p>
+        <p className="italic">Editing lowers reply rates.</p>
+        <p className="italic">Do not edit this. It's optimized for replies.</p>
       </div>
+
+      {/* V9.1 — System 4: Momentum timer (primary attention) */}
+      {!hasCopied && !alreadyPosted && (
+        timerActive ? (
+          <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2">
+            <p className="text-[12px] text-foreground font-semibold tabular-nums">
+              Momentum: {momentumLeft}s
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 space-y-2">
+            <p className="text-[12px] text-foreground font-semibold">
+              Momentum lost — generate a fresh one
+            </p>
+            {onGenerateAnother && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-white/10 gap-1.5"
+                onClick={() => onGenerateAnother?.()}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Generate new message
+              </Button>
+            )}
+          </div>
+        )
+      )}
+
+      {/* V9.1 — System 3: Auto refocus (only when timer NOT active) */}
+      {!hasCopied && !alreadyPosted && !timerActive && refocusMsg && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+          <p className="text-[12px] text-muted-foreground">{refocusMsg}</p>
+        </div>
+      )}
 
       {/* Section 3 — Button hierarchy */}
       <div className="space-y-2 pt-1">
-        {/* PRIMARY — Copy Message (largest, primary color, one-time pulse) */}
+        {/* PRIMARY — Copy Message (V9.1: disabled after copy = decision collapse) */}
         <Button
           size="lg"
-          className={`w-full gap-2 cta-primary min-h-[52px] text-base ${!hasCopied ? 'pulse-once' : ''}`}
+          className={`w-full gap-2 cta-primary min-h-[52px] text-base ${!hasCopied ? 'pulse-once' : 'opacity-60'}`}
           onClick={() => copy(adText, 'msg')}
           onMouseEnter={dismissIdle}
+          disabled={hasCopied}
         >
-          {copied === 'msg' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {copied === 'msg' ? 'Copied ✓' : 'Copy Message'}
+          {copied === 'msg' || hasCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {hasCopied ? 'Copied ✓' : 'Copy Message'}
         </Button>
 
         {/* V8.3 — Fix 3: Copy dominance reinforcement */}
@@ -276,17 +398,23 @@ export default function ActionLayer({
           </p>
         )}
 
-        {/* SECONDARY — Copy CTA */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full gap-1.5 border-white/10"
-          onClick={() => copy(ctaText, 'cta')}
-        >
-          {copied === 'cta' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-          Copy CTA
-        </Button>
+        {/* V9.1 — Decision collapse: hide secondary Copy CTA after primary copy until validated */}
+        {(!hasCopied || validationComplete) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 border-white/10"
+            onClick={() => copy(ctaText, 'cta')}
+          >
+            {copied === 'cta' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+            Copy CTA
+          </Button>
+        )}
 
+        {/* V9.1 — "Now send this." cue right after copy */}
+        {hasCopied && !validationComplete && (
+          <p className="text-[12px] text-foreground font-semibold px-1">Now send this.</p>
+        )}
         {/* Section 4 — Post-copy commitment prompt (V8.3 — Fix 4: exact "5 people") */}
         {hasCopied && (
           <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2.5 mt-1">
@@ -430,6 +558,17 @@ export default function ActionLayer({
           </div>
         )}
 
+        {/* V9.1 — System 5: Micro commitment checkbox (after copy, before send) */}
+        {hasCopied && !alreadyPosted && (
+          <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
+            <Checkbox
+              checked={commitChecked}
+              onCheckedChange={(v) => setCommitChecked(v === true)}
+            />
+            <span className="text-[12px] text-muted-foreground">I will send this now</span>
+          </label>
+        )}
+
         {/* V8.4 — confirmation hint once validated */}
         {hasCopied && validationComplete && (
           <p className="text-[11px] text-success font-medium px-1">
@@ -437,16 +576,26 @@ export default function ActionLayer({
           </p>
         )}
 
-        {/* FINAL — I've sent it (locked until Copy + Validation complete) */}
+        {/* V9.1 — Send it now. cue right above CTA */}
+        {hasCopied && (
+          <p className="text-[12px] text-foreground font-semibold px-1">Send it now.</p>
+        )}
+
+        {/* FINAL — I've sent it (locked until Copy + Commit + Validation complete) */}
         <Button
           size="lg"
           className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
           onClick={handleMarkSent}
-          disabled={!hasCopied || !validationComplete || marking}
+          disabled={!hasCopied || !commitChecked || !validationComplete || marking}
         >
           <CheckCircle2 className="w-4 h-4" />
           I've sent it
         </Button>
+
+        {/* V9.1 — System 2: Auto continuation banner */}
+        {autoNextReady && onGenerateAnother && (
+          <p className="text-[11px] text-primary font-medium px-1 mt-1">Next message ready.</p>
+        )}
       </div>
 
       {/* Money Path visual (Section 6 of V2 — kept) */}
