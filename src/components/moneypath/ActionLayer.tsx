@@ -334,23 +334,60 @@ export default function ActionLayer({
         <p className="text-[11px] text-muted-foreground">If you wait, this does nothing.</p>
       </div>
 
-      {/* Section 1 — suppress editing */}
-      <div className="text-[11px] text-muted-foreground italic leading-relaxed">
-        Do not edit this. It's optimized for replies.<br />
-        Messages like this are sent daily by people getting clients.
+      {/* V9.1 — Section 6: Thought reduction copy */}
+      <div className="text-[11px] text-muted-foreground leading-relaxed space-y-0.5">
+        <p className="text-foreground">This already works. Don't change it.</p>
+        <p className="italic">Editing lowers reply rates.</p>
+        <p className="italic">Do not edit this. It's optimized for replies.</p>
       </div>
+
+      {/* V9.1 — System 4: Momentum timer (primary attention) */}
+      {!hasCopied && !alreadyPosted && (
+        timerActive ? (
+          <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2">
+            <p className="text-[12px] text-foreground font-semibold tabular-nums">
+              Momentum: {momentumLeft}s
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 space-y-2">
+            <p className="text-[12px] text-foreground font-semibold">
+              Momentum lost — generate a fresh one
+            </p>
+            {onGenerateAnother && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-white/10 gap-1.5"
+                onClick={() => onGenerateAnother?.()}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Generate new message
+              </Button>
+            )}
+          </div>
+        )
+      )}
+
+      {/* V9.1 — System 3: Auto refocus (only when timer NOT active) */}
+      {!hasCopied && !alreadyPosted && !timerActive && refocusMsg && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+          <p className="text-[12px] text-muted-foreground">{refocusMsg}</p>
+        </div>
+      )}
 
       {/* Section 3 — Button hierarchy */}
       <div className="space-y-2 pt-1">
-        {/* PRIMARY — Copy Message (largest, primary color, one-time pulse) */}
+        {/* PRIMARY — Copy Message (V9.1: disabled after copy = decision collapse) */}
         <Button
           size="lg"
-          className={`w-full gap-2 cta-primary min-h-[52px] text-base ${!hasCopied ? 'pulse-once' : ''}`}
+          className={`w-full gap-2 cta-primary min-h-[52px] text-base ${!hasCopied ? 'pulse-once' : 'opacity-60'}`}
           onClick={() => copy(adText, 'msg')}
           onMouseEnter={dismissIdle}
+          disabled={hasCopied}
         >
-          {copied === 'msg' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {copied === 'msg' ? 'Copied ✓' : 'Copy Message'}
+          {copied === 'msg' || hasCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {hasCopied ? 'Copied ✓' : 'Copy Message'}
         </Button>
 
         {/* V8.3 — Fix 3: Copy dominance reinforcement */}
@@ -361,17 +398,23 @@ export default function ActionLayer({
           </p>
         )}
 
-        {/* SECONDARY — Copy CTA */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full gap-1.5 border-white/10"
-          onClick={() => copy(ctaText, 'cta')}
-        >
-          {copied === 'cta' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-          Copy CTA
-        </Button>
+        {/* V9.1 — Decision collapse: hide secondary Copy CTA after primary copy until validated */}
+        {(!hasCopied || validationComplete) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 border-white/10"
+            onClick={() => copy(ctaText, 'cta')}
+          >
+            {copied === 'cta' ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+            Copy CTA
+          </Button>
+        )}
 
+        {/* V9.1 — "Now send this." cue right after copy */}
+        {hasCopied && !validationComplete && (
+          <p className="text-[12px] text-foreground font-semibold px-1">Now send this.</p>
+        )}
         {/* Section 4 — Post-copy commitment prompt (V8.3 — Fix 4: exact "5 people") */}
         {hasCopied && (
           <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2.5 mt-1">
