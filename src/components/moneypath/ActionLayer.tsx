@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, CheckCircle2, Bell, Send, Sparkles, ExternalLink, Mail, Instagram, Megaphone, MessageSquare } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Copy, Check, CheckCircle2, Bell, Sparkles, ExternalLink, Mail, Instagram, Megaphone, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
@@ -16,10 +15,9 @@ interface ActionLayerProps {
 }
 
 const REMINDER_KEY = 'agencyos_reminder';
-const IDLE_FLAG_KEY = 'agencyos_idle_pressure_shown';
-const FIRST_SEND_KEY = 'agencyos_first_send_done'; // V8.3 — Fix 7
+const FIRST_SEND_KEY = 'agencyos_first_send_done';
 
-// V8.4 — categorize action for low-friction validation
+// V10.1 — categorize action
 type ActionKind = 'email' | 'dm' | 'post' | 'ad' | 'comment' | 'fallback';
 function actionKindOf(actionType: string): ActionKind {
   if (/email/i.test(actionType)) return 'email';
@@ -28,16 +26,6 @@ function actionKindOf(actionType: string): ActionKind {
   if (/ad/i.test(actionType)) return 'ad';
   if (/comment/i.test(actionType)) return 'comment';
   return 'fallback';
-}
-
-// CTA Command System (Section 8) — direct commands, no choices
-function commandFor(actionType: string): string {
-  if (/dm|message/i.test(actionType)) return 'Send this as a DM right now';
-  if (/email/i.test(actionType)) return 'Send this as an email right now';
-  if (/post/i.test(actionType)) return 'Post this right now';
-  if (/story/i.test(actionType)) return 'Share this in your story right now';
-  if (/ad/i.test(actionType)) return 'Run this as an ad right now';
-  return 'Send this right now';
 }
 
 export default function ActionLayer({
@@ -50,150 +38,108 @@ export default function ActionLayer({
 }: ActionLayerProps) {
   const { toast } = useToast();
   const { state: addiction } = useAddiction();
+
+  // V10.1 — simplified state
   const [copied, setCopied] = useState<string | null>(null);
-  const [hasCopied, setHasCopied] = useState(false); // Section 5 — copy must happen first
-  const [validationComplete, setValidationComplete] = useState(false); // V8.4 — action launched/confirmed
-  const [commitChecked, setCommitChecked] = useState(false); // V9.1 — micro commitment
+  const [copyClicked, setCopyClicked] = useState(false);
+  const [sendPathStarted, setSendPathStarted] = useState(false);
+  const [finalConfirmed, setFinalConfirmed] = useState(false);
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
-  const [idlePressure, setIdlePressure] = useState(false);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
-  const [firstSendBurst, setFirstSendBurst] = useState(false); // V8.3 — Fix 7
+  const [firstSendBurst, setFirstSendBurst] = useState(false);
 
-  // V9.1 — momentum timer (System 4) + refocus messages (System 3)
-  const [momentumLeft, setMomentumLeft] = useState<number>(20);
-  const [timerActive, setTimerActive] = useState<boolean>(true);
-  const [refocusMsg, setRefocusMsg] = useState<string | null>(null);
-  const [autoNextReady, setAutoNextReady] = useState<boolean>(false); // System 2
-  const autoContinuationAllowedRef = useRef<boolean>(true);
-  const validatedAtRef = useRef<number>(0);
+  // V10.1 — System 7: doubter idle copy (before copy, after 7s)
+  const [doubterIdle, setDoubterIdle] = useState(false);
+  // V10.1 — System 8: lazy momentum copy (after copy, before send path)
+  const [lazyMsg, setLazyMsg] = useState<string | null>(null);
+
+  const [igUsername, setIgUsername] = useState('');
+  const sendPathRef = useRef<HTMLDivElement | null>(null);
 
   const kind = actionKindOf(actionType);
-  const [emailRecipient, setEmailRecipient] = useState(''); // V8.4 — optional
 
-  // Section 7 — idle pressure after 7s, once per session, vanishes on interaction
+  // Reset per-message state on new message
   useEffect(() => {
-    if (alreadyPosted) return;
-    let shownThisSession = false;
-    try { shownThisSession = sessionStorage.getItem(IDLE_FLAG_KEY) === '1'; } catch { /* ignore */ }
-    if (shownThisSession) return;
-
-    const t = setTimeout(() => {
-      if (!hasCopied && !alreadyPosted) {
-        setIdlePressure(true);
-        try { sessionStorage.setItem(IDLE_FLAG_KEY, '1'); } catch { /* ignore */ }
-      }
-    }, 7000);
-    return () => clearTimeout(t);
-  }, [hasCopied, alreadyPosted]);
-
-  // V9.1 — Reset all per-message state when a new message is generated
-  useEffect(() => {
-    setHasCopied(false);
-    setValidationComplete(false);
-    setCommitChecked(false);
     setCopied(null);
-    setMomentumLeft(20);
-    setTimerActive(true);
-    setRefocusMsg(null);
-    setAutoNextReady(false);
-    autoContinuationAllowedRef.current = true;
-    validatedAtRef.current = 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setCopyClicked(false);
+    setSendPathStarted(false);
+    setFinalConfirmed(false);
+    setDoubterIdle(false);
+    setLazyMsg(null);
   }, [adText]);
 
-  // V9.1 — System 4: Momentum timer (20s). Disabled once user copies/validates or message gone.
+  // System 7 — Doubter idle: 7s after message, before copy
   useEffect(() => {
-    if (alreadyPosted) return;
-    if (!timerActive) return;
-    if (validationComplete) {
-      setTimerActive(false);
-      return;
-    }
-    const id = setInterval(() => {
-      setMomentumLeft((s) => {
-        if (s <= 1) {
-          clearInterval(id);
-          setTimerActive(false);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [timerActive, validationComplete, alreadyPosted]);
+    if (alreadyPosted || copyClicked) return;
+    const t = setTimeout(() => {
+      if (!copyClicked) setDoubterIdle(true);
+    }, 7000);
+    return () => clearTimeout(t);
+  }, [adText, copyClicked, alreadyPosted]);
 
-  // V9.1 — System 3 + 8: Auto refocus chain. Only when timer NOT active and not yet copied.
+  // System 8 — Lazy momentum: after copy, idle 7s/12s
   useEffect(() => {
-    if (alreadyPosted) return;
-    if (timerActive) return;
-    if (hasCopied) return;
-    const t1 = setTimeout(() => setRefocusMsg('Still here? Send it.'), 4000);
-    const t2 = setTimeout(() => setRefocusMsg('This takes 10 seconds.'), 8000);
-    const t3 = setTimeout(() => setRefocusMsg("Don't overthink it."), 12000);
+    if (!copyClicked || sendPathStarted || alreadyPosted) return;
+    const t1 = setTimeout(() => setLazyMsg('One tap left.'), 7000);
+    const t2 = setTimeout(() => setLazyMsg('Open the app. Paste. Done.'), 12000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
     };
-  }, [timerActive, hasCopied, alreadyPosted, adText]);
+  }, [copyClicked, sendPathStarted, alreadyPosted]);
 
-  // V9.1 — System 2: Auto continuation after validation (safe-guarded)
-  useEffect(() => {
-    if (!validationComplete) return;
-    validatedAtRef.current = Date.now();
-    if (!onGenerateAnother) return;
-    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-    if (!autoContinuationAllowedRef.current) return;
-    setAutoNextReady(true);
-    const id = setTimeout(() => {
-      const withinWindow = Date.now() - validatedAtRef.current <= 3000;
-      const visible = typeof document === 'undefined' || document.visibilityState === 'visible';
-      if (withinWindow && visible && autoContinuationAllowedRef.current) {
-        autoContinuationAllowedRef.current = false;
-        try { onGenerateAnother?.(); } catch { /* ignore */ }
-        // Scroll to top of viewport so the new message is visible
-        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* ignore */ }
-      }
-    }, 1200);
-    return () => clearTimeout(id);
-  }, [validationComplete, onGenerateAnother]);
-
-  const dismissIdle = () => {
-    setIdlePressure(false);
-    setRefocusMsg(null);
+  const dismissNudges = () => {
+    setDoubterIdle(false);
+    setLazyMsg(null);
   };
 
   const copy = async (text: string, key: string) => {
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch { /* ignore */ }
     setCopied(key);
-    setHasCopied(true);
-    dismissIdle();
+    if (key === 'msg') {
+      setCopyClicked(true);
+      setDoubterIdle(false);
+      // Scroll send path into view
+      setTimeout(() => {
+        try { sendPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
+      }, 80);
+    }
     setTimeout(() => setCopied(null), 2000);
     toast({
-      title: key === 'cta' ? '✓ CTA copied — ready to send' : '✓ Message copied — ready to send',
+      title: key === 'cta' ? '✓ CTA copied' : '✓ Copied — now send',
     });
   };
 
-  const handleMarkSent = () => {
-    if (marking || alreadyPosted || !hasCopied || !commitChecked || !validationComplete) return;
+  const startSendPath = () => {
+    setSendPathStarted(true);
+    setLazyMsg(null);
+  };
+
+  const handleFinalConfirm = () => {
+    if (marking || alreadyPosted || !copyClicked) return;
     setMarking(true);
-    dismissIdle();
+    setFinalConfirmed(true);
+    dismissNudges();
     onPosted();
 
-    // V8.3 — Fix 7 / V8.4: first-send reward (once, 4s, persisted)
+    // First send reward (3s)
     let alreadyDone = false;
     try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
     if (!alreadyDone) {
-      try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
       setFirstSendBurst(true);
-      setTimeout(() => setFirstSendBurst(false), 4000);
+      setTimeout(() => {
+        setFirstSendBurst(false);
+        try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
+      }, 3000);
       toast({
-        title: '🔥 You just did what most users never do',
-        description: 'This is how clients start.',
+        title: '🔥 First send done.',
+        description: "Now you're in motion.",
       });
     } else {
-      toast({ title: '✓ You took action', description: 'Now check back in 24–48h.' });
+      toast({ title: '✓ Sent', description: 'Check back in 24–48h.' });
     }
   };
 
@@ -201,28 +147,20 @@ export default function ActionLayer({
     const hours = choice === '24h' ? 24 : 48;
     const dueAt = Date.now() + hours * 60 * 60 * 1000;
     try {
-      localStorage.setItem(
-        REMINDER_KEY,
-        JSON.stringify({ dueAt, choice, createdAt: Date.now() })
-      );
-    } catch {
-      // ignore quota errors
-    }
+      localStorage.setItem(REMINDER_KEY, JSON.stringify({ dueAt, choice, createdAt: Date.now() }));
+    } catch { /* ignore */ }
     setReminderChoice(choice);
     toast({ title: 'Reminder set', description: `Check back in ${choice}.` });
   };
 
-  const command = commandFor(actionType);
-
-  // ─── Section 9 — Completion state replaces the entire Action Layer ─────
+  // ─── Completion state ──────────────────────────────────────────────────
   if (alreadyPosted) {
     return (
       <div className="rounded-xl border border-success/40 bg-success/[0.08] p-5 space-y-4">
-        {/* V8.3 — Fix 7: First-send reward (auto-hides 3s, shown once) */}
         {firstSendBurst && (
           <div className="rounded-lg border border-primary/40 bg-primary/[0.08] px-3 py-2.5">
             <p className="text-[12px] font-semibold text-foreground">
-              🔥 You just did what most users never do — this is how clients start
+              🔥 First send done. Now you're in motion.
             </p>
           </div>
         )}
@@ -231,11 +169,10 @@ export default function ActionLayer({
             <CheckCircle2 className="w-4 h-4 text-success" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-foreground font-semibold">✓ Message sent</p>
+            <p className="text-foreground font-semibold">✓ Sent</p>
             <p className="text-sm text-muted-foreground mt-0.5">
               Check replies later — or send another now.
             </p>
-            {/* V5.1 — System 6: Action → Money link */}
             <p className="text-[11px] text-muted-foreground mt-1.5">
               Each message increases your chances of a client.
               {addiction.revenueToday > 0 && (
@@ -250,7 +187,7 @@ export default function ActionLayer({
           </div>
         </div>
 
-        {/* Reminder option (Section 8) — kept as light tracking */}
+        {/* Reminder option */}
         <div className="pt-3 border-t border-white/10 space-y-2">
           <div className="flex items-center gap-2">
             <Bell className="w-3.5 h-3.5 text-primary" />
@@ -272,18 +209,13 @@ export default function ActionLayer({
           )}
         </div>
 
-        {/* Section 6 — feedback loop after "I've sent it" */}
+        {/* V10.1 — System 6: Post-send next step (no auto-generate) */}
         <div className="pt-3 border-t border-white/10 space-y-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">🔥 You took action — you're ahead of most users.</p>
-            <p className="text-xs text-muted-foreground mt-1">You are now in the game. Replies start here.</p>
-          </div>
-
           {postSendChoice === 'done' ? (
             <p className="text-xs text-success">Got it. Come back when you're ready to send another.</p>
           ) : (
             <div className="space-y-2">
-              <p className="label-uppercase text-foreground text-[10px] font-semibold">Next message?</p>
+              <p className="text-sm font-semibold text-foreground">Send one more?</p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   size="sm"
@@ -295,7 +227,7 @@ export default function ActionLayer({
                   }}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Generate another
+                  Generate next message
                 </Button>
                 <Button
                   size="sm"
@@ -314,92 +246,51 @@ export default function ActionLayer({
   }
 
   // ─── Active Action Layer ───────────────────────────────────────────────
+  const sendLabel = (() => {
+    if (kind === 'email') return 'Send this by email';
+    if (kind === 'dm') return 'Send this as a DM';
+    if (kind === 'post') return 'Post this now';
+    if (kind === 'ad') return 'Launch or save this ad';
+    if (kind === 'comment') return 'Comment this now';
+    return 'Send this now';
+  })();
+
+  const finalCtaLabel = (() => {
+    if (kind === 'post') return 'I posted it';
+    if (kind === 'ad') return 'I saved/launched it';
+    if (kind === 'comment') return 'I commented';
+    return "I've sent it";
+  })();
+
   return (
     <div className="rounded-xl border border-primary/40 bg-primary/[0.08] p-5 space-y-4">
-      {/* Section 2 — title + action pressure */}
-      <div className="space-y-1.5">
-        <p className="label-uppercase text-primary text-[11px] font-bold tracking-wider">▸ POST THIS NOW</p>
-        <p className="text-xs text-muted-foreground">Three steps. Then mark it sent. That's it.</p>
+      {/* V10.1 — System 1: Trust without fake proof */}
+      <div className="space-y-1">
+        <p className="text-[13px] text-foreground font-semibold">Use this as your first version.</p>
+        <p className="text-[11px] text-muted-foreground">Send first. Improve after replies.</p>
       </div>
 
-      <ol className="space-y-2 text-sm text-foreground">
-        <li className="flex gap-2"><span className="text-primary font-semibold">1.</span> Copy this message</li>
-        <li className="flex gap-2"><span className="text-primary font-semibold">2.</span> {command}</li>
-        <li className="flex gap-2"><span className="text-primary font-semibold">3.</span> Use the CTA exactly as written</li>
-      </ol>
-
-      {/* Section 2 — pressure block */}
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 space-y-1">
-        <p className="text-[12px] text-foreground font-semibold">Most people won't send this. That's why they don't get clients.</p>
-        <p className="text-[11px] text-muted-foreground">If you wait, this does nothing.</p>
-      </div>
-
-      {/* V9.1 — Section 6: Thought reduction copy */}
-      <div className="text-[11px] text-muted-foreground leading-relaxed space-y-0.5">
-        <p className="text-foreground">This already works. Don't change it.</p>
-        <p className="italic">Editing lowers reply rates.</p>
-        <p className="italic">Do not edit this. It's optimized for replies.</p>
-      </div>
-
-      {/* V9.1 — System 4: Momentum timer (primary attention) */}
-      {!hasCopied && !alreadyPosted && (
-        timerActive ? (
-          <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2">
-            <p className="text-[12px] text-foreground font-semibold tabular-nums">
-              Momentum: {momentumLeft}s
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 space-y-2">
-            <p className="text-[12px] text-foreground font-semibold">
-              Momentum lost — generate a fresh one
-            </p>
-            {onGenerateAnother && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-white/10 gap-1.5"
-                onClick={() => onGenerateAnother?.()}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Generate new message
-              </Button>
-            )}
-          </div>
-        )
-      )}
-
-      {/* V9.1 — System 3: Auto refocus (only when timer NOT active) */}
-      {!hasCopied && !alreadyPosted && !timerActive && refocusMsg && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-          <p className="text-[12px] text-muted-foreground">{refocusMsg}</p>
+      {/* V10.1 — System 7: Doubter idle copy (no guilt, low-risk) */}
+      {doubterIdle && !copyClicked && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
+          <p className="text-[12px] text-muted-foreground">Test it with one person first.</p>
         </div>
       )}
 
-      {/* Section 3 — Button hierarchy */}
+      {/* PRIMARY — Copy Message */}
       <div className="space-y-2 pt-1">
-        {/* PRIMARY — Copy Message (V9.1: disabled after copy = decision collapse) */}
         <Button
           size="lg"
-          className={`w-full gap-2 cta-primary min-h-[52px] text-base ${!hasCopied ? 'pulse-once' : 'opacity-60'}`}
+          className={`w-full gap-2 cta-primary min-h-[52px] text-base ${copyClicked ? 'opacity-60' : 'pulse-once'}`}
           onClick={() => copy(adText, 'msg')}
-          onMouseEnter={dismissIdle}
-          disabled={hasCopied}
+          onMouseEnter={dismissNudges}
         >
-          {copied === 'msg' || hasCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {hasCopied ? 'Copied ✓' : 'Copy Message'}
+          {copied === 'msg' || copyClicked ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {copyClicked ? 'Copied — now send' : 'Copy Message'}
         </Button>
 
-        {/* V8.3 — Fix 3: Copy dominance reinforcement */}
-        {!hasCopied && (
-          <p className="text-[11px] text-muted-foreground leading-snug px-1">
-            Most users stop here.<br />
-            The ones who send get clients.
-          </p>
-        )}
-
-        {/* V9.1 — Decision collapse: hide secondary Copy CTA after primary copy until validated */}
-        {(!hasCopied || validationComplete) && (
+        {/* Copy CTA — secondary, only before copy */}
+        {!copyClicked && (
           <Button
             variant="outline"
             size="sm"
@@ -411,194 +302,132 @@ export default function ActionLayer({
           </Button>
         )}
 
-        {/* V9.1 — "Now send this." cue right after copy */}
-        {hasCopied && !validationComplete && (
-          <p className="text-[12px] text-foreground font-semibold px-1">Now send this.</p>
+        {/* V10.1 — Step 2 cue right after copy */}
+        {copyClicked && !finalConfirmed && (
+          <p className="text-[12px] text-foreground font-semibold px-1">Step 2: send it now.</p>
         )}
-        {/* Section 4 — Post-copy commitment prompt (V8.3 — Fix 4: exact "5 people") */}
-        {hasCopied && (
-          <div className="rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2.5 mt-1">
-            <p className="text-[12px] text-foreground font-semibold flex items-center gap-1.5">
-              <Send className="w-3.5 h-3.5 text-primary" />
-              Now send this to 5 people.
-            </p>
+
+        {/* V10.1 — System 8: Lazy momentum copy */}
+        {copyClicked && !sendPathStarted && lazyMsg && (
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+            <p className="text-[12px] text-muted-foreground">{lazyMsg}</p>
           </div>
         )}
 
-        {/* V8.4 — Action Validator (low-friction, action-type aware) */}
-        {hasCopied && !validationComplete && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2">
-            <p className="text-[11px] text-muted-foreground">
-              One quick step — then mark it sent.
-            </p>
+        {/* V10.1 — System 3: Action-type send path (immediately visible after copy) */}
+        {copyClicked && !finalConfirmed && (
+          <div
+            ref={sendPathRef}
+            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2"
+            onMouseEnter={dismissNudges}
+          >
+            <p className="text-[12px] text-foreground font-semibold">{sendLabel}</p>
 
             {kind === 'email' && (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={emailRecipient}
-                  onChange={(e) => setEmailRecipient(e.target.value)}
-                  placeholder="Add recipient (optional)"
-                  className="w-full text-xs bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
-                />
+              <>
                 <Button
                   size="sm"
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
-                    const to = emailRecipient.trim();
                     const body = encodeURIComponent(adText);
-                    const subject = encodeURIComponent(ctaText.slice(0, 60) || 'Quick note');
-                    const href = `mailto:${to}?subject=${subject}&body=${body}`;
-                    try { window.open(href, '_blank'); } catch { /* ignore */ }
-                    setValidationComplete(true);
+                    const subject = encodeURIComponent('Quick question');
+                    try { window.open(`mailto:?subject=${subject}&body=${body}`, '_blank'); } catch { /* ignore */ }
+                    startSendPath();
                   }}
                 >
-                  <Mail className="w-3.5 h-3.5" /> Open Email App
+                  <Mail className="w-3.5 h-3.5" /> Open email app
                 </Button>
                 <p className="text-[11px] text-muted-foreground">
                   Send it from your email app, then confirm.
                 </p>
-              </div>
+              </>
             )}
 
             {kind === 'dm' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  className="cta-primary gap-1.5"
-                  onClick={() => {
-                    try { window.open('https://www.instagram.com/direct/inbox/', '_blank'); } catch { /* ignore */ }
-                    setValidationComplete(true);
-                  }}
-                >
-                  <Instagram className="w-3.5 h-3.5" /> Open Instagram DM
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-white/10 gap-1.5"
-                  onClick={() => setValidationComplete(true)}
-                >
-                  I'll send it manually
-                </Button>
-              </div>
+              <>
+                <input
+                  type="text"
+                  value={igUsername}
+                  onChange={(e) => setIgUsername(e.target.value)}
+                  placeholder="@username (optional)"
+                  className="w-full text-xs bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    className="cta-primary gap-1.5"
+                    onClick={() => {
+                      const u = igUsername.trim().replace(/^@/, '');
+                      const url = u ? `https://ig.me/m/${encodeURIComponent(u)}` : 'https://www.instagram.com/direct/inbox/';
+                      try { window.open(url, '_blank'); } catch { /* ignore */ }
+                      startSendPath();
+                    }}
+                  >
+                    <Instagram className="w-3.5 h-3.5" /> Open Instagram
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/10 gap-1.5"
+                    onClick={startSendPath}
+                  >
+                    I'll send manually
+                  </Button>
+                </div>
+              </>
             )}
 
             {kind === 'post' && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-white/10 gap-1.5"
-                  onClick={() => copy(adText, 'msg')}
-                >
-                  <Copy className="w-3.5 h-3.5" /> Copy caption
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-white/10 gap-1.5"
-                  onClick={() => {
-                    try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
-                  }}
-                >
-                  <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
-                </Button>
-                <Button
-                  size="sm"
-                  className="cta-primary gap-1.5"
-                  onClick={() => setValidationComplete(true)}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> I posted it
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-white/10 gap-1.5 w-full"
+                onClick={() => {
+                  try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
+                  startSendPath();
+                }}
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
+              </Button>
             )}
 
             {kind === 'ad' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-white/10 gap-1.5"
-                  onClick={() => {
-                    try { window.open('https://www.facebook.com/adsmanager/', '_blank'); } catch { /* ignore */ }
-                  }}
-                >
-                  <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
-                </Button>
-                <Button
-                  size="sm"
-                  className="cta-primary gap-1.5"
-                  onClick={() => setValidationComplete(true)}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> I launched it
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-white/10 gap-1.5 w-full"
+                onClick={() => {
+                  try { window.open('https://www.facebook.com/adsmanager/', '_blank'); } catch { /* ignore */ }
+                  startSendPath();
+                }}
+              >
+                <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
+              </Button>
             )}
 
             {kind === 'comment' && (
-              <Button
-                size="sm"
-                className="cta-primary gap-1.5 w-full"
-                onClick={() => setValidationComplete(true)}
-              >
-                <MessageSquare className="w-3.5 h-3.5" /> I commented
-              </Button>
-            )}
-
-            {kind === 'fallback' && (
-              <Button
-                size="sm"
-                className="cta-primary gap-1.5 w-full"
-                onClick={() => setValidationComplete(true)}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" /> I sent it somewhere
-              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Paste your comment, then confirm below.
+              </p>
             )}
           </div>
         )}
 
-        {/* V9.1 — System 5: Micro commitment checkbox (after copy, before send) */}
-        {hasCopied && !alreadyPosted && (
-          <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
-            <Checkbox
-              checked={commitChecked}
-              onCheckedChange={(v) => setCommitChecked(v === true)}
-            />
-            <span className="text-[12px] text-muted-foreground">I will send this now</span>
-          </label>
-        )}
-
-        {/* V8.4 — confirmation hint once validated */}
-        {hasCopied && validationComplete && (
-          <p className="text-[11px] text-success font-medium px-1">
-            ✓ Action confirmed — now mark it sent.
-          </p>
-        )}
-
-        {/* V9.1 — Send it now. cue right above CTA */}
-        {hasCopied && (
-          <p className="text-[12px] text-foreground font-semibold px-1">Send it now.</p>
-        )}
-
-        {/* FINAL — I've sent it (locked until Copy + Commit + Validation complete) */}
-        <Button
-          size="lg"
-          className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
-          onClick={handleMarkSent}
-          disabled={!hasCopied || !commitChecked || !validationComplete || marking}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          I've sent it
-        </Button>
-
-        {/* V9.1 — System 2: Auto continuation banner */}
-        {autoNextReady && onGenerateAnother && (
-          <p className="text-[11px] text-primary font-medium px-1 mt-1">Next message ready.</p>
+        {/* V10.1 — System 4: FINAL CONFIRMATION — only counted send */}
+        {copyClicked && !finalConfirmed && (
+          <Button
+            size="lg"
+            className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
+            onClick={handleFinalConfirm}
+            disabled={!copyClicked || marking}
+          >
+            {kind === 'comment' ? <MessageSquare className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+            {finalCtaLabel}
+          </Button>
         )}
       </div>
 
-      {/* Money Path visual (Section 6 of V2 — kept) */}
+      {/* Money Path visual */}
       <div className="pt-3 border-t border-white/10 space-y-2">
         <p className="label-uppercase text-foreground text-[10px] font-semibold">▸ How this makes you money</p>
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -611,13 +440,6 @@ export default function ActionLayer({
           <span className="px-2 py-1 rounded-md bg-success/15 border border-success/30 text-success font-semibold">Close client</span>
         </div>
       </div>
-
-      {/* Section 7 — idle pressure (inline, dismissable, once per session) */}
-      {idlePressure && !hasCopied && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/[0.06] px-3 py-2.5">
-          <p className="text-[12px] text-destructive font-semibold">No message sent = zero chance of a client.</p>
-        </div>
-      )}
     </div>
   );
 }
