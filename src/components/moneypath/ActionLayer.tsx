@@ -87,7 +87,78 @@ export default function ActionLayer({
     return () => clearTimeout(t);
   }, [hasCopied, alreadyPosted]);
 
-  const dismissIdle = () => setIdlePressure(false);
+  // V9.1 — Reset all per-message state when a new message is generated
+  useEffect(() => {
+    setHasCopied(false);
+    setValidationComplete(false);
+    setCommitChecked(false);
+    setCopied(null);
+    setMomentumLeft(20);
+    setTimerActive(true);
+    setRefocusMsg(null);
+    setAutoNextReady(false);
+    autoContinuationAllowedRef.current = true;
+    validatedAtRef.current = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adText]);
+
+  // V9.1 — System 4: Momentum timer (20s). Disabled once user copies/validates or message gone.
+  useEffect(() => {
+    if (alreadyPosted) return;
+    if (!timerActive) return;
+    if (validationComplete) {
+      setTimerActive(false);
+      return;
+    }
+    const id = setInterval(() => {
+      setMomentumLeft((s) => {
+        if (s <= 1) {
+          clearInterval(id);
+          setTimerActive(false);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timerActive, validationComplete, alreadyPosted]);
+
+  // V9.1 — System 3 + 8: Auto refocus chain. Only when timer NOT active and not yet copied.
+  useEffect(() => {
+    if (alreadyPosted) return;
+    if (timerActive) return;
+    if (hasCopied) return;
+    const t1 = setTimeout(() => setRefocusMsg('Still here? Send it.'), 4000);
+    const t2 = setTimeout(() => setRefocusMsg('This takes 10 seconds.'), 8000);
+    const t3 = setTimeout(() => setRefocusMsg("Don't overthink it."), 12000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [timerActive, hasCopied, alreadyPosted, adText]);
+
+  // V9.1 — System 2: Auto continuation after validation (safe-guarded)
+  useEffect(() => {
+    if (!validationComplete) return;
+    validatedAtRef.current = Date.now();
+    if (!onGenerateAnother) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    if (!autoContinuationAllowedRef.current) return;
+    setAutoNextReady(true);
+    const id = setTimeout(() => {
+      const withinWindow = Date.now() - validatedAtRef.current <= 3000;
+      const visible = typeof document === 'undefined' || document.visibilityState === 'visible';
+      if (withinWindow && visible && autoContinuationAllowedRef.current) {
+        autoContinuationAllowedRef.current = false;
+        try { onGenerateAnother?.(); } catch { /* ignore */ }
+        // Scroll to top of viewport so the new message is visible
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* ignore */ }
+      }
+    }, 1200);
+    return () => clearTimeout(id);
+  }, [validationComplete, onGenerateAnother]);
+
 
   const copy = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
