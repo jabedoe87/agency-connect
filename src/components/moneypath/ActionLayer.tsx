@@ -338,6 +338,7 @@ export default function ActionLayer({
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
+                    markPlatformOpened();
                     const body = encodeURIComponent(adText);
                     const subject = encodeURIComponent('Quick question');
                     try { window.open(`mailto:?subject=${subject}&body=${body}`, '_blank'); } catch { /* ignore */ }
@@ -345,32 +346,38 @@ export default function ActionLayer({
                 >
                   <Mail className="w-3.5 h-3.5" /> Open email app
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Send it there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">If nothing opened: open your email app and paste.</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
             {kind === 'dm' && (
               <>
-                <input
-                  type="text"
-                  value={igUsername}
-                  onChange={(e) => setIgUsername(e.target.value)}
-                  placeholder="@username (optional)"
-                  className="w-full text-xs bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
-                />
                 <Button
                   size="sm"
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
-                    const u = igUsername.trim().replace(/^@/, '');
-                    const url = u ? `https://www.instagram.com/${encodeURIComponent(u)}` : 'https://www.instagram.com/';
-                    try { window.open(url, '_blank'); } catch { /* ignore */ }
+                    markPlatformOpened();
+                    try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
                   }}
                 >
                   <Instagram className="w-3.5 h-3.5" /> Open Instagram
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Paste it there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">Go to the profile you want → paste the message.</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
@@ -381,12 +388,20 @@ export default function ActionLayer({
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
+                    markPlatformOpened();
                     try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
                   }}
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Post it there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">Create post → paste caption → confirm here</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
@@ -397,17 +412,25 @@ export default function ActionLayer({
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
+                    markPlatformOpened();
                     try { window.open('https://adsmanager.facebook.com', '_blank'); } catch { /* ignore */ }
                   }}
                 >
                   <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Paste the copy there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">Create ad → paste copy → confirm here</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
             {kind === 'comment' && (
-              <p className="text-[11px] text-muted-foreground">Comment it, then tap confirm.</p>
+              <p className="text-[11px] text-muted-foreground">Paste this as a comment, then confirm.</p>
             )}
 
             {kind === 'fallback' && (
