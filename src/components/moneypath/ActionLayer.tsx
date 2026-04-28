@@ -446,17 +446,23 @@ export default function ActionLayer({
           </div>
         )}
 
-        {/* V10.5 — System 6: FINAL CONFIRMATION — only counted send */}
+        {/* V10.6 — System 6: FINAL CONFIRMATION with return boost */}
         {copyClicked && !sendConfirmed && (
-          <Button
-            size="lg"
-            className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
-            onClick={() => { dismissNudges(); handleFinalConfirm(); }}
-            disabled={!copyClicked || marking}
-          >
-            {kind === 'comment' ? <MessageSquare className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-            {finalCtaLabel}
-          </Button>
+          <div className="space-y-1.5 mt-1">
+            {platformOpened && (
+              <p className="text-[12px] text-foreground font-semibold px-1">Done? Confirm it.</p>
+            )}
+            <Button
+              ref={confirmCtaRef}
+              size="lg"
+              className={`w-full gap-2 cta-primary min-h-[48px] text-base transition-transform duration-300 ${confirmBoost ? 'scale-105 pulse-once ring-2 ring-primary/50' : ''}`}
+              onClick={() => { dismissNudges(); handleFinalConfirm(); }}
+              disabled={!copyClicked || marking}
+            >
+              {kind === 'comment' ? <MessageSquare className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+              {finalCtaLabel}
+            </Button>
+          </div>
         )}
       </div>
 
