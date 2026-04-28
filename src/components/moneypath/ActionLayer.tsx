@@ -53,8 +53,13 @@ export default function ActionLayer({
   // V10.5 — System 4: lazy microstep text (after copy)
   const [lazyMsg, setLazyMsg] = useState<string | null>(null);
 
-  const [igUsername, setIgUsername] = useState('');
+  // V10.6 — platform opened + confirm CTA boost
+  const [platformOpened, setPlatformOpened] = useState(false);
+  const [confirmBoost, setConfirmBoost] = useState(false);
+  const boostFiredRef = useRef(false);
+
   const sendPathRef = useRef<HTMLDivElement | null>(null);
+  const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
 
   const kind = actionKindOf(actionType);
 
@@ -66,6 +71,9 @@ export default function ActionLayer({
     setSendPathVisible(false);
     setSendConfirmed(false);
     setLazyMsg(null);
+    setPlatformOpened(false);
+    setConfirmBoost(false);
+    boostFiredRef.current = false;
   }, [adText]);
 
   // System 4 — Lazy microstep: 5s → "Only one tap left.", 10s → "Open. Paste. Done."
@@ -79,8 +87,34 @@ export default function ActionLayer({
     };
   }, [copyClicked, sendConfirmed, alreadyPosted]);
 
+  // V10.6 — System 6: Confirm CTA return boost (focus or any interaction after platform open)
+  useEffect(() => {
+    if (!platformOpened || sendConfirmed || alreadyPosted) return;
+    const trigger = () => {
+      if (boostFiredRef.current) return;
+      boostFiredRef.current = true;
+      setConfirmBoost(true);
+      setTimeout(() => {
+        try { confirmCtaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
+      }, 60);
+      setTimeout(() => setConfirmBoost(false), 1400);
+    };
+    window.addEventListener('focus', trigger);
+    window.addEventListener('pointerdown', trigger, { once: true });
+    window.addEventListener('keydown', trigger, { once: true });
+    return () => {
+      window.removeEventListener('focus', trigger);
+      window.removeEventListener('pointerdown', trigger);
+      window.removeEventListener('keydown', trigger);
+    };
+  }, [platformOpened, sendConfirmed, alreadyPosted]);
+
   const dismissNudges = () => {
     setLazyMsg(null);
+  };
+
+  const markPlatformOpened = () => {
+    setPlatformOpened(true);
   };
 
   const copy = async (text: string, key: string) => {
@@ -253,7 +287,7 @@ export default function ActionLayer({
       {/* V10.5 — System 5: Doubter risk reduction copy */}
       <div className="space-y-1">
         <p className="text-[13px] text-foreground font-semibold">Send it to one person first.</p>
-        <p className="text-[11px] text-muted-foreground">Improve only after you get replies.</p>
+        <p className="text-[11px] text-muted-foreground">Test it on one person. Decide after.</p>
       </div>
 
       {/* PRIMARY — Copy Message */}
@@ -303,6 +337,7 @@ export default function ActionLayer({
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
+                    markPlatformOpened();
                     const body = encodeURIComponent(adText);
                     const subject = encodeURIComponent('Quick question');
                     try { window.open(`mailto:?subject=${subject}&body=${body}`, '_blank'); } catch { /* ignore */ }
@@ -310,32 +345,38 @@ export default function ActionLayer({
                 >
                   <Mail className="w-3.5 h-3.5" /> Open email app
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Send it there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">If nothing opened: open your email app and paste.</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
             {kind === 'dm' && (
               <>
-                <input
-                  type="text"
-                  value={igUsername}
-                  onChange={(e) => setIgUsername(e.target.value)}
-                  placeholder="@username (optional)"
-                  className="w-full text-xs bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
-                />
                 <Button
                   size="sm"
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
-                    const u = igUsername.trim().replace(/^@/, '');
-                    const url = u ? `https://www.instagram.com/${encodeURIComponent(u)}` : 'https://www.instagram.com/';
-                    try { window.open(url, '_blank'); } catch { /* ignore */ }
+                    markPlatformOpened();
+                    try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
                   }}
                 >
                   <Instagram className="w-3.5 h-3.5" /> Open Instagram
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Paste it there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">Go to the profile you want → paste the message.</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
@@ -346,12 +387,20 @@ export default function ActionLayer({
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
+                    markPlatformOpened();
                     try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
                   }}
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Post it there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">Create post → paste caption → confirm here</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
@@ -362,17 +411,25 @@ export default function ActionLayer({
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
                     dismissNudges();
+                    markPlatformOpened();
                     try { window.open('https://adsmanager.facebook.com', '_blank'); } catch { /* ignore */ }
                   }}
                 >
                   <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
                 </Button>
-                <p className="text-[11px] text-muted-foreground">Paste the copy there, then tap confirm.</p>
+                {platformOpened && (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">Create ad → paste copy → confirm here</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1.5 border-white/10" onClick={() => copy(adText, 'msg')}>
+                      <Copy className="w-3.5 h-3.5" /> Copy again
+                    </Button>
+                  </>
+                )}
               </>
             )}
 
             {kind === 'comment' && (
-              <p className="text-[11px] text-muted-foreground">Comment it, then tap confirm.</p>
+              <p className="text-[11px] text-muted-foreground">Paste this as a comment, then confirm.</p>
             )}
 
             {kind === 'fallback' && (
@@ -388,17 +445,23 @@ export default function ActionLayer({
           </div>
         )}
 
-        {/* V10.5 — System 6: FINAL CONFIRMATION — only counted send */}
+        {/* V10.6 — System 6: FINAL CONFIRMATION with return boost */}
         {copyClicked && !sendConfirmed && (
-          <Button
-            size="lg"
-            className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
-            onClick={() => { dismissNudges(); handleFinalConfirm(); }}
-            disabled={!copyClicked || marking}
-          >
-            {kind === 'comment' ? <MessageSquare className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-            {finalCtaLabel}
-          </Button>
+          <div className="space-y-1.5 mt-1">
+            {platformOpened && (
+              <p className="text-[12px] text-foreground font-semibold px-1">Done? Confirm it.</p>
+            )}
+            <Button
+              ref={confirmCtaRef}
+              size="lg"
+              className={`w-full gap-2 cta-primary min-h-[48px] text-base transition-transform duration-300 ${confirmBoost ? 'scale-105 pulse-once ring-2 ring-primary/50' : ''}`}
+              onClick={() => { dismissNudges(); handleFinalConfirm(); }}
+              disabled={!copyClicked || marking}
+            >
+              {kind === 'comment' ? <MessageSquare className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+              {finalCtaLabel}
+            </Button>
+          </div>
         )}
       </div>
 
