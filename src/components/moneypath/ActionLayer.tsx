@@ -288,7 +288,7 @@ export default function ActionLayer({
       {/* V10.5 — System 5: Doubter risk reduction copy */}
       <div className="space-y-1">
         <p className="text-[13px] text-foreground font-semibold">Send it to one person first.</p>
-        <p className="text-[11px] text-muted-foreground">Improve only after you get replies.</p>
+        <p className="text-[11px] text-muted-foreground">Test it on one person. Decide after.</p>
       </div>
 
       {/* PRIMARY — Copy Message */}
