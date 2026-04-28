@@ -53,8 +53,14 @@ export default function ActionLayer({
   // V10.5 — System 4: lazy microstep text (after copy)
   const [lazyMsg, setLazyMsg] = useState<string | null>(null);
 
+  // V10.6 — platform opened + confirm CTA boost
+  const [platformOpened, setPlatformOpened] = useState(false);
+  const [confirmBoost, setConfirmBoost] = useState(false);
+  const boostFiredRef = useRef(false);
+
   const [igUsername, setIgUsername] = useState('');
   const sendPathRef = useRef<HTMLDivElement | null>(null);
+  const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
 
   const kind = actionKindOf(actionType);
 
