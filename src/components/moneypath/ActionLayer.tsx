@@ -39,19 +39,18 @@ export default function ActionLayer({
   const { toast } = useToast();
   const { state: addiction } = useAddiction();
 
-  // V10.1 — simplified state
+  // V10.5 — state per spec
   const [copied, setCopied] = useState<string | null>(null);
   const [copyClicked, setCopyClicked] = useState(false);
-  const [sendPathStarted, setSendPathStarted] = useState(false);
-  const [finalConfirmed, setFinalConfirmed] = useState(false);
+  const [sendStarted, setSendStarted] = useState(false);
+  const [sendPathVisible, setSendPathVisible] = useState(false);
+  const [sendConfirmed, setSendConfirmed] = useState(false);
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
   const [firstSendBurst, setFirstSendBurst] = useState(false);
 
-  // V10.1 — System 7: doubter idle copy (before copy, after 7s)
-  const [doubterIdle, setDoubterIdle] = useState(false);
-  // V10.1 — System 8: lazy momentum copy (after copy, before send path)
+  // V10.5 — System 4: lazy microstep text (after copy)
   const [lazyMsg, setLazyMsg] = useState<string | null>(null);
 
   const [igUsername, setIgUsername] = useState('');
@@ -63,34 +62,24 @@ export default function ActionLayer({
   useEffect(() => {
     setCopied(null);
     setCopyClicked(false);
-    setSendPathStarted(false);
-    setFinalConfirmed(false);
-    setDoubterIdle(false);
+    setSendStarted(false);
+    setSendPathVisible(false);
+    setSendConfirmed(false);
     setLazyMsg(null);
   }, [adText]);
 
-  // System 7 — Doubter idle: 7s after message, before copy
+  // System 4 — Lazy microstep: 5s → "Only one tap left.", 10s → "Open. Paste. Done."
   useEffect(() => {
-    if (alreadyPosted || copyClicked) return;
-    const t = setTimeout(() => {
-      if (!copyClicked) setDoubterIdle(true);
-    }, 7000);
-    return () => clearTimeout(t);
-  }, [adText, copyClicked, alreadyPosted]);
-
-  // System 8 — Lazy momentum: after copy, idle 7s/12s
-  useEffect(() => {
-    if (!copyClicked || sendPathStarted || alreadyPosted) return;
-    const t1 = setTimeout(() => setLazyMsg('One tap left.'), 7000);
-    const t2 = setTimeout(() => setLazyMsg('Open the app. Paste. Done.'), 12000);
+    if (!copyClicked || sendConfirmed || alreadyPosted) return;
+    const t1 = setTimeout(() => setLazyMsg('Only one tap left.'), 5000);
+    const t2 = setTimeout(() => setLazyMsg('Open. Paste. Done.'), 10000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [copyClicked, sendPathStarted, alreadyPosted]);
+  }, [copyClicked, sendConfirmed, alreadyPosted]);
 
   const dismissNudges = () => {
-    setDoubterIdle(false);
     setLazyMsg(null);
   };
 
@@ -101,27 +90,24 @@ export default function ActionLayer({
     setCopied(key);
     if (key === 'msg') {
       setCopyClicked(true);
-      setDoubterIdle(false);
-      // Scroll send path into view
+      setSendStarted(true);
+      setSendPathVisible(true);
+      setLazyMsg(null);
+      // Smooth scroll to send path
       setTimeout(() => {
         try { sendPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
       }, 80);
     }
     setTimeout(() => setCopied(null), 2000);
     toast({
-      title: key === 'cta' ? '✓ CTA copied' : '✓ Copied — now send',
+      title: key === 'cta' ? '✓ CTA copied' : '✓ Copied — send started',
     });
-  };
-
-  const startSendPath = () => {
-    setSendPathStarted(true);
-    setLazyMsg(null);
   };
 
   const handleFinalConfirm = () => {
     if (marking || alreadyPosted || !copyClicked) return;
     setMarking(true);
-    setFinalConfirmed(true);
+    setSendConfirmed(true);
     dismissNudges();
     onPosted();
 
@@ -264,18 +250,11 @@ export default function ActionLayer({
 
   return (
     <div className="rounded-xl border border-primary/40 bg-primary/[0.08] p-5 space-y-4">
-      {/* V10.1 — System 1: Trust without fake proof */}
+      {/* V10.5 — System 5: Doubter risk reduction copy */}
       <div className="space-y-1">
-        <p className="text-[13px] text-foreground font-semibold">Use this as your first version.</p>
-        <p className="text-[11px] text-muted-foreground">Send first. Improve after replies.</p>
+        <p className="text-[13px] text-foreground font-semibold">Send it to one person first.</p>
+        <p className="text-[11px] text-muted-foreground">Improve only after you get replies.</p>
       </div>
-
-      {/* V10.1 — System 7: Doubter idle copy (no guilt, low-risk) */}
-      {doubterIdle && !copyClicked && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
-          <p className="text-[12px] text-muted-foreground">Test it with one person first.</p>
-        </div>
-      )}
 
       {/* PRIMARY — Copy Message */}
       <div className="space-y-2 pt-1">
@@ -286,7 +265,7 @@ export default function ActionLayer({
           onMouseEnter={dismissNudges}
         >
           {copied === 'msg' || copyClicked ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {copyClicked ? 'Copied — now send' : 'Copy Message'}
+          {copyClicked ? 'Copied — send started' : 'Copy Message'}
         </Button>
 
         {/* Copy CTA — secondary, only before copy */}
@@ -302,26 +281,20 @@ export default function ActionLayer({
           </Button>
         )}
 
-        {/* V10.1 — Step 2 cue right after copy */}
-        {copyClicked && !finalConfirmed && (
-          <p className="text-[12px] text-foreground font-semibold px-1">Step 2: send it now.</p>
+        {/* V10.5 — System 1: Step 2 ready cue */}
+        {copyClicked && !sendConfirmed && (
+          <p className="text-[12px] text-foreground font-semibold px-1">Step 2 is ready.</p>
         )}
 
-        {/* V10.1 — System 8: Lazy momentum copy */}
-        {copyClicked && !sendPathStarted && lazyMsg && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-            <p className="text-[12px] text-muted-foreground">{lazyMsg}</p>
-          </div>
-        )}
-
-        {/* V10.1 — System 3: Action-type send path (immediately visible after copy) */}
-        {copyClicked && !finalConfirmed && (
+        {/* V10.5 — System 2: Send path card */}
+        {sendPathVisible && !sendConfirmed && (
           <div
             ref={sendPathRef}
             className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2"
             onMouseEnter={dismissNudges}
           >
-            <p className="text-[12px] text-foreground font-semibold">{sendLabel}</p>
+            <p className="text-[12px] text-foreground font-semibold">Send this now</p>
+            <p className="text-[11px] text-muted-foreground">Use the button below. Confirm after you send.</p>
 
             {kind === 'email' && (
               <>
@@ -329,17 +302,15 @@ export default function ActionLayer({
                   size="sm"
                   className="cta-primary gap-1.5 w-full"
                   onClick={() => {
+                    dismissNudges();
                     const body = encodeURIComponent(adText);
                     const subject = encodeURIComponent('Quick question');
                     try { window.open(`mailto:?subject=${subject}&body=${body}`, '_blank'); } catch { /* ignore */ }
-                    startSendPath();
                   }}
                 >
                   <Mail className="w-3.5 h-3.5" /> Open email app
                 </Button>
-                <p className="text-[11px] text-muted-foreground">
-                  Send it from your email app, then confirm.
-                </p>
+                <p className="text-[11px] text-muted-foreground">Send it there, then tap confirm.</p>
               </>
             )}
 
@@ -352,73 +323,77 @@ export default function ActionLayer({
                   placeholder="@username (optional)"
                   className="w-full text-xs bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Button
-                    size="sm"
-                    className="cta-primary gap-1.5"
-                    onClick={() => {
-                      const u = igUsername.trim().replace(/^@/, '');
-                      const url = u ? `https://ig.me/m/${encodeURIComponent(u)}` : 'https://www.instagram.com/direct/inbox/';
-                      try { window.open(url, '_blank'); } catch { /* ignore */ }
-                      startSendPath();
-                    }}
-                  >
-                    <Instagram className="w-3.5 h-3.5" /> Open Instagram
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-white/10 gap-1.5"
-                    onClick={startSendPath}
-                  >
-                    I'll send manually
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5 w-full"
+                  onClick={() => {
+                    dismissNudges();
+                    const u = igUsername.trim().replace(/^@/, '');
+                    const url = u ? `https://www.instagram.com/${encodeURIComponent(u)}` : 'https://www.instagram.com/';
+                    try { window.open(url, '_blank'); } catch { /* ignore */ }
+                  }}
+                >
+                  <Instagram className="w-3.5 h-3.5" /> Open Instagram
+                </Button>
+                <p className="text-[11px] text-muted-foreground">Paste it there, then tap confirm.</p>
               </>
             )}
 
             {kind === 'post' && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-white/10 gap-1.5 w-full"
-                onClick={() => {
-                  try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
-                  startSendPath();
-                }}
-              >
-                <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5 w-full"
+                  onClick={() => {
+                    dismissNudges();
+                    try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
+                  }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Instagram
+                </Button>
+                <p className="text-[11px] text-muted-foreground">Post it there, then tap confirm.</p>
+              </>
             )}
 
             {kind === 'ad' && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-white/10 gap-1.5 w-full"
-                onClick={() => {
-                  try { window.open('https://www.facebook.com/adsmanager/', '_blank'); } catch { /* ignore */ }
-                  startSendPath();
-                }}
-              >
-                <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  className="cta-primary gap-1.5 w-full"
+                  onClick={() => {
+                    dismissNudges();
+                    try { window.open('https://adsmanager.facebook.com', '_blank'); } catch { /* ignore */ }
+                  }}
+                >
+                  <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
+                </Button>
+                <p className="text-[11px] text-muted-foreground">Paste the copy there, then tap confirm.</p>
+              </>
             )}
 
             {kind === 'comment' && (
-              <p className="text-[11px] text-muted-foreground">
-                Paste your comment, then confirm below.
-              </p>
+              <p className="text-[11px] text-muted-foreground">Comment it, then tap confirm.</p>
+            )}
+
+            {kind === 'fallback' && (
+              <p className="text-[11px] text-muted-foreground">Send it anywhere, then tap confirm.</p>
             )}
           </div>
         )}
 
-        {/* V10.1 — System 4: FINAL CONFIRMATION — only counted send */}
-        {copyClicked && !finalConfirmed && (
+        {/* V10.5 — System 4: Lazy microstep */}
+        {copyClicked && !sendConfirmed && lazyMsg && (
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+            <p className="text-[12px] text-muted-foreground">{lazyMsg}</p>
+          </div>
+        )}
+
+        {/* V10.5 — System 6: FINAL CONFIRMATION — only counted send */}
+        {copyClicked && !sendConfirmed && (
           <Button
             size="lg"
             className="w-full gap-2 cta-primary min-h-[48px] text-base mt-1"
-            onClick={handleFinalConfirm}
+            onClick={() => { dismissNudges(); handleFinalConfirm(); }}
             disabled={!copyClicked || marking}
           >
             {kind === 'comment' ? <MessageSquare className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
