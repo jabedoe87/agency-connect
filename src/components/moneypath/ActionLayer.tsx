@@ -58,7 +58,6 @@ export default function ActionLayer({
   const [confirmBoost, setConfirmBoost] = useState(false);
   const boostFiredRef = useRef(false);
 
-  const [igUsername, setIgUsername] = useState('');
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
 
