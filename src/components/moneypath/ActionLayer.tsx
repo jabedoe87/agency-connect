@@ -72,6 +72,9 @@ export default function ActionLayer({
     setSendPathVisible(false);
     setSendConfirmed(false);
     setLazyMsg(null);
+    setPlatformOpened(false);
+    setConfirmBoost(false);
+    boostFiredRef.current = false;
   }, [adText]);
 
   // System 4 — Lazy microstep: 5s → "Only one tap left.", 10s → "Open. Paste. Done."
