@@ -90,27 +90,24 @@ export default function ActionLayer({
     setCopied(key);
     if (key === 'msg') {
       setCopyClicked(true);
-      setDoubterIdle(false);
-      // Scroll send path into view
+      setSendStarted(true);
+      setSendPathVisible(true);
+      setLazyMsg(null);
+      // Smooth scroll to send path
       setTimeout(() => {
         try { sendPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
       }, 80);
     }
     setTimeout(() => setCopied(null), 2000);
     toast({
-      title: key === 'cta' ? '✓ CTA copied' : '✓ Copied — now send',
+      title: key === 'cta' ? '✓ CTA copied' : '✓ Copied — send started',
     });
-  };
-
-  const startSendPath = () => {
-    setSendPathStarted(true);
-    setLazyMsg(null);
   };
 
   const handleFinalConfirm = () => {
     if (marking || alreadyPosted || !copyClicked) return;
     setMarking(true);
-    setFinalConfirmed(true);
+    setSendConfirmed(true);
     dismissNudges();
     onPosted();
 
