@@ -39,19 +39,18 @@ export default function ActionLayer({
   const { toast } = useToast();
   const { state: addiction } = useAddiction();
 
-  // V10.1 — simplified state
+  // V10.5 — state per spec
   const [copied, setCopied] = useState<string | null>(null);
   const [copyClicked, setCopyClicked] = useState(false);
-  const [sendPathStarted, setSendPathStarted] = useState(false);
-  const [finalConfirmed, setFinalConfirmed] = useState(false);
+  const [sendStarted, setSendStarted] = useState(false);
+  const [sendPathVisible, setSendPathVisible] = useState(false);
+  const [sendConfirmed, setSendConfirmed] = useState(false);
   const [marking, setMarking] = useState(false);
   const [reminderChoice, setReminderChoice] = useState<'24h' | '48h' | null>(null);
   const [postSendChoice, setPostSendChoice] = useState<null | 'continue' | 'done'>(null);
   const [firstSendBurst, setFirstSendBurst] = useState(false);
 
-  // V10.1 — System 7: doubter idle copy (before copy, after 7s)
-  const [doubterIdle, setDoubterIdle] = useState(false);
-  // V10.1 — System 8: lazy momentum copy (after copy, before send path)
+  // V10.5 — System 4: lazy microstep text (after copy)
   const [lazyMsg, setLazyMsg] = useState<string | null>(null);
 
   const [igUsername, setIgUsername] = useState('');
@@ -63,34 +62,24 @@ export default function ActionLayer({
   useEffect(() => {
     setCopied(null);
     setCopyClicked(false);
-    setSendPathStarted(false);
-    setFinalConfirmed(false);
-    setDoubterIdle(false);
+    setSendStarted(false);
+    setSendPathVisible(false);
+    setSendConfirmed(false);
     setLazyMsg(null);
   }, [adText]);
 
-  // System 7 — Doubter idle: 7s after message, before copy
+  // System 4 — Lazy microstep: 5s → "Only one tap left.", 10s → "Open. Paste. Done."
   useEffect(() => {
-    if (alreadyPosted || copyClicked) return;
-    const t = setTimeout(() => {
-      if (!copyClicked) setDoubterIdle(true);
-    }, 7000);
-    return () => clearTimeout(t);
-  }, [adText, copyClicked, alreadyPosted]);
-
-  // System 8 — Lazy momentum: after copy, idle 7s/12s
-  useEffect(() => {
-    if (!copyClicked || sendPathStarted || alreadyPosted) return;
-    const t1 = setTimeout(() => setLazyMsg('One tap left.'), 7000);
-    const t2 = setTimeout(() => setLazyMsg('Open the app. Paste. Done.'), 12000);
+    if (!copyClicked || sendConfirmed || alreadyPosted) return;
+    const t1 = setTimeout(() => setLazyMsg('Only one tap left.'), 5000);
+    const t2 = setTimeout(() => setLazyMsg('Open. Paste. Done.'), 10000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [copyClicked, sendPathStarted, alreadyPosted]);
+  }, [copyClicked, sendConfirmed, alreadyPosted]);
 
   const dismissNudges = () => {
-    setDoubterIdle(false);
     setLazyMsg(null);
   };
 
