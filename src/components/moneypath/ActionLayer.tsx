@@ -88,8 +88,34 @@ export default function ActionLayer({
     };
   }, [copyClicked, sendConfirmed, alreadyPosted]);
 
+  // V10.6 — System 6: Confirm CTA return boost (focus or any interaction after platform open)
+  useEffect(() => {
+    if (!platformOpened || sendConfirmed || alreadyPosted) return;
+    const trigger = () => {
+      if (boostFiredRef.current) return;
+      boostFiredRef.current = true;
+      setConfirmBoost(true);
+      setTimeout(() => {
+        try { confirmCtaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
+      }, 60);
+      setTimeout(() => setConfirmBoost(false), 1400);
+    };
+    window.addEventListener('focus', trigger);
+    window.addEventListener('pointerdown', trigger, { once: true });
+    window.addEventListener('keydown', trigger, { once: true });
+    return () => {
+      window.removeEventListener('focus', trigger);
+      window.removeEventListener('pointerdown', trigger);
+      window.removeEventListener('keydown', trigger);
+    };
+  }, [platformOpened, sendConfirmed, alreadyPosted]);
+
   const dismissNudges = () => {
     setLazyMsg(null);
+  };
+
+  const markPlatformOpened = () => {
+    setPlatformOpened(true);
   };
 
   const copy = async (text: string, key: string) => {
