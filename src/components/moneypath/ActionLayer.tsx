@@ -380,9 +380,19 @@ export default function ActionLayer({
     setWelcomeBackVisible(false);
     setCtaPulse(false);
     setMicroSent(false);
+    // V11.3 — also clear Buyer Fast Route state
+    setGmailFeedbackVisible(false);
+    setInstagramWarningVisible(false);
+    setInstagramWarningStage(1);
+    setReturnConfirmVisible(false);
+    setPlatformButtonClicked(false);
     if (platformFallbackTimerRef.current) {
       clearTimeout(platformFallbackTimerRef.current);
       platformFallbackTimerRef.current = null;
+    }
+    if (instagramWarningTimerRef.current) {
+      clearTimeout(instagramWarningTimerRef.current);
+      instagramWarningTimerRef.current = null;
     }
   };
 
