@@ -674,8 +674,27 @@ export default function ActionLayer({
                     });
                   }}
                 >
-                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Copy + Open Gmail'}
+                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Send via email (fastest)'}
                 </Button>
+                <p className="text-[11px] text-muted-foreground px-1">Fastest way to get a reply.</p>
+
+                {/* V11.3 — Gmail inline feedback */}
+                {gmailFeedbackVisible && (
+                  <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                    <p className="text-[11px] text-muted-foreground">
+                      Draft opened. If nothing happened, tap again or copy again.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px] border-white/10 gap-1.5"
+                      onClick={() => copy(workingText, 'msg')}
+                    >
+                      <Copy className="w-3 h-3" /> Copy again
+                    </Button>
+                  </div>
+                )}
+
                 <a
                   href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent('Quick question')}&body=${encodeURIComponent(workingText)}`}
                   className="block text-[11px] text-primary underline text-center hover:opacity-80"
