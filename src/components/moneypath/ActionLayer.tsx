@@ -166,6 +166,14 @@ export default function ActionLayer({
     if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
     isOpeningTimerRef.current = setTimeout(() => {
       setIsOpening(false);
+  // V11.1 — central handler for any platform-button click
+  const handlePlatformClick = (label: string, openFn: () => void) => {
+    // V11.2 — instant feedback (synchronous, same tick)
+    setIsOpening(true);
+    setOpeningLabel(label);
+    if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
+    isOpeningTimerRef.current = setTimeout(() => {
+      setIsOpening(false);
       setOpeningLabel('');
     }, 800);
 
@@ -173,6 +181,30 @@ export default function ActionLayer({
     setPlatformActionLabel(label);
     setPlatformFeedbackVisible(true);
     setPlatformFallbackVisible(false);
+    // V11.3 — track that any platform button was clicked (for return confirm)
+    setPlatformButtonClicked(true);
+
+    // V11.3 — per-platform inline feedback
+    const isEmail = /gmail|email|mail/i.test(label);
+    const isInstagram = /instagram|dm/i.test(label);
+
+    if (isEmail) {
+      setGmailFeedbackVisible(true);
+      // ensure no IG warning leaks across
+      setInstagramWarningVisible(false);
+      if (instagramWarningTimerRef.current) {
+        clearTimeout(instagramWarningTimerRef.current);
+        instagramWarningTimerRef.current = null;
+      }
+    } else if (isInstagram) {
+      setInstagramWarningStage(1);
+      setInstagramWarningVisible(true);
+      if (instagramWarningTimerRef.current) clearTimeout(instagramWarningTimerRef.current);
+      instagramWarningTimerRef.current = setTimeout(() => {
+        setInstagramWarningStage(2);
+      }, 5000);
+    }
+
     try { openFn(); } catch { /* ignore */ }
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
     platformFallbackTimerRef.current = setTimeout(() => {
@@ -184,21 +216,24 @@ export default function ActionLayer({
   useEffect(() => () => {
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
     if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
+    if (instagramWarningTimerRef.current) clearTimeout(instagramWarningTimerRef.current);
   }, []);
 
-  // V11.1 Part 2 — return detection from external app
+  // V11.1 Part 2 / V11.3 — return detection from external app (gated by platformButtonClicked)
   useEffect(() => {
     const handleReturn = () => {
-      if (!platformActionClicked) return;
+      if (!platformButtonClicked) return;
       if (document.visibilityState !== 'visible') return;
 
       // Update feedback strip text
       setPlatformFeedbackVisible(true);
       setWelcomeBackVisible(true);
+      // V11.3 — show "Sent it? Tap Done now." above CTA
+      setReturnConfirmVisible(true);
 
-      // Subtle pulse on CTA: 2 cycles ~600ms each
+      // Single pulse on CTA: ~600ms
       setCtaPulse(true);
-      setTimeout(() => setCtaPulse(false), 1200);
+      setTimeout(() => setCtaPulse(false), 600);
 
       // Auto-scroll only if CTA is fully off-screen
       try {
@@ -217,7 +252,7 @@ export default function ActionLayer({
       document.removeEventListener('visibilitychange', handleReturn);
       window.removeEventListener('focus', handleReturn);
     };
-  }, [platformActionClicked]);
+  }, [platformButtonClicked]);
 
   const kind = actionKindOf(actionType);
 
