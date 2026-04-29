@@ -750,7 +750,7 @@ export default function ActionLayer({
             <Button
               ref={confirmCtaRef}
               size="lg"
-              className={`w-full gap-2 cta-primary min-h-[48px] text-base transition-transform duration-300 ${confirmBoost ? 'scale-105 ring-2 ring-primary/50' : ''}`}
+              className={`w-full gap-2 cta-primary min-h-[48px] text-base transition-transform duration-300 ${confirmBoost ? 'scale-105 ring-2 ring-primary/50' : ''} ${ctaPulse ? 'animate-pulse' : ''}`}
               onClick={() => { dismissNudges(); handleFinalConfirm(); }}
               disabled={!copyClicked || marking}
             >
