@@ -134,6 +134,9 @@ export default function ActionLayer({
   const [platformActionLabel, setPlatformActionLabel] = useState('');
   const [platformFeedbackVisible, setPlatformFeedbackVisible] = useState(false);
   const [platformFallbackVisible, setPlatformFallbackVisible] = useState(false);
+  // V11.1 Part 2 — return detection
+  const [welcomeBackVisible, setWelcomeBackVisible] = useState(false);
+  const [ctaPulse, setCtaPulse] = useState(false);
 
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
