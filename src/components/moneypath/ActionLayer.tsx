@@ -139,15 +139,28 @@ export default function ActionLayer({
   const [ctaPulse, setCtaPulse] = useState(false);
   // V11.1 Part 3 — micro-confirmation
   const [microSent, setMicroSent] = useState(false);
+  // V11.2 — instant click feedback
+  const [isOpening, setIsOpening] = useState(false);
+  const [openingLabel, setOpeningLabel] = useState('');
 
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const platformFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isOpeningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
 
   // V11.1 — central handler for any platform-button click
   const handlePlatformClick = (label: string, openFn: () => void) => {
+    // V11.2 — instant feedback (synchronous, same tick)
+    setIsOpening(true);
+    setOpeningLabel(label);
+    if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
+    isOpeningTimerRef.current = setTimeout(() => {
+      setIsOpening(false);
+      setOpeningLabel('');
+    }, 800);
+
     setPlatformActionClicked(true);
     setPlatformActionLabel(label);
     setPlatformFeedbackVisible(true);
@@ -162,6 +175,7 @@ export default function ActionLayer({
   // Cleanup fallback timer on unmount
   useEffect(() => () => {
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
+    if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
   }, []);
 
   // V11.1 Part 2 — return detection from external app
@@ -592,7 +606,7 @@ export default function ActionLayer({
               <div className="space-y-1.5">
                 <Button
                   size="sm"
-                  className="cta-primary gap-1.5 w-full"
+                  className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Gmail' ? 'opacity-75 scale-[0.98]' : ''}`}
                   onClick={() => {
                     dismissNudges();
                     markPlatformOpened();
@@ -605,7 +619,7 @@ export default function ActionLayer({
                     });
                   }}
                 >
-                  <Mail className="w-3.5 h-3.5" /> Copy + Open Gmail
+                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Copy + Open Gmail'}
                 </Button>
                 <a
                   href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent('Quick question')}&body=${encodeURIComponent(workingText)}`}
@@ -621,7 +635,7 @@ export default function ActionLayer({
               <>
                 <Button
                   size="sm"
-                  className="cta-primary gap-1.5 w-full"
+                  className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
                   onClick={() => {
                     dismissNudges();
                     markPlatformOpened();
@@ -641,7 +655,7 @@ export default function ActionLayer({
                     });
                   }}
                 >
-                  <Instagram className="w-3.5 h-3.5" /> Copy + Open Instagram
+                  <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
                 </Button>
                 <div className="rounded-md bg-white/[0.03] border border-white/10 px-2 py-1.5 space-y-0.5">
                   <p className="text-[11px] text-muted-foreground">1. Tap "Message" on their profile.</p>
@@ -652,21 +666,21 @@ export default function ActionLayer({
 
             {kind === 'post' && (
               <Button
-                size="sm" className="cta-primary gap-1.5 w-full"
+                size="sm" className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
                 onClick={() => { dismissNudges(); markPlatformOpened();
                   handlePlatformClick('Instagram', () => window.open('https://www.instagram.com/', '_blank')); }}
               >
-                <ExternalLink className="w-3.5 h-3.5" /> Copy + Open Instagram
+                <ExternalLink className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
               </Button>
             )}
 
             {kind === 'ad' && (
               <Button
-                size="sm" className="cta-primary gap-1.5 w-full"
+                size="sm" className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Ads Manager' ? 'opacity-75 scale-[0.98]' : ''}`}
                 onClick={() => { dismissNudges(); markPlatformOpened();
                   handlePlatformClick('Ads Manager', () => window.open('https://adsmanager.facebook.com', '_blank')); }}
               >
-                <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
+                <Megaphone className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Ads Manager' ? 'Opening…' : 'Open Ads Manager'}
               </Button>
             )}
 
