@@ -635,7 +635,7 @@ export default function ActionLayer({
               <>
                 <Button
                   size="sm"
-                  className="cta-primary gap-1.5 w-full"
+                  className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
                   onClick={() => {
                     dismissNudges();
                     markPlatformOpened();
@@ -655,7 +655,7 @@ export default function ActionLayer({
                     });
                   }}
                 >
-                  <Instagram className="w-3.5 h-3.5" /> Copy + Open Instagram
+                  <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
                 </Button>
                 <div className="rounded-md bg-white/[0.03] border border-white/10 px-2 py-1.5 space-y-0.5">
                   <p className="text-[11px] text-muted-foreground">1. Tap "Message" on their profile.</p>
@@ -666,21 +666,21 @@ export default function ActionLayer({
 
             {kind === 'post' && (
               <Button
-                size="sm" className="cta-primary gap-1.5 w-full"
+                size="sm" className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
                 onClick={() => { dismissNudges(); markPlatformOpened();
                   handlePlatformClick('Instagram', () => window.open('https://www.instagram.com/', '_blank')); }}
               >
-                <ExternalLink className="w-3.5 h-3.5" /> Copy + Open Instagram
+                <ExternalLink className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
               </Button>
             )}
 
             {kind === 'ad' && (
               <Button
-                size="sm" className="cta-primary gap-1.5 w-full"
+                size="sm" className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Ads Manager' ? 'opacity-75 scale-[0.98]' : ''}`}
                 onClick={() => { dismissNudges(); markPlatformOpened();
                   handlePlatformClick('Ads Manager', () => window.open('https://adsmanager.facebook.com', '_blank')); }}
               >
-                <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
+                <Megaphone className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Ads Manager' ? 'Opening…' : 'Open Ads Manager'}
               </Button>
             )}
 
