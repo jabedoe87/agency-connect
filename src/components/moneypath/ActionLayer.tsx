@@ -137,6 +137,8 @@ export default function ActionLayer({
   // V11.1 Part 2 — return detection
   const [welcomeBackVisible, setWelcomeBackVisible] = useState(false);
   const [ctaPulse, setCtaPulse] = useState(false);
+  // V11.1 Part 3 — micro-confirmation
+  const [microSent, setMicroSent] = useState(false);
 
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,6 +229,11 @@ export default function ActionLayer({
     setClipboardPill(false);
     setWelcomeBackVisible(false);
     setCtaPulse(false);
+    setMicroSent(false);
+    setPlatformActionClicked(false);
+    setPlatformActionLabel('');
+    setPlatformFeedbackVisible(false);
+    setPlatformFallbackVisible(false);
     sendTimerStartRef.current = null;
   }, [adText]);
 
@@ -305,33 +312,57 @@ export default function ActionLayer({
     setEditingIdx(null);
   };
 
+  // V11.1 Part 3 — reset patch state vars
+  const resetV111PatchState = () => {
+    setPlatformActionClicked(false);
+    setPlatformActionLabel('');
+    setPlatformFeedbackVisible(false);
+    setPlatformFallbackVisible(false);
+    setWelcomeBackVisible(false);
+    setCtaPulse(false);
+    setMicroSent(false);
+    if (platformFallbackTimerRef.current) {
+      clearTimeout(platformFallbackTimerRef.current);
+      platformFallbackTimerRef.current = null;
+    }
+  };
+
   const handleFinalConfirm = () => {
     if (marking || alreadyPosted || !copyClicked) return;
     setMarking(true);
-    setSendConfirmed(true);
     setFastReturnPrompt(false);
     setStillWaitingBanner(false);
     dismissNudges();
-    onPosted();
 
-    // 3s celebration animation
-    setCelebrate(true);
-    setTimeout(() => setCelebrate(false), 3000);
+    // V11.1 Part 3 — micro-confirmation inside Send Card
+    setMicroSent(true);
+    setPlatformFeedbackVisible(true);
+    setTimeout(() => {
+      setMicroSent(false);
+      resetV111PatchState();
+      // Now flip to completion state (reveals "Send Another" via existing logic)
+      setSendConfirmed(true);
+      onPosted();
 
-    try { localStorage.setItem(RETURNING_USER_KEY, '1'); } catch { /* ignore */ }
+      // 3s celebration animation
+      setCelebrate(true);
+      setTimeout(() => setCelebrate(false), 3000);
 
-    let alreadyDone = false;
-    try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
-    if (!alreadyDone) {
-      setFirstSendBurst(true);
-      setTimeout(() => {
-        setFirstSendBurst(false);
-        try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
-      }, 3000);
-      toast({ title: '🔥 Message #1 sent', description: "Most users who send 3 get their first reply within 48h." });
-    } else {
-      toast({ title: '✓ Sent', description: 'Check back in 24–48h.' });
-    }
+      try { localStorage.setItem(RETURNING_USER_KEY, '1'); } catch { /* ignore */ }
+
+      let alreadyDone = false;
+      try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
+      if (!alreadyDone) {
+        setFirstSendBurst(true);
+        setTimeout(() => {
+          setFirstSendBurst(false);
+          try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
+        }, 3000);
+        toast({ title: '🔥 Message #1 sent', description: "Most users who send 3 get their first reply within 48h." });
+      } else {
+        toast({ title: '✓ Sent', description: 'Check back in 24–48h.' });
+      }
+    }, 1800);
   };
 
   const setReminder = (choice: '24h' | '48h') => {
@@ -407,7 +438,7 @@ export default function ActionLayer({
                   <Sparkles className="w-3.5 h-3.5" />
                   Send another
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1 border-white/10" onClick={() => setPostSendChoice('done')}>
+                <Button size="sm" variant="outline" className="flex-1 border-white/10" onClick={() => { resetV111PatchState(); setPostSendChoice('done'); }}>
                   Done for now
                 </Button>
               </div>
@@ -650,7 +681,11 @@ export default function ActionLayer({
             {/* V11.1 — Platform click feedback strip */}
             {platformFeedbackVisible && (
               <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
-                {welcomeBackVisible ? (
+                {microSent ? (
+                  <p className="text-[11px] text-success font-semibold animate-fade-in">
+                    Sent ✓ Nice work.
+                  </p>
+                ) : welcomeBackVisible ? (
                   <p className="text-[11px] text-foreground font-medium">
                     Welcome back. Did you send it?
                   </p>
