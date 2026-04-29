@@ -307,33 +307,57 @@ export default function ActionLayer({
     setEditingIdx(null);
   };
 
+  // V11.1 Part 3 — reset patch state vars
+  const resetV111PatchState = () => {
+    setPlatformActionClicked(false);
+    setPlatformActionLabel('');
+    setPlatformFeedbackVisible(false);
+    setPlatformFallbackVisible(false);
+    setWelcomeBackVisible(false);
+    setCtaPulse(false);
+    setMicroSent(false);
+    if (platformFallbackTimerRef.current) {
+      clearTimeout(platformFallbackTimerRef.current);
+      platformFallbackTimerRef.current = null;
+    }
+  };
+
   const handleFinalConfirm = () => {
     if (marking || alreadyPosted || !copyClicked) return;
     setMarking(true);
-    setSendConfirmed(true);
     setFastReturnPrompt(false);
     setStillWaitingBanner(false);
     dismissNudges();
-    onPosted();
 
-    // 3s celebration animation
-    setCelebrate(true);
-    setTimeout(() => setCelebrate(false), 3000);
+    // V11.1 Part 3 — micro-confirmation inside Send Card
+    setMicroSent(true);
+    setPlatformFeedbackVisible(true);
+    setTimeout(() => {
+      setMicroSent(false);
+      resetV111PatchState();
+      // Now flip to completion state (reveals "Send Another" via existing logic)
+      setSendConfirmed(true);
+      onPosted();
 
-    try { localStorage.setItem(RETURNING_USER_KEY, '1'); } catch { /* ignore */ }
+      // 3s celebration animation
+      setCelebrate(true);
+      setTimeout(() => setCelebrate(false), 3000);
 
-    let alreadyDone = false;
-    try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
-    if (!alreadyDone) {
-      setFirstSendBurst(true);
-      setTimeout(() => {
-        setFirstSendBurst(false);
-        try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
-      }, 3000);
-      toast({ title: '🔥 Message #1 sent', description: "Most users who send 3 get their first reply within 48h." });
-    } else {
-      toast({ title: '✓ Sent', description: 'Check back in 24–48h.' });
-    }
+      try { localStorage.setItem(RETURNING_USER_KEY, '1'); } catch { /* ignore */ }
+
+      let alreadyDone = false;
+      try { alreadyDone = localStorage.getItem(FIRST_SEND_KEY) === '1'; } catch { /* ignore */ }
+      if (!alreadyDone) {
+        setFirstSendBurst(true);
+        setTimeout(() => {
+          setFirstSendBurst(false);
+          try { localStorage.setItem(FIRST_SEND_KEY, '1'); } catch { /* ignore */ }
+        }, 3000);
+        toast({ title: '🔥 Message #1 sent', description: "Most users who send 3 get their first reply within 48h." });
+      } else {
+        toast({ title: '✓ Sent', description: 'Check back in 24–48h.' });
+      }
+    }, 1800);
   };
 
   const setReminder = (choice: '24h' | '48h') => {
