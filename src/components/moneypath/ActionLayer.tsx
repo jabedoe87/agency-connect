@@ -438,7 +438,7 @@ export default function ActionLayer({
                   <Sparkles className="w-3.5 h-3.5" />
                   Send another
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1 border-white/10" onClick={() => setPostSendChoice('done')}>
+                <Button size="sm" variant="outline" className="flex-1 border-white/10" onClick={() => { resetV111PatchState(); setPostSendChoice('done'); }}>
                   Done for now
                 </Button>
               </div>
