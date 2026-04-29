@@ -143,10 +143,18 @@ export default function ActionLayer({
   const [isOpening, setIsOpening] = useState(false);
   const [openingLabel, setOpeningLabel] = useState('');
 
+  // V11.3 — Buyer Fast Route
+  const [gmailFeedbackVisible, setGmailFeedbackVisible] = useState(false);
+  const [instagramWarningVisible, setInstagramWarningVisible] = useState(false);
+  const [instagramWarningStage, setInstagramWarningStage] = useState<1 | 2>(1);
+  const [platformButtonClicked, setPlatformButtonClicked] = useState(false);
+  const [returnConfirmVisible, setReturnConfirmVisible] = useState(false);
+
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const platformFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isOpeningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const instagramWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
 
