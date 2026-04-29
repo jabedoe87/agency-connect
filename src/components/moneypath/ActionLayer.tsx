@@ -129,10 +129,35 @@ export default function ActionLayer({
   const [savedForLater, setSavedForLater] = useState(false);
   const [clipboardPill, setClipboardPill] = useState(false);
 
+  // V11.1 — Platform click feedback
+  const [platformActionClicked, setPlatformActionClicked] = useState(false);
+  const [platformActionLabel, setPlatformActionLabel] = useState('');
+  const [platformFeedbackVisible, setPlatformFeedbackVisible] = useState(false);
+  const [platformFallbackVisible, setPlatformFallbackVisible] = useState(false);
+
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const platformFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
+
+  // V11.1 — central handler for any platform-button click
+  const handlePlatformClick = (label: string, openFn: () => void) => {
+    setPlatformActionClicked(true);
+    setPlatformActionLabel(label);
+    setPlatformFeedbackVisible(true);
+    setPlatformFallbackVisible(false);
+    try { openFn(); } catch { /* ignore */ }
+    if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
+    platformFallbackTimerRef.current = setTimeout(() => {
+      setPlatformFallbackVisible(true);
+    }, 2500);
+  };
+
+  // Cleanup fallback timer on unmount
+  useEffect(() => () => {
+    if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
+  }, []);
 
   const kind = actionKindOf(actionType);
 
@@ -502,11 +527,13 @@ export default function ActionLayer({
                   onClick={() => {
                     dismissNudges();
                     markPlatformOpened();
-                    const subject = encodeURIComponent('Quick question');
-                    const body = encodeURIComponent(workingText);
-                    const to = encodeURIComponent(targetEmail || '');
-                    const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-                    try { window.open(gmail, '_blank'); } catch { /* ignore */ }
+                    handlePlatformClick('Gmail', () => {
+                      const subject = encodeURIComponent('Quick question');
+                      const body = encodeURIComponent(workingText);
+                      const to = encodeURIComponent(targetEmail || '');
+                      const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+                      window.open(gmail, '_blank');
+                    });
                   }}
                 >
                   <Mail className="w-3.5 h-3.5" /> Copy + Open Gmail
@@ -514,7 +541,7 @@ export default function ActionLayer({
                 <a
                   href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent('Quick question')}&body=${encodeURIComponent(workingText)}`}
                   className="block text-[11px] text-primary underline text-center hover:opacity-80"
-                  onClick={markPlatformOpened}
+                  onClick={() => { markPlatformOpened(); handlePlatformClick('Email', () => {}); }}
                 >
                   Or use my default mail app
                 </a>
@@ -529,18 +556,20 @@ export default function ActionLayer({
                   onClick={() => {
                     dismissNudges();
                     markPlatformOpened();
-                    const username = targetUsername || '';
-                    const start = Date.now();
-                    if (username) {
-                      try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
-                      setTimeout(() => {
-                        if (Date.now() - start < 1000) {
-                          try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
-                        }
-                      }, 500);
-                    } else {
-                      try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ }
-                    }
+                    handlePlatformClick('Instagram', () => {
+                      const username = targetUsername || '';
+                      const start = Date.now();
+                      if (username) {
+                        try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
+                        setTimeout(() => {
+                          if (Date.now() - start < 1000) {
+                            try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
+                          }
+                        }, 500);
+                      } else {
+                        window.open('https://www.instagram.com/', '_blank');
+                      }
+                    });
                   }}
                 >
                   <Instagram className="w-3.5 h-3.5" /> Copy + Open Instagram
@@ -556,7 +585,7 @@ export default function ActionLayer({
               <Button
                 size="sm" className="cta-primary gap-1.5 w-full"
                 onClick={() => { dismissNudges(); markPlatformOpened();
-                  try { window.open('https://www.instagram.com/', '_blank'); } catch { /* ignore */ } }}
+                  handlePlatformClick('Instagram', () => window.open('https://www.instagram.com/', '_blank')); }}
               >
                 <ExternalLink className="w-3.5 h-3.5" /> Copy + Open Instagram
               </Button>
@@ -566,7 +595,7 @@ export default function ActionLayer({
               <Button
                 size="sm" className="cta-primary gap-1.5 w-full"
                 onClick={() => { dismissNudges(); markPlatformOpened();
-                  try { window.open('https://adsmanager.facebook.com', '_blank'); } catch { /* ignore */ } }}
+                  handlePlatformClick('Ads Manager', () => window.open('https://adsmanager.facebook.com', '_blank')); }}
               >
                 <Megaphone className="w-3.5 h-3.5" /> Open Ads Manager
               </Button>
@@ -578,6 +607,32 @@ export default function ActionLayer({
 
             {kind === 'fallback' && (
               <p className="text-[11px] text-muted-foreground">Send it anywhere, then tap confirm.</p>
+            )}
+
+            {/* V11.1 — Platform click feedback strip */}
+            {platformFeedbackVisible && (
+              <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                {!platformFallbackVisible ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    Opening {platformActionLabel}… your message is still on your clipboard.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[11px] text-muted-foreground">
+                      Couldn't open {platformActionLabel} automatically.<br />
+                      Open it manually and paste your message.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px] border-white/10 gap-1.5"
+                      onClick={() => copy(workingText, 'msg')}
+                    >
+                      <Copy className="w-3 h-3" /> Copy message again
+                    </Button>
+                  </>
+                )}
+              </div>
             )}
 
             {/* Clipboard pill */}
