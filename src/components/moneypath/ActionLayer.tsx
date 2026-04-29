@@ -166,14 +166,6 @@ export default function ActionLayer({
     if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
     isOpeningTimerRef.current = setTimeout(() => {
       setIsOpening(false);
-  // V11.1 — central handler for any platform-button click
-  const handlePlatformClick = (label: string, openFn: () => void) => {
-    // V11.2 — instant feedback (synchronous, same tick)
-    setIsOpening(true);
-    setOpeningLabel(label);
-    if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
-    isOpeningTimerRef.current = setTimeout(() => {
-      setIsOpening(false);
       setOpeningLabel('');
     }, 800);
 
