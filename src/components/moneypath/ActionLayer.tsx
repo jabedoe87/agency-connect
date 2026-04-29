@@ -229,6 +229,11 @@ export default function ActionLayer({
     setClipboardPill(false);
     setWelcomeBackVisible(false);
     setCtaPulse(false);
+    setMicroSent(false);
+    setPlatformActionClicked(false);
+    setPlatformActionLabel('');
+    setPlatformFeedbackVisible(false);
+    setPlatformFallbackVisible(false);
     sendTimerStartRef.current = null;
   }, [adText]);
 
