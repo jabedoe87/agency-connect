@@ -648,7 +648,11 @@ export default function ActionLayer({
             {/* V11.1 — Platform click feedback strip */}
             {platformFeedbackVisible && (
               <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
-                {!platformFallbackVisible ? (
+                {welcomeBackVisible ? (
+                  <p className="text-[11px] text-foreground font-medium">
+                    Welcome back. Did you send it?
+                  </p>
+                ) : !platformFallbackVisible ? (
                   <p className="text-[11px] text-muted-foreground">
                     Opening {platformActionLabel}… your message is still on your clipboard.
                   </p>
@@ -668,6 +672,16 @@ export default function ActionLayer({
                     </Button>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Clipboard pill */}
+            {clipboardPill && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-success/10 border border-success/30">
+                <Clipboard className="w-3 h-3 text-success" />
+                <p className="text-[11px] text-success font-medium">
+                  {welcomeBackVisible ? 'Message still on clipboard' : 'Message still on clipboard — ready to paste'}
+                </p>
               </div>
             )}
 
