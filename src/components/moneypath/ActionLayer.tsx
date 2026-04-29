@@ -134,6 +134,9 @@ export default function ActionLayer({
   const [platformActionLabel, setPlatformActionLabel] = useState('');
   const [platformFeedbackVisible, setPlatformFeedbackVisible] = useState(false);
   const [platformFallbackVisible, setPlatformFallbackVisible] = useState(false);
+  // V11.1 Part 2 — return detection
+  const [welcomeBackVisible, setWelcomeBackVisible] = useState(false);
+  const [ctaPulse, setCtaPulse] = useState(false);
 
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,6 +161,39 @@ export default function ActionLayer({
   useEffect(() => () => {
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
   }, []);
+
+  // V11.1 Part 2 — return detection from external app
+  useEffect(() => {
+    const handleReturn = () => {
+      if (!platformActionClicked) return;
+      if (document.visibilityState !== 'visible') return;
+
+      // Update feedback strip text
+      setPlatformFeedbackVisible(true);
+      setWelcomeBackVisible(true);
+
+      // Subtle pulse on CTA: 2 cycles ~600ms each
+      setCtaPulse(true);
+      setTimeout(() => setCtaPulse(false), 1200);
+
+      // Auto-scroll only if CTA is fully off-screen
+      try {
+        const el = confirmCtaRef.current;
+        if (el) {
+          const r = el.getBoundingClientRect();
+          const vh = window.innerHeight || document.documentElement.clientHeight;
+          const offscreen = r.bottom <= 0 || r.top >= vh;
+          if (offscreen) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch { /* ignore */ }
+    };
+    document.addEventListener('visibilitychange', handleReturn);
+    window.addEventListener('focus', handleReturn);
+    return () => {
+      document.removeEventListener('visibilitychange', handleReturn);
+      window.removeEventListener('focus', handleReturn);
+    };
+  }, [platformActionClicked]);
 
   const kind = actionKindOf(actionType);
 
@@ -189,6 +225,8 @@ export default function ActionLayer({
     setIdleSavePrompt(false);
     setSavedForLater(false);
     setClipboardPill(false);
+    setWelcomeBackVisible(false);
+    setCtaPulse(false);
     sendTimerStartRef.current = null;
   }, [adText]);
 
@@ -612,7 +650,11 @@ export default function ActionLayer({
             {/* V11.1 — Platform click feedback strip */}
             {platformFeedbackVisible && (
               <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
-                {!platformFallbackVisible ? (
+                {welcomeBackVisible ? (
+                  <p className="text-[11px] text-foreground font-medium">
+                    Welcome back. Did you send it?
+                  </p>
+                ) : !platformFallbackVisible ? (
                   <p className="text-[11px] text-muted-foreground">
                     Opening {platformActionLabel}… your message is still on your clipboard.
                   </p>
@@ -632,6 +674,16 @@ export default function ActionLayer({
                     </Button>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Clipboard pill */}
+            {clipboardPill && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-success/10 border border-success/30">
+                <Clipboard className="w-3 h-3 text-success" />
+                <p className="text-[11px] text-success font-medium">
+                  {welcomeBackVisible ? 'Message still on clipboard' : 'Message still on clipboard — ready to paste'}
+                </p>
               </div>
             )}
 
@@ -700,7 +752,7 @@ export default function ActionLayer({
             <Button
               ref={confirmCtaRef}
               size="lg"
-              className={`w-full gap-2 cta-primary min-h-[48px] text-base transition-transform duration-300 ${confirmBoost ? 'scale-105 ring-2 ring-primary/50' : ''}`}
+              className={`w-full gap-2 cta-primary min-h-[48px] text-base transition-transform duration-300 ${confirmBoost ? 'scale-105 ring-2 ring-primary/50' : ''} ${ctaPulse ? 'animate-pulse' : ''}`}
               onClick={() => { dismissNudges(); handleFinalConfirm(); }}
               disabled={!copyClicked || marking}
             >
