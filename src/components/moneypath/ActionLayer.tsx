@@ -162,6 +162,39 @@ export default function ActionLayer({
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
   }, []);
 
+  // V11.1 Part 2 — return detection from external app
+  useEffect(() => {
+    const handleReturn = () => {
+      if (!platformActionClicked) return;
+      if (document.visibilityState !== 'visible') return;
+
+      // Update feedback strip text
+      setPlatformFeedbackVisible(true);
+      setWelcomeBackVisible(true);
+
+      // Subtle pulse on CTA: 2 cycles ~600ms each
+      setCtaPulse(true);
+      setTimeout(() => setCtaPulse(false), 1200);
+
+      // Auto-scroll only if CTA is fully off-screen
+      try {
+        const el = confirmCtaRef.current;
+        if (el) {
+          const r = el.getBoundingClientRect();
+          const vh = window.innerHeight || document.documentElement.clientHeight;
+          const offscreen = r.bottom <= 0 || r.top >= vh;
+          if (offscreen) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch { /* ignore */ }
+    };
+    document.addEventListener('visibilitychange', handleReturn);
+    window.addEventListener('focus', handleReturn);
+    return () => {
+      document.removeEventListener('visibilitychange', handleReturn);
+      window.removeEventListener('focus', handleReturn);
+    };
+  }, [platformActionClicked]);
+
   const kind = actionKindOf(actionType);
 
   const isReturningUser = useMemo(() => {
