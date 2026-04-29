@@ -706,36 +706,90 @@ export default function ActionLayer({
             )}
 
             {kind === 'dm' && (
-              <>
-                <Button
-                  size="sm"
-                  className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
-                  onClick={() => {
-                    dismissNudges();
-                    markPlatformOpened();
-                    handlePlatformClick('Instagram', () => {
-                      const username = targetUsername || '';
-                      const start = Date.now();
-                      if (username) {
-                        try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
-                        setTimeout(() => {
-                          if (Date.now() - start < 1000) {
-                            try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
-                          }
-                        }, 500);
-                      } else {
-                        window.open('https://www.instagram.com/', '_blank');
-                      }
-                    });
-                  }}
-                >
-                  <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
-                </Button>
+              <div className="space-y-2">
+                {/* V11.3 — Email surfaced as primary fastest route when targetEmail is available */}
+                {targetEmail && (
+                  <div className="space-y-1.5">
+                    <Button
+                      size="sm"
+                      className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Gmail' ? 'opacity-75 scale-[0.98]' : ''}`}
+                      onClick={() => {
+                        dismissNudges();
+                        markPlatformOpened();
+                        handlePlatformClick('Gmail', () => {
+                          const subject = encodeURIComponent('Quick question');
+                          const body = encodeURIComponent(workingText);
+                          const to = encodeURIComponent(targetEmail || '');
+                          const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+                          window.open(gmail, '_blank');
+                        });
+                      }}
+                    >
+                      <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Send via email (fastest)'}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground px-1">Fastest way to get a reply.</p>
+                    {gmailFeedbackVisible && (
+                      <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                        <p className="text-[11px] text-muted-foreground">
+                          Draft opened. If nothing happened, tap again or copy again.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-[11px] border-white/10 gap-1.5"
+                          onClick={() => copy(workingText, 'msg')}
+                        >
+                          <Copy className="w-3 h-3" /> Copy again
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Instagram — secondary position, reduced visual weight */}
+                <div className="space-y-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={`gap-1.5 w-full border-white/10 text-muted-foreground text-[12px] transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
+                    onClick={() => {
+                      dismissNudges();
+                      markPlatformOpened();
+                      handlePlatformClick('Instagram', () => {
+                        const username = targetUsername || '';
+                        const start = Date.now();
+                        if (username) {
+                          try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
+                          setTimeout(() => {
+                            if (Date.now() - start < 1000) {
+                              try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
+                            }
+                          }, 500);
+                        } else {
+                          window.open('https://www.instagram.com/', '_blank');
+                        }
+                      });
+                    }}
+                  >
+                    <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground px-1">Use this if you're already in their DMs.</p>
+
+                  {/* V11.3 — Instagram distraction warning (calm, no urgency) */}
+                  {instagramWarningVisible && (
+                    <p className="text-[11px] text-muted-foreground px-1 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                      {instagramWarningStage === 1
+                        ? "Don't scroll. Paste the message first."
+                        : 'Still copied. Send before checking anything else.'}
+                    </p>
+                  )}
+                </div>
+
                 <div className="rounded-md bg-white/[0.03] border border-white/10 px-2 py-1.5 space-y-0.5">
                   <p className="text-[11px] text-muted-foreground">1. Tap "Message" on their profile.</p>
                   <p className="text-[11px] text-muted-foreground">2. Paste the text.</p>
                 </div>
-              </>
+              </div>
             )}
 
             {kind === 'post' && (
