@@ -129,10 +129,35 @@ export default function ActionLayer({
   const [savedForLater, setSavedForLater] = useState(false);
   const [clipboardPill, setClipboardPill] = useState(false);
 
+  // V11.1 — Platform click feedback
+  const [platformActionClicked, setPlatformActionClicked] = useState(false);
+  const [platformActionLabel, setPlatformActionLabel] = useState('');
+  const [platformFeedbackVisible, setPlatformFeedbackVisible] = useState(false);
+  const [platformFallbackVisible, setPlatformFallbackVisible] = useState(false);
+
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const platformFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
+
+  // V11.1 — central handler for any platform-button click
+  const handlePlatformClick = (label: string, openFn: () => void) => {
+    setPlatformActionClicked(true);
+    setPlatformActionLabel(label);
+    setPlatformFeedbackVisible(true);
+    setPlatformFallbackVisible(false);
+    try { openFn(); } catch { /* ignore */ }
+    if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
+    platformFallbackTimerRef.current = setTimeout(() => {
+      setPlatformFallbackVisible(true);
+    }, 2500);
+  };
+
+  // Cleanup fallback timer on unmount
+  useEffect(() => () => {
+    if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
+  }, []);
 
   const kind = actionKindOf(actionType);
 
