@@ -648,7 +648,7 @@ export default function ActionLayer({
             className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2 animate-fade-in"
           >
             <p className="text-[12px] text-foreground font-semibold">Send this now</p>
-            <p className="text-[11px] text-muted-foreground">Use the button below. Confirm after you send.</p>
+            <p className="text-[11px] text-muted-foreground">Send it now. Improve after you get replies.</p>
 
             {/* Lazy Momentum: 1 of 1 step left */}
             <div className="rounded-md bg-primary/10 border border-primary/30 px-2 py-1.5">
