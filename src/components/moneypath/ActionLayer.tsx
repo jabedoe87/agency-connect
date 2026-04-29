@@ -606,7 +606,7 @@ export default function ActionLayer({
               <div className="space-y-1.5">
                 <Button
                   size="sm"
-                  className="cta-primary gap-1.5 w-full"
+                  className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Gmail' ? 'opacity-75 scale-[0.98]' : ''}`}
                   onClick={() => {
                     dismissNudges();
                     markPlatformOpened();
@@ -619,7 +619,7 @@ export default function ActionLayer({
                     });
                   }}
                 >
-                  <Mail className="w-3.5 h-3.5" /> Copy + Open Gmail
+                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Copy + Open Gmail'}
                 </Button>
                 <a
                   href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent('Quick question')}&body=${encodeURIComponent(workingText)}`}
