@@ -139,15 +139,28 @@ export default function ActionLayer({
   const [ctaPulse, setCtaPulse] = useState(false);
   // V11.1 Part 3 — micro-confirmation
   const [microSent, setMicroSent] = useState(false);
+  // V11.2 — instant click feedback
+  const [isOpening, setIsOpening] = useState(false);
+  const [openingLabel, setOpeningLabel] = useState('');
 
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const platformFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isOpeningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
 
   // V11.1 — central handler for any platform-button click
   const handlePlatformClick = (label: string, openFn: () => void) => {
+    // V11.2 — instant feedback (synchronous, same tick)
+    setIsOpening(true);
+    setOpeningLabel(label);
+    if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
+    isOpeningTimerRef.current = setTimeout(() => {
+      setIsOpening(false);
+      setOpeningLabel('');
+    }, 800);
+
     setPlatformActionClicked(true);
     setPlatformActionLabel(label);
     setPlatformFeedbackVisible(true);
@@ -162,6 +175,7 @@ export default function ActionLayer({
   // Cleanup fallback timer on unmount
   useEffect(() => () => {
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
+    if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
   }, []);
 
   // V11.1 Part 2 — return detection from external app
