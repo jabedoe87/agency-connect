@@ -143,10 +143,18 @@ export default function ActionLayer({
   const [isOpening, setIsOpening] = useState(false);
   const [openingLabel, setOpeningLabel] = useState('');
 
+  // V11.3 — Buyer Fast Route
+  const [gmailFeedbackVisible, setGmailFeedbackVisible] = useState(false);
+  const [instagramWarningVisible, setInstagramWarningVisible] = useState(false);
+  const [instagramWarningStage, setInstagramWarningStage] = useState<1 | 2>(1);
+  const [platformButtonClicked, setPlatformButtonClicked] = useState(false);
+  const [returnConfirmVisible, setReturnConfirmVisible] = useState(false);
+
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const platformFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isOpeningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const instagramWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
 
@@ -165,6 +173,30 @@ export default function ActionLayer({
     setPlatformActionLabel(label);
     setPlatformFeedbackVisible(true);
     setPlatformFallbackVisible(false);
+    // V11.3 — track that any platform button was clicked (for return confirm)
+    setPlatformButtonClicked(true);
+
+    // V11.3 — per-platform inline feedback
+    const isEmail = /gmail|email|mail/i.test(label);
+    const isInstagram = /instagram|dm/i.test(label);
+
+    if (isEmail) {
+      setGmailFeedbackVisible(true);
+      // ensure no IG warning leaks across
+      setInstagramWarningVisible(false);
+      if (instagramWarningTimerRef.current) {
+        clearTimeout(instagramWarningTimerRef.current);
+        instagramWarningTimerRef.current = null;
+      }
+    } else if (isInstagram) {
+      setInstagramWarningStage(1);
+      setInstagramWarningVisible(true);
+      if (instagramWarningTimerRef.current) clearTimeout(instagramWarningTimerRef.current);
+      instagramWarningTimerRef.current = setTimeout(() => {
+        setInstagramWarningStage(2);
+      }, 5000);
+    }
+
     try { openFn(); } catch { /* ignore */ }
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
     platformFallbackTimerRef.current = setTimeout(() => {
@@ -176,21 +208,24 @@ export default function ActionLayer({
   useEffect(() => () => {
     if (platformFallbackTimerRef.current) clearTimeout(platformFallbackTimerRef.current);
     if (isOpeningTimerRef.current) clearTimeout(isOpeningTimerRef.current);
+    if (instagramWarningTimerRef.current) clearTimeout(instagramWarningTimerRef.current);
   }, []);
 
-  // V11.1 Part 2 — return detection from external app
+  // V11.1 Part 2 / V11.3 — return detection from external app (gated by platformButtonClicked)
   useEffect(() => {
     const handleReturn = () => {
-      if (!platformActionClicked) return;
+      if (!platformButtonClicked) return;
       if (document.visibilityState !== 'visible') return;
 
       // Update feedback strip text
       setPlatformFeedbackVisible(true);
       setWelcomeBackVisible(true);
+      // V11.3 — show "Sent it? Tap Done now." above CTA
+      setReturnConfirmVisible(true);
 
-      // Subtle pulse on CTA: 2 cycles ~600ms each
+      // Single pulse on CTA: ~600ms
       setCtaPulse(true);
-      setTimeout(() => setCtaPulse(false), 1200);
+      setTimeout(() => setCtaPulse(false), 600);
 
       // Auto-scroll only if CTA is fully off-screen
       try {
@@ -209,7 +244,7 @@ export default function ActionLayer({
       document.removeEventListener('visibilitychange', handleReturn);
       window.removeEventListener('focus', handleReturn);
     };
-  }, [platformActionClicked]);
+  }, [platformButtonClicked]);
 
   const kind = actionKindOf(actionType);
 
@@ -248,6 +283,16 @@ export default function ActionLayer({
     setPlatformActionLabel('');
     setPlatformFeedbackVisible(false);
     setPlatformFallbackVisible(false);
+    // V11.3 — reset patch state
+    setGmailFeedbackVisible(false);
+    setInstagramWarningVisible(false);
+    setInstagramWarningStage(1);
+    setPlatformButtonClicked(false);
+    setReturnConfirmVisible(false);
+    if (instagramWarningTimerRef.current) {
+      clearTimeout(instagramWarningTimerRef.current);
+      instagramWarningTimerRef.current = null;
+    }
     sendTimerStartRef.current = null;
   }, [adText]);
 
@@ -335,9 +380,19 @@ export default function ActionLayer({
     setWelcomeBackVisible(false);
     setCtaPulse(false);
     setMicroSent(false);
+    // V11.3 — also clear Buyer Fast Route state
+    setGmailFeedbackVisible(false);
+    setInstagramWarningVisible(false);
+    setInstagramWarningStage(1);
+    setReturnConfirmVisible(false);
+    setPlatformButtonClicked(false);
     if (platformFallbackTimerRef.current) {
       clearTimeout(platformFallbackTimerRef.current);
       platformFallbackTimerRef.current = null;
+    }
+    if (instagramWarningTimerRef.current) {
+      clearTimeout(instagramWarningTimerRef.current);
+      instagramWarningTimerRef.current = null;
     }
   };
 
@@ -593,7 +648,7 @@ export default function ActionLayer({
             className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2 animate-fade-in"
           >
             <p className="text-[12px] text-foreground font-semibold">Send this now</p>
-            <p className="text-[11px] text-muted-foreground">Use the button below. Confirm after you send.</p>
+            <p className="text-[11px] text-muted-foreground">Send it now. Improve after you get replies.</p>
 
             {/* Lazy Momentum: 1 of 1 step left */}
             <div className="rounded-md bg-primary/10 border border-primary/30 px-2 py-1.5">
@@ -619,8 +674,27 @@ export default function ActionLayer({
                     });
                   }}
                 >
-                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Copy + Open Gmail'}
+                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Send via email (fastest)'}
                 </Button>
+                <p className="text-[11px] text-muted-foreground px-1">Fastest way to get a reply.</p>
+
+                {/* V11.3 — Gmail inline feedback */}
+                {gmailFeedbackVisible && (
+                  <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                    <p className="text-[11px] text-muted-foreground">
+                      Draft opened. If nothing happened, tap again or copy again.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px] border-white/10 gap-1.5"
+                      onClick={() => copy(workingText, 'msg')}
+                    >
+                      <Copy className="w-3 h-3" /> Copy again
+                    </Button>
+                  </div>
+                )}
+
                 <a
                   href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent('Quick question')}&body=${encodeURIComponent(workingText)}`}
                   className="block text-[11px] text-primary underline text-center hover:opacity-80"
@@ -632,36 +706,90 @@ export default function ActionLayer({
             )}
 
             {kind === 'dm' && (
-              <>
-                <Button
-                  size="sm"
-                  className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
-                  onClick={() => {
-                    dismissNudges();
-                    markPlatformOpened();
-                    handlePlatformClick('Instagram', () => {
-                      const username = targetUsername || '';
-                      const start = Date.now();
-                      if (username) {
-                        try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
-                        setTimeout(() => {
-                          if (Date.now() - start < 1000) {
-                            try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
-                          }
-                        }, 500);
-                      } else {
-                        window.open('https://www.instagram.com/', '_blank');
-                      }
-                    });
-                  }}
-                >
-                  <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
-                </Button>
+              <div className="space-y-2">
+                {/* V11.3 — Email surfaced as primary fastest route when targetEmail is available */}
+                {targetEmail && (
+                  <div className="space-y-1.5">
+                    <Button
+                      size="sm"
+                      className={`cta-primary gap-1.5 w-full transition-all duration-150 ${isOpening && openingLabel === 'Gmail' ? 'opacity-75 scale-[0.98]' : ''}`}
+                      onClick={() => {
+                        dismissNudges();
+                        markPlatformOpened();
+                        handlePlatformClick('Gmail', () => {
+                          const subject = encodeURIComponent('Quick question');
+                          const body = encodeURIComponent(workingText);
+                          const to = encodeURIComponent(targetEmail || '');
+                          const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+                          window.open(gmail, '_blank');
+                        });
+                      }}
+                    >
+                      <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Send via email (fastest)'}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground px-1">Fastest way to get a reply.</p>
+                    {gmailFeedbackVisible && (
+                      <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                        <p className="text-[11px] text-muted-foreground">
+                          Draft opened. If nothing happened, tap again or copy again.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-[11px] border-white/10 gap-1.5"
+                          onClick={() => copy(workingText, 'msg')}
+                        >
+                          <Copy className="w-3 h-3" /> Copy again
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Instagram — secondary position, reduced visual weight */}
+                <div className="space-y-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={`gap-1.5 w-full border-white/10 text-muted-foreground text-[12px] transition-all duration-150 ${isOpening && openingLabel === 'Instagram' ? 'opacity-75 scale-[0.98]' : ''}`}
+                    onClick={() => {
+                      dismissNudges();
+                      markPlatformOpened();
+                      handlePlatformClick('Instagram', () => {
+                        const username = targetUsername || '';
+                        const start = Date.now();
+                        if (username) {
+                          try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
+                          setTimeout(() => {
+                            if (Date.now() - start < 1000) {
+                              try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
+                            }
+                          }, 500);
+                        } else {
+                          window.open('https://www.instagram.com/', '_blank');
+                        }
+                      });
+                    }}
+                  >
+                    <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground px-1">Use this if you're already in their DMs.</p>
+
+                  {/* V11.3 — Instagram distraction warning (calm, no urgency) */}
+                  {instagramWarningVisible && (
+                    <p className="text-[11px] text-muted-foreground px-1 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                      {instagramWarningStage === 1
+                        ? "Don't scroll. Paste the message first."
+                        : 'Still copied. Send before checking anything else.'}
+                    </p>
+                  )}
+                </div>
+
                 <div className="rounded-md bg-white/[0.03] border border-white/10 px-2 py-1.5 space-y-0.5">
                   <p className="text-[11px] text-muted-foreground">1. Tap "Message" on their profile.</p>
                   <p className="text-[11px] text-muted-foreground">2. Paste the text.</p>
                 </div>
-              </>
+              </div>
             )}
 
             {kind === 'post' && (
@@ -797,6 +925,12 @@ export default function ActionLayer({
           <div className="space-y-1.5 mt-1">
             {platformOpened && (
               <p className="text-[12px] text-foreground font-semibold px-1">Done? Confirm it.</p>
+            )}
+            {/* V11.3 — Return confirm hardening */}
+            {returnConfirmVisible && (
+              <p className="text-[11px] text-muted-foreground px-1 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                Sent it? Tap Done now.
+              </p>
             )}
             <Button
               ref={confirmCtaRef}
