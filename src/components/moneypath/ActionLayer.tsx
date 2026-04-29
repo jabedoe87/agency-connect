@@ -225,6 +225,8 @@ export default function ActionLayer({
     setIdleSavePrompt(false);
     setSavedForLater(false);
     setClipboardPill(false);
+    setWelcomeBackVisible(false);
+    setCtaPulse(false);
     sendTimerStartRef.current = null;
   }, [adText]);
 
