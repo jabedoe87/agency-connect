@@ -137,6 +137,8 @@ export default function ActionLayer({
   // V11.1 Part 2 — return detection
   const [welcomeBackVisible, setWelcomeBackVisible] = useState(false);
   const [ctaPulse, setCtaPulse] = useState(false);
+  // V11.1 Part 3 — micro-confirmation
+  const [microSent, setMicroSent] = useState(false);
 
   const sendTimerStartRef = useRef<number | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
