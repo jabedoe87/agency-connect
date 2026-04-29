@@ -676,7 +676,11 @@ export default function ActionLayer({
             {/* V11.1 — Platform click feedback strip */}
             {platformFeedbackVisible && (
               <div className="px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/10 space-y-1.5 animate-fade-in" style={{ animationDuration: '150ms' }}>
-                {welcomeBackVisible ? (
+                {microSent ? (
+                  <p className="text-[11px] text-success font-semibold animate-fade-in">
+                    Sent ✓ Nice work.
+                  </p>
+                ) : welcomeBackVisible ? (
                   <p className="text-[11px] text-foreground font-medium">
                     Welcome back. Did you send it?
                   </p>
