@@ -926,6 +926,12 @@ export default function ActionLayer({
             {platformOpened && (
               <p className="text-[12px] text-foreground font-semibold px-1">Done? Confirm it.</p>
             )}
+            {/* V11.3 — Return confirm hardening */}
+            {returnConfirmVisible && (
+              <p className="text-[11px] text-muted-foreground px-1 animate-fade-in" style={{ animationDuration: '150ms' }}>
+                Sent it? Tap Done now.
+              </p>
+            )}
             <Button
               ref={confirmCtaRef}
               size="lg"
