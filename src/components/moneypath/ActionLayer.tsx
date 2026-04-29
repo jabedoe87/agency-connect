@@ -283,6 +283,16 @@ export default function ActionLayer({
     setPlatformActionLabel('');
     setPlatformFeedbackVisible(false);
     setPlatformFallbackVisible(false);
+    // V11.3 — reset patch state
+    setGmailFeedbackVisible(false);
+    setInstagramWarningVisible(false);
+    setInstagramWarningStage(1);
+    setPlatformButtonClicked(false);
+    setReturnConfirmVisible(false);
+    if (instagramWarningTimerRef.current) {
+      clearTimeout(instagramWarningTimerRef.current);
+      instagramWarningTimerRef.current = null;
+    }
     sendTimerStartRef.current = null;
   }, [adText]);
 
