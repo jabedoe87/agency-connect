@@ -137,11 +137,29 @@ export default function Generator() {
 
   // Lead Finder integration — persists across sessions
   const [lead, setLead] = useState<LeadSelection | null>(() => readActiveLead<LeadSelection>());
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const leadFinderRef = useRef<HTMLDivElement>(null);
 
   // Persist active lead whenever it changes
   useEffect(() => {
     writeActiveLead(lead);
+    // Re-show banner when a new recipient is selected
+    if (lead) setBannerDismissed(false);
   }, [lead]);
+
+  const focusLeadFinder = () => {
+    setLead(null);
+    // Wait for LeadFinder to mount, then scroll + focus
+    setTimeout(() => {
+      const el = leadFinderRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusable = el.querySelector<HTMLElement>(
+        'input, textarea, button, [tabindex]:not([tabindex="-1"])',
+      );
+      focusable?.focus({ preventScroll: true });
+    }, 60);
+  };
 
   // ── Money Path state ────────────────────────────────────────────────
   // Tracks the current ads-winner result row (per generation) and all stored results.
