@@ -674,7 +674,7 @@ export default function ActionLayer({
                     });
                   }}
                 >
-                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Send via email (fastest)'}
+                  <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : `Send${targetName ? ` to ${targetName}` : ''} via email (fastest)`}
                 </Button>
                 <p className="text-[11px] text-muted-foreground px-1">Fastest way to get a reply.</p>
 
@@ -725,7 +725,7 @@ export default function ActionLayer({
                         });
                       }}
                     >
-                      <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : 'Send via email (fastest)'}
+                      <Mail className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Gmail' ? 'Opening…' : `Send${targetName ? ` to ${targetName}` : ''} via email (fastest)`}
                     </Button>
                     <p className="text-[11px] text-muted-foreground px-1">Fastest way to get a reply.</p>
                     {gmailFeedbackVisible && (
@@ -771,7 +771,7 @@ export default function ActionLayer({
                       });
                     }}
                   >
-                    <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : 'Copy + Open Instagram'}
+                    <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : `DM${targetName ? ` ${targetName}` : ''} on Instagram`}
                   </Button>
                   <p className="text-[11px] text-muted-foreground px-1">Use this if you're already in their DMs.</p>
 
