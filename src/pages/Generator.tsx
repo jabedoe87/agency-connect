@@ -135,8 +135,13 @@ export default function Generator() {
   const [actionType, setActionType] = useState<ActionType>('Send Instagram DM');
   const [autoFilling, setAutoFilling] = useState(false);
 
-  // Lead Finder integration
-  const [lead, setLead] = useState<LeadSelection | null>(null);
+  // Lead Finder integration — persists across sessions
+  const [lead, setLead] = useState<LeadSelection | null>(() => readActiveLead<LeadSelection>());
+
+  // Persist active lead whenever it changes
+  useEffect(() => {
+    writeActiveLead(lead);
+  }, [lead]);
 
   // ── Money Path state ────────────────────────────────────────────────
   // Tracks the current ads-winner result row (per generation) and all stored results.
