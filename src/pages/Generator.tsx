@@ -327,15 +327,6 @@ export default function Generator() {
       return;
     }
 
-    // Lead Finder gate — show selector before first generation per cycle
-    if (!lead) {
-      pendingDemoRef.current = demoMode;
-      setShowLeadFinder(true);
-      // smooth scroll to top of output column
-      setTimeout(() => outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-      return;
-    }
-
     setLoading(true);
     setContent(null);
     setCopywriterOutput(null);
@@ -351,10 +342,10 @@ export default function Generator() {
             business_type: profile?.business_type || 'Service business',
             target_audience: targetAudience || 'Local customers',
             offer: offer || nicheValue,
-            recipient_name: lead.recipient_name,
-            recipient_contact: lead.recipient_contact,
-            profile_note: lead.profile_note,
-            template_mode: lead.template_mode,
+            recipient_name: lead?.recipient_name,
+            recipient_contact: lead?.recipient_contact,
+            profile_note: lead?.profile_note,
+            template_mode: lead?.template_mode ?? true,
           },
         },
       });
