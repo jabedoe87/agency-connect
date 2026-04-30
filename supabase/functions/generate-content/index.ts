@@ -599,6 +599,13 @@ Generate the structured inputs. Follow the exact JSON schema. Return ONLY valid 
     const isNiche = preset === "niche";
     const styleInstruction = STYLE_PRESETS[preset] || STYLE_PRESETS["high-converting"];
 
+    // Personalization block — injected into the user prompt when a recipient is provided.
+    const recipientName = (businessContext?.recipient_name || "").toString().trim();
+    const profileNote = (businessContext?.profile_note || "").toString().trim();
+    const personalizationBlock = recipientName
+      ? `\n\nRECIPIENT: This message will be sent directly to ${recipientName}. Open with their first name. Make at least one sentence specific to them so it could not be sent to anyone else.${profileNote ? `\nABOUT THEM: ${profileNote}\nWeave one detail from "ABOUT THEM" naturally into the opening or shift line — do not name-drop, do not flatter.` : ""}`
+      : "";
+
     const userPrompt = isNiche ? `Write 2 deep-conversion copy versions for this exact niche, score them, pick a winner, and rewrite the winner as the final.
 
 NICHE + AUDIENCE: ${niche}${businessContext?.target_audience ? ` — ${businessContext.target_audience}` : ''}
