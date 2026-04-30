@@ -330,6 +330,14 @@ export default function Generator() {
       toast({ title: 'Enter your niche or business description', variant: 'destructive' });
       return;
     }
+    if (!lead) {
+      toast({
+        title: 'Pick a recipient first',
+        description: 'Choose someone to message — or tap "Skip recipient" to generate a template.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
     setContent(null);
