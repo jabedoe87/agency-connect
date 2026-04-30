@@ -667,7 +667,7 @@ export default function Generator() {
             )}
 
             {/* Lead Finder — choose recipient before generating */}
-            <div className="glass-card p-5 space-y-3">
+            <div ref={leadFinderRef} className="glass-card p-5 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <Label className="label-uppercase text-foreground m-0">Recipient</Label>
                 {lead && (
@@ -694,7 +694,7 @@ export default function Generator() {
                     )}
                   </p>
                   <button
-                    onClick={() => setLead(null)}
+                    onClick={focusLeadFinder}
                     className="text-[11px] text-primary hover:underline shrink-0"
                   >
                     Change
