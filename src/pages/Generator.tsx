@@ -606,23 +606,61 @@ export default function Generator() {
               </div>
             </div>
 
+            {/* Saved recipient banner — visible whenever a persisted lead exists */}
+            {lead && (
+              <div className="rounded-md border border-primary/20 bg-primary/[0.04] px-3 py-2 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 flex items-center gap-2">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    Saved recipient:{' '}
+                    <span className="text-foreground font-medium">
+                      {lead.template_mode ? 'Template mode (no recipient)' : lead.recipient_name}
+                    </span>
+                    {!lead.template_mode && lead.recipient_contact && (
+                      <span className="text-muted-foreground/70"> · {lead.recipient_contact}</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => setLead(null)}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Change
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLead(null);
+                      toast({ title: 'Saved recipient cleared' });
+                    }}
+                    className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Lead Finder — choose recipient before generating */}
             <div className="glass-card p-5 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <Label className="label-uppercase text-foreground m-0">Recipient</Label>
                 {lead && (
                   <button
-                    onClick={() => setLead(null)}
-                    className="text-[11px] text-primary hover:underline shrink-0"
+                    onClick={() => {
+                      setLead(null);
+                      toast({ title: 'Saved recipient cleared' });
+                    }}
+                    className="text-[11px] text-muted-foreground hover:text-destructive transition-colors shrink-0"
                   >
-                    Change
+                    Clear saved recipient
                   </button>
                 )}
               </div>
 
               {lead ? (
-                <div className="rounded-md border border-primary/20 bg-primary/[0.05] px-3 py-2">
-                  <p className="text-xs text-foreground truncate">
+                <div className="rounded-md border border-primary/20 bg-primary/[0.05] px-3 py-2 flex items-center justify-between gap-3">
+                  <p className="text-xs text-foreground truncate min-w-0">
                     <span className="font-semibold text-primary">
                       {lead.template_mode ? 'Template (no recipient)' : lead.recipient_name}
                     </span>
@@ -630,6 +668,12 @@ export default function Generator() {
                       <span className="text-muted-foreground"> · {lead.recipient_contact}</span>
                     )}
                   </p>
+                  <button
+                    onClick={() => setLead(null)}
+                    className="text-[11px] text-primary hover:underline shrink-0"
+                  >
+                    Change
+                  </button>
                 </div>
               ) : (
                 <LeadFinder
