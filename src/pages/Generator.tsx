@@ -149,16 +149,22 @@ export default function Generator() {
 
   const focusLeadFinder = () => {
     setLead(null);
-    // Wait for LeadFinder to mount, then scroll + focus
-    setTimeout(() => {
+    // Poll via rAF until the LeadFinder mounts and a focusable element is in the DOM.
+    // Cap attempts (~1s @ 60fps) so we never loop forever if something fails to render.
+    let attempts = 0;
+    const tryFocus = () => {
       const el = leadFinderRef.current;
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const focusable = el.querySelector<HTMLElement>(
+      const focusable = el?.querySelector<HTMLElement>(
         'input, textarea, button, [tabindex]:not([tabindex="-1"])',
       );
-      focusable?.focus({ preventScroll: true });
-    }, 60);
+      if (el && focusable) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        focusable.focus({ preventScroll: true });
+        return;
+      }
+      if (attempts++ < 60) requestAnimationFrame(tryFocus);
+    };
+    requestAnimationFrame(tryFocus);
   };
 
   // ── Money Path state ────────────────────────────────────────────────
