@@ -615,7 +615,7 @@ OFFER: ${businessContext?.offer || niche}
 
 Every version MUST feel built for this niche only. Include at least one real moment from their week. Include ONE uncomfortable truth (placed per the version rules in the system prompt).
 
-Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${assistInstruction ? `\n\n${assistInstruction}` : ''}` : isAds ? `Write 3 scroll-stopping ads for this business, score each, pick a winner, and rewrite the winner as the final.
+Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${personalizationBlock}${assistInstruction ? `\n\n${assistInstruction}` : ''}` : isAds ? `Write 3 scroll-stopping ads for this business, score each, pick a winner, and rewrite the winner as the final.
 
 AUDIENCE: ${businessContext?.target_audience || "Local customers"}
 PAIN: derive from the niche/offer below — make it visceral and specific
@@ -626,7 +626,7 @@ NICHE: ${niche}
 
 Each version MUST include ONE concrete number, timeframe, or real scenario. Hook max 8 words. If a line could fit any business, rewrite it.
 
-Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${assistInstruction ? `\n\n${assistInstruction}` : ''}` : isCopywriter ? `Generate three high-converting copy versions for this business, score them, and produce a final improved version.
+Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${personalizationBlock}${assistInstruction ? `\n\n${assistInstruction}` : ''}` : isCopywriter ? `Generate three high-converting copy versions for this business, score them, and produce a final improved version.
 
 AUDIENCE / NICHE: ${niche}
 ${businessContext ? `- Business type: ${businessContext.business_type || "Service business"}
@@ -635,7 +635,7 @@ ${businessContext ? `- Business type: ${businessContext.business_type || "Servic
 
 Write specifically for THIS audience. Generic phrasing = automatic fail.
 
-Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${assistInstruction ? `\n\n${assistInstruction}` : ''}` : `Write client-getting content for this business.
+Follow the exact JSON schema. Return ONLY valid JSON. No markdown, no fences.${personalizationBlock}${assistInstruction ? `\n\n${assistInstruction}` : ''}` : `Write client-getting content for this business.
 
 Niche: ${niche}
 
@@ -650,7 +650,7 @@ Write specifically for THIS business and audience. Generic phrasing = automatic 
 
 Match the style EXACTLY. The output must feel unmistakably like the requested style — a luxury result must not sound like an aggressive result, and vice versa.
 
-Return ONLY valid JSON. No markdown, no code blocks, no explanation.${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
+Return ONLY valid JSON. No markdown, no code blocks, no explanation.${personalizationBlock}${assistInstruction ? `\n\n${assistInstruction}` : ''}`;
 
     const activeSystemPrompt = isNiche ? NICHE_SYSTEM_PROMPT : isAds ? ADS_SYSTEM_PROMPT : isCopywriter ? COPYWRITER_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
