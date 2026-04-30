@@ -916,10 +916,13 @@ export default function Generator() {
                   <ActionLayer
                     adText={`${adsOutput.final.hook}\n\n${adsOutput.final.pain}\n\n${adsOutput.final.shift}\n\n${adsOutput.final.offer}\n\n${adsOutput.final.cta}`}
                     ctaText={adsOutput.final.cta}
-                    actionType={actionType}
+                    actionType={lead?.contact_kind === 'email' ? 'Send Email' : lead?.contact_kind === 'instagram' ? 'Send Instagram DM' : actionType}
                     alreadyPosted={!!currentResult?.posted}
                     onPosted={handleMarkPosted}
                     onGenerateAnother={() => handleGenerate(false)}
+                    targetName={lead?.recipient_name}
+                    targetEmail={lead?.contact_kind === 'email' ? lead?.recipient_contact : undefined}
+                    targetUsername={lead?.contact_kind === 'instagram' ? (lead?.recipient_contact || '').replace(/^@/, '') : undefined}
                   />
                 )}
 
