@@ -594,6 +594,47 @@ export default function Generator() {
               </div>
             </div>
 
+            {/* Lead Finder — choose recipient before generating */}
+            <div className="glass-card p-5 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="label-uppercase text-foreground m-0">Recipient</Label>
+                {lead && (
+                  <button
+                    onClick={() => setLead(null)}
+                    className="text-[11px] text-primary hover:underline shrink-0"
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
+
+              {lead ? (
+                <div className="rounded-md border border-primary/20 bg-primary/[0.05] px-3 py-2">
+                  <p className="text-xs text-foreground truncate">
+                    <span className="font-semibold text-primary">
+                      {lead.template_mode ? 'Template (no recipient)' : lead.recipient_name}
+                    </span>
+                    {!lead.template_mode && lead.recipient_contact && (
+                      <span className="text-muted-foreground"> · {lead.recipient_contact}</span>
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <LeadFinder
+                  businessType={profile?.business_type || ''}
+                  targetAudience={targetAudience || niche}
+                  onConfirm={(sel) => {
+                    setLead(sel);
+                    if (sel.recipient_name) {
+                      toast({
+                        title: `Great. We'll write a message specifically for ${sel.recipient_name}.`,
+                      });
+                    }
+                  }}
+                />
+              )}
+            </div>
+
             {/* PRIMARY CTA — Generate */}
             <Button
               size="lg"
