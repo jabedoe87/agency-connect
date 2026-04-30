@@ -682,6 +682,51 @@ export default function Generator() {
             <WinningAngle onReuse={handleReuseWinning} />
             <WeeklyView />
 
+            {showLeadFinder && (
+              <div className="glass-card-raised p-5 fade-in">
+                <LeadFinder
+                  businessType={profile?.business_type || ''}
+                  targetAudience={targetAudience || niche}
+                  onConfirm={(sel) => {
+                    setLead(sel);
+                    setShowLeadFinder(false);
+                    if (sel.recipient_name) {
+                      toast({
+                        title: `Great. We'll write a message specifically for ${sel.recipient_name}.`,
+                      });
+                    }
+                    // continue the deferred generation
+                    const wasDemo = pendingDemoRef.current;
+                    pendingDemoRef.current = false;
+                    setTimeout(() => handleGenerate(wasDemo), 50);
+                  }}
+                />
+              </div>
+            )}
+
+            {lead && !showLeadFinder && (
+              <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5 flex items-center justify-between gap-3">
+                <p className="text-xs text-foreground truncate">
+                  <span className="text-muted-foreground">Sending to:</span>{' '}
+                  <span className="font-semibold text-primary">
+                    {lead.template_mode ? 'Template (no recipient yet)' : lead.recipient_name}
+                  </span>
+                  {!lead.template_mode && lead.recipient_contact && (
+                    <span className="text-muted-foreground"> · {lead.recipient_contact}</span>
+                  )}
+                </p>
+                <button
+                  onClick={() => {
+                    setLead(null);
+                    setShowLeadFinder(true);
+                  }}
+                  className="text-[11px] text-primary hover:underline shrink-0"
+                >
+                  Change
+                </button>
+              </div>
+            )}
+
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
@@ -689,6 +734,7 @@ export default function Generator() {
                 <p className="text-xs text-muted-foreground/70 mt-1">Used by businesses to attract clients</p>
               </div>
             )}
+
 
             {!content && !copywriterOutput && !adsOutput && !nicheOutput && !loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
