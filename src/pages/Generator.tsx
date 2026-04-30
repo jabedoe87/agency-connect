@@ -136,8 +136,6 @@ export default function Generator() {
 
   // Lead Finder integration
   const [lead, setLead] = useState<LeadSelection | null>(null);
-  const [showLeadFinder, setShowLeadFinder] = useState(false);
-  const pendingDemoRef = useRef(false);
 
   // ── Money Path state ────────────────────────────────────────────────
   // Tracks the current ads-winner result row (per generation) and all stored results.
