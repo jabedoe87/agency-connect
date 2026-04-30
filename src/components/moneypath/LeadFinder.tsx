@@ -310,6 +310,16 @@ export default function LeadFinder({ businessType, targetAudience, onConfirm }: 
             </p>
           </button>
         </div>
+
+        {/* Skip recipient — explicit confirmation for template-style message */}
+        <div className="flex items-center justify-center pt-1">
+          <button
+            onClick={() => onConfirm({ template_mode: true })}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+          >
+            Skip recipient — generate a template message
+          </button>
+        </div>
       </div>
     );
   }

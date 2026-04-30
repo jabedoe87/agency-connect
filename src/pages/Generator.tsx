@@ -29,6 +29,7 @@ import AutopilotPanel from '@/components/moneypath/AutopilotPanel';
 import DailyPlan from '@/components/moneypath/DailyPlan';
 import OutboundPipeline from '@/components/moneypath/OutboundPipeline';
 import LeadFinder, { type LeadSelection } from '@/components/moneypath/LeadFinder';
+import { readActiveLead, writeActiveLead } from '@/lib/leads';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
@@ -134,8 +135,13 @@ export default function Generator() {
   const [actionType, setActionType] = useState<ActionType>('Send Instagram DM');
   const [autoFilling, setAutoFilling] = useState(false);
 
-  // Lead Finder integration
-  const [lead, setLead] = useState<LeadSelection | null>(null);
+  // Lead Finder integration — persists across sessions
+  const [lead, setLead] = useState<LeadSelection | null>(() => readActiveLead<LeadSelection>());
+
+  // Persist active lead whenever it changes
+  useEffect(() => {
+    writeActiveLead(lead);
+  }, [lead]);
 
   // ── Money Path state ────────────────────────────────────────────────
   // Tracks the current ads-winner result row (per generation) and all stored results.
@@ -322,6 +328,14 @@ export default function Generator() {
     const nicheValue = demoMode ? DEMO_NICHE : niche.trim();
     if (!nicheValue) {
       toast({ title: 'Enter your niche or business description', variant: 'destructive' });
+      return;
+    }
+    if (!lead) {
+      toast({
+        title: 'Pick a recipient first',
+        description: 'Choose someone to message — or tap "Skip recipient" to generate a template.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -638,14 +652,25 @@ export default function Generator() {
               size="lg"
               className="w-full gap-2 cta-primary min-h-[48px] text-base"
               onClick={() => handleGenerate(false)}
-              disabled={loading}
+              disabled={loading || !lead}
+              aria-disabled={loading || !lead}
+              title={!lead ? 'Pick a recipient (or skip) to continue' : undefined}
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Writing your message...</>
+              ) : !lead ? (
+                <><Lock className="w-4 h-4" /> Pick a recipient to continue</>
+              ) : lead.template_mode ? (
+                <><Sparkles className="w-4 h-4" /> Generate template message</>
               ) : (
-                <><Sparkles className="w-4 h-4" /> Generate Client-Getting Content</>
+                <><Sparkles className="w-4 h-4" /> Generate message for {lead.recipient_name}</>
               )}
             </Button>
+            {!lead && !loading && (
+              <p className="text-[11px] text-muted-foreground text-center -mt-2">
+                Pick a recipient above — or use <span className="text-foreground">Skip recipient</span> for a template.
+              </p>
+            )}
           </div>
 
           {/* Output column */}

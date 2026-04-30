@@ -13,7 +13,30 @@ export interface RecentLead {
 }
 
 const KEY = 'agencyos_recent_leads_v1';
+const ACTIVE_KEY = 'agencyos_active_lead_v1';
 const MAX = 10;
+
+export function readActiveLead<T = unknown>(): T | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function writeActiveLead(value: unknown | null): void {
+  try {
+    if (value == null) {
+      localStorage.removeItem(ACTIVE_KEY);
+    } else {
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify(value));
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export function detectContactKind(raw: string): ContactKind {
   const v = raw.trim();
