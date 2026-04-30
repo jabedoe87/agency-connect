@@ -137,11 +137,29 @@ export default function Generator() {
 
   // Lead Finder integration — persists across sessions
   const [lead, setLead] = useState<LeadSelection | null>(() => readActiveLead<LeadSelection>());
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const leadFinderRef = useRef<HTMLDivElement>(null);
 
   // Persist active lead whenever it changes
   useEffect(() => {
     writeActiveLead(lead);
+    // Re-show banner when a new recipient is selected
+    if (lead) setBannerDismissed(false);
   }, [lead]);
+
+  const focusLeadFinder = () => {
+    setLead(null);
+    // Wait for LeadFinder to mount, then scroll + focus
+    setTimeout(() => {
+      const el = leadFinderRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusable = el.querySelector<HTMLElement>(
+        'input, textarea, button, [tabindex]:not([tabindex="-1"])',
+      );
+      focusable?.focus({ preventScroll: true });
+    }, 60);
+  };
 
   // ── Money Path state ────────────────────────────────────────────────
   // Tracks the current ads-winner result row (per generation) and all stored results.
@@ -607,7 +625,7 @@ export default function Generator() {
             </div>
 
             {/* Saved recipient banner — visible whenever a persisted lead exists */}
-            {lead && (
+            {lead && !bannerDismissed && (
               <div className="rounded-md border border-primary/20 bg-primary/[0.04] px-3 py-2 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1 flex items-center gap-2">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
@@ -623,7 +641,7 @@ export default function Generator() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <button
-                    onClick={() => setLead(null)}
+                    onClick={focusLeadFinder}
                     className="text-[11px] text-primary hover:underline"
                   >
                     Change
@@ -637,12 +655,19 @@ export default function Generator() {
                   >
                     Clear
                   </button>
+                  <button
+                    onClick={() => setBannerDismissed(true)}
+                    aria-label="Dismiss saved recipient banner"
+                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5 -mr-1"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                 </div>
               </div>
             )}
 
             {/* Lead Finder — choose recipient before generating */}
-            <div className="glass-card p-5 space-y-3">
+            <div ref={leadFinderRef} className="glass-card p-5 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <Label className="label-uppercase text-foreground m-0">Recipient</Label>
                 {lead && (
@@ -669,7 +694,7 @@ export default function Generator() {
                     )}
                   </p>
                   <button
-                    onClick={() => setLead(null)}
+                    onClick={focusLeadFinder}
                     className="text-[11px] text-primary hover:underline shrink-0"
                   >
                     Change
