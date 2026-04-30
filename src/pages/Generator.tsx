@@ -652,14 +652,25 @@ export default function Generator() {
               size="lg"
               className="w-full gap-2 cta-primary min-h-[48px] text-base"
               onClick={() => handleGenerate(false)}
-              disabled={loading}
+              disabled={loading || !lead}
+              aria-disabled={loading || !lead}
+              title={!lead ? 'Pick a recipient (or skip) to continue' : undefined}
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Writing your message...</>
+              ) : !lead ? (
+                <><Lock className="w-4 h-4" /> Pick a recipient to continue</>
+              ) : lead.template_mode ? (
+                <><Sparkles className="w-4 h-4" /> Generate template message</>
               ) : (
-                <><Sparkles className="w-4 h-4" /> Generate Client-Getting Content</>
+                <><Sparkles className="w-4 h-4" /> Generate message for {lead.recipient_name}</>
               )}
             </Button>
+            {!lead && !loading && (
+              <p className="text-[11px] text-muted-foreground text-center -mt-2">
+                Pick a recipient above — or use <span className="text-foreground">Skip recipient</span> for a template.
+              </p>
+            )}
           </div>
 
           {/* Output column */}
