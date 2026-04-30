@@ -136,8 +136,6 @@ export default function Generator() {
 
   // Lead Finder integration
   const [lead, setLead] = useState<LeadSelection | null>(null);
-  const [showLeadFinder, setShowLeadFinder] = useState(false);
-  const pendingDemoRef = useRef(false);
 
   // ── Money Path state ────────────────────────────────────────────────
   // Tracks the current ads-winner result row (per generation) and all stored results.
@@ -327,15 +325,6 @@ export default function Generator() {
       return;
     }
 
-    // Lead Finder gate — show selector before first generation per cycle
-    if (!lead) {
-      pendingDemoRef.current = demoMode;
-      setShowLeadFinder(true);
-      // smooth scroll to top of output column
-      setTimeout(() => outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-      return;
-    }
-
     setLoading(true);
     setContent(null);
     setCopywriterOutput(null);
@@ -351,10 +340,10 @@ export default function Generator() {
             business_type: profile?.business_type || 'Service business',
             target_audience: targetAudience || 'Local customers',
             offer: offer || nicheValue,
-            recipient_name: lead.recipient_name,
-            recipient_contact: lead.recipient_contact,
-            profile_note: lead.profile_note,
-            template_mode: lead.template_mode,
+            recipient_name: lead?.recipient_name,
+            recipient_contact: lead?.recipient_contact,
+            profile_note: lead?.profile_note,
+            template_mode: lead?.template_mode ?? true,
           },
         },
       });
@@ -603,6 +592,47 @@ export default function Generator() {
               </div>
             </div>
 
+            {/* Lead Finder — choose recipient before generating */}
+            <div className="glass-card p-5 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="label-uppercase text-foreground m-0">Recipient</Label>
+                {lead && (
+                  <button
+                    onClick={() => setLead(null)}
+                    className="text-[11px] text-primary hover:underline shrink-0"
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
+
+              {lead ? (
+                <div className="rounded-md border border-primary/20 bg-primary/[0.05] px-3 py-2">
+                  <p className="text-xs text-foreground truncate">
+                    <span className="font-semibold text-primary">
+                      {lead.template_mode ? 'Template (no recipient)' : lead.recipient_name}
+                    </span>
+                    {!lead.template_mode && lead.recipient_contact && (
+                      <span className="text-muted-foreground"> · {lead.recipient_contact}</span>
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <LeadFinder
+                  businessType={profile?.business_type || ''}
+                  targetAudience={targetAudience || niche}
+                  onConfirm={(sel) => {
+                    setLead(sel);
+                    if (sel.recipient_name) {
+                      toast({
+                        title: `Great. We'll write a message specifically for ${sel.recipient_name}.`,
+                      });
+                    }
+                  }}
+                />
+              )}
+            </div>
+
             {/* PRIMARY CTA — Generate */}
             <Button
               size="lg"
@@ -682,51 +712,6 @@ export default function Generator() {
             <WinningAngle onReuse={handleReuseWinning} />
             <WeeklyView />
 
-            {showLeadFinder && (
-              <div className="glass-card-raised p-5 fade-in">
-                <LeadFinder
-                  businessType={profile?.business_type || ''}
-                  targetAudience={targetAudience || niche}
-                  onConfirm={(sel) => {
-                    setLead(sel);
-                    setShowLeadFinder(false);
-                    if (sel.recipient_name) {
-                      toast({
-                        title: `Great. We'll write a message specifically for ${sel.recipient_name}.`,
-                      });
-                    }
-                    // continue the deferred generation
-                    const wasDemo = pendingDemoRef.current;
-                    pendingDemoRef.current = false;
-                    setTimeout(() => handleGenerate(wasDemo), 50);
-                  }}
-                />
-              </div>
-            )}
-
-            {lead && !showLeadFinder && (
-              <div className="rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-2.5 flex items-center justify-between gap-3">
-                <p className="text-xs text-foreground truncate">
-                  <span className="text-muted-foreground">Sending to:</span>{' '}
-                  <span className="font-semibold text-primary">
-                    {lead.template_mode ? 'Template (no recipient yet)' : lead.recipient_name}
-                  </span>
-                  {!lead.template_mode && lead.recipient_contact && (
-                    <span className="text-muted-foreground"> · {lead.recipient_contact}</span>
-                  )}
-                </p>
-                <button
-                  onClick={() => {
-                    setLead(null);
-                    setShowLeadFinder(true);
-                  }}
-                  className="text-[11px] text-primary hover:underline shrink-0"
-                >
-                  Change
-                </button>
-              </div>
-            )}
-
             {loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
@@ -736,7 +721,7 @@ export default function Generator() {
             )}
 
 
-            {!content && !copywriterOutput && !adsOutput && !nicheOutput && !loading && !showLeadFinder && (
+            {!content && !copywriterOutput && !adsOutput && !nicheOutput && !loading && (
               <div className="glass-card p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
                 <Sparkles className="w-10 h-10 text-primary/30 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-1">Ready to generate</h3>
