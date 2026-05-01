@@ -585,7 +585,8 @@ export default function Generator() {
       }
     } catch (err: any) {
       console.error(err);
-      toast({ title: 'Generation failed', description: err.message, variant: 'destructive' });
+      const { title, description } = await describeFunctionError(err);
+      toast({ title, description, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
