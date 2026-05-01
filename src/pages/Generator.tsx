@@ -111,6 +111,38 @@ type ActionType = typeof ACTION_OPTIONS[number];
 
 const DEMO_NICHE = 'Personal trainer helping busy professionals get fit';
 
+/**
+ * Extract a friendly message from a Supabase Edge Function error.
+ * Specifically handles 402 (AI credits exhausted) and 429 (rate limit) so the
+ * UI shows actionable copy instead of "Edge Function returned a non-2xx status code".
+ */
+async function describeFunctionError(err: any): Promise<{ title: string; description: string }> {
+  try {
+    const ctx = err?.context;
+    const status = ctx?.status ?? err?.status;
+    let body: any = null;
+    if (ctx && typeof ctx.json === 'function') {
+      try { body = await ctx.json(); } catch { /* ignore */ }
+    }
+    if (!body && ctx && typeof ctx.text === 'function') {
+      try { const t = await ctx.text(); body = t ? JSON.parse(t) : null; } catch { /* ignore */ }
+    }
+    const msg = body?.error || err?.message;
+    if (status === 402) {
+      return {
+        title: 'AI credits exhausted',
+        description: 'Add funds in Settings → Workspace → Usage to keep generating.',
+      };
+    }
+    if (status === 429) {
+      return { title: 'Too many requests', description: 'Slow down a moment and try again.' };
+    }
+    return { title: 'Generation failed', description: msg || 'Something went wrong. Try again.' };
+  } catch {
+    return { title: 'Generation failed', description: err?.message || 'Try again.' };
+  }
+}
+
 export default function Generator() {
   const { user, profile, subscription } = useAuth();
   const { toast } = useToast();
@@ -365,7 +397,8 @@ export default function Generator() {
       outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       toast({ title: '3 variations generated', description: 'Same winning hook, fresh openings + CTAs.' });
     } catch (err: any) {
-      toast({ title: 'Variation failed', description: err.message || 'Try again.', variant: 'destructive' });
+      const { description } = await describeFunctionError(err);
+      toast({ title: 'Variation failed', description, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -553,7 +586,8 @@ export default function Generator() {
       }
     } catch (err: any) {
       console.error(err);
-      toast({ title: 'Generation failed', description: err.message, variant: 'destructive' });
+      const { title, description } = await describeFunctionError(err);
+      toast({ title, description, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -603,7 +637,8 @@ export default function Generator() {
 
       outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err: any) {
-      toast({ title: 'AI Assist failed', description: err.message || 'Something went wrong. Try again.', variant: 'destructive' });
+      const { description } = await describeFunctionError(err);
+      toast({ title: 'AI Assist failed', description, variant: 'destructive' });
     } finally {
       setAssistLoading(false);
       setAssistLoadingText('');
