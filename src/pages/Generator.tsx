@@ -29,7 +29,8 @@ import AutopilotPanel from '@/components/moneypath/AutopilotPanel';
 import DailyPlan from '@/components/moneypath/DailyPlan';
 import OutboundPipeline from '@/components/moneypath/OutboundPipeline';
 import LeadFinder, { type LeadSelection } from '@/components/moneypath/LeadFinder';
-import { readActiveLead, writeActiveLead } from '@/lib/leads';
+import RecipientGate, { type RecipientGateUnlock } from '@/components/moneypath/RecipientGate';
+import { readActiveLead, writeActiveLead, saveRecentLead } from '@/lib/leads';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
@@ -138,6 +139,8 @@ export default function Generator() {
   // Lead Finder integration — persists across sessions
   const [lead, setLead] = useState<LeadSelection | null>(() => readActiveLead<LeadSelection>());
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Hard-lock for Option C (template mode): copy/send blocked until recipient added
+  const [leadUnlocked, setLeadUnlocked] = useState(false);
   const leadFinderRef = useRef<HTMLDivElement>(null);
 
   // Persist active lead whenever it changes
@@ -145,6 +148,10 @@ export default function Generator() {
     writeActiveLead(lead);
     // Re-show banner when a new recipient is selected
     if (lead) setBannerDismissed(false);
+    // Non-template leads are always unlocked; template leads stay locked
+    // until the post-generation gate is satisfied.
+    if (!lead || !lead.template_mode) setLeadUnlocked(true);
+    else setLeadUnlocked(false);
   }, [lead]);
 
   const focusLeadFinder = () => {
@@ -165,6 +172,88 @@ export default function Generator() {
       if (attempts++ < 60) requestAnimationFrame(tryFocus);
     };
     requestAnimationFrame(tryFocus);
+  };
+
+  // Gate: derived flag — output exists in template_mode and recipient hasn't been added yet.
+  const hasAnyOutput = !!(content || copywriterOutput || adsOutput || nicheOutput);
+  const gateActive = hasAnyOutput && lead?.template_mode === true && !leadUnlocked;
+
+  // Token replacement: swap [Name]/[Their Name]/[Recipient]/[First Name] etc. with the recipient's name.
+  // Pure local string transform — no API call, no re-generation.
+  const replaceNameTokens = (s: string, name: string): string => {
+    if (!s || !name) return s;
+    const first = name.split(/\s+/)[0] || name;
+    return s
+      .replace(/\[(?:their\s+)?(?:first\s*name|firstname|name|recipient|their\s+name)\]/gi, (m) =>
+        /first/i.test(m) ? first : name,
+      );
+  };
+
+  const applyTokensToVersion = <T extends Record<string, any>>(v: T, name: string): T => {
+    const out: any = { ...v };
+    for (const k of Object.keys(out)) {
+      if (typeof out[k] === 'string') out[k] = replaceNameTokens(out[k], name);
+    }
+    return out as T;
+  };
+
+  // Apply token replacement to every output state object currently on screen.
+  const applyTokensToAllOutputs = (name: string) => {
+    if (content) {
+      setContent({
+        ...content,
+        hook: replaceNameTokens(content.hook, name),
+        emotional_benefit: replaceNameTokens(content.emotional_benefit, name),
+        bullets: content.bullets.map((b) => replaceNameTokens(b, name)),
+        objection_handler: replaceNameTokens(content.objection_handler, name),
+        cta: replaceNameTokens(content.cta, name),
+      });
+    }
+    if (copywriterOutput) {
+      setCopywriterOutput({
+        ...copywriterOutput,
+        version_a: applyTokensToVersion(copywriterOutput.version_a, name),
+        version_b: applyTokensToVersion(copywriterOutput.version_b, name),
+        version_c: applyTokensToVersion(copywriterOutput.version_c, name),
+        final: applyTokensToVersion(copywriterOutput.final, name),
+        winner_reason: replaceNameTokens(copywriterOutput.winner_reason, name),
+      });
+    }
+    if (adsOutput) {
+      setAdsOutput({
+        ...adsOutput,
+        version_a: applyTokensToVersion(adsOutput.version_a, name),
+        version_b: applyTokensToVersion(adsOutput.version_b, name),
+        version_c: applyTokensToVersion(adsOutput.version_c, name),
+        final: applyTokensToVersion(adsOutput.final, name),
+      });
+    }
+    if (nicheOutput) {
+      setNicheOutput({
+        ...nicheOutput,
+        version_a: applyTokensToVersion(nicheOutput.version_a, name),
+        version_b: applyTokensToVersion(nicheOutput.version_b, name),
+        final: applyTokensToVersion(nicheOutput.final, name),
+      });
+    }
+  };
+
+  // Called by RecipientGate when user satisfies the lock.
+  const handleGateUnlock = (data: RecipientGateUnlock) => {
+    // Persist as recent lead + promote the active lead from template → real recipient.
+    saveRecentLead({ name: data.name, contact: data.contact, kind: data.kind });
+    setLead({
+      template_mode: false,
+      recipient_name: data.name,
+      recipient_contact: data.contact,
+      contact_kind: data.kind,
+    });
+    applyTokensToAllOutputs(data.name);
+    setLeadUnlocked(true);
+    toast({
+      title: `Unlocked — personalized for ${data.name}`,
+      description: 'Copy & send are now active.',
+    });
   };
 
   // ── Money Path state ────────────────────────────────────────────────
@@ -746,10 +835,17 @@ export default function Generator() {
                 Pick a recipient above — or use <span className="text-foreground">Skip recipient</span> for a template.
               </p>
             )}
+            {lead?.template_mode && !loading && (
+              <p className="text-[11px] text-muted-foreground text-center -mt-2 inline-flex items-center justify-center gap-1.5 w-full">
+                <Lock className="w-3 h-3" />
+                Copy &amp; send will lock until you add a recipient.
+              </p>
+            )}
           </div>
 
           {/* Output column */}
-          <div ref={outputRef} className="space-y-6">
+          <div ref={outputRef} className="space-y-6 relative">
+            {gateActive && <RecipientGate onUnlock={handleGateUnlock} /> }
             {/* V4.1 — Daily output, target, social proof, loss aversion, end-of-day */}
             <DailyTracker onJumpToCompose={() => nicheRef.current?.focus()} />
             {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}

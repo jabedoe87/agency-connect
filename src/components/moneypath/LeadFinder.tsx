@@ -300,13 +300,13 @@ export default function LeadFinder({ businessType, targetAudience, onConfirm }: 
           </button>
 
           <button
-            onClick={() => setMode('template')}
+            onClick={() => onConfirm({ template_mode: true })}
             className="glass-card p-5 text-left hover:bg-white/[0.06] hover:border-primary/40 border border-white/10 transition-all duration-150 group"
           >
             <FileText className="w-6 h-6 text-primary mb-3 group-hover:scale-110 transition-transform duration-150" />
             <p className="text-sm font-semibold text-foreground">Just generate a template</p>
             <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-              Just want to see the message first.
+              See the message first — add a recipient before sending.
             </p>
           </button>
         </div>
