@@ -835,6 +835,12 @@ export default function Generator() {
                 Pick a recipient above — or use <span className="text-foreground">Skip recipient</span> for a template.
               </p>
             )}
+            {lead?.template_mode && !loading && (
+              <p className="text-[11px] text-muted-foreground text-center -mt-2 inline-flex items-center justify-center gap-1.5 w-full">
+                <Lock className="w-3 h-3" />
+                Copy &amp; send will lock until you add a recipient.
+              </p>
+            )}
           </div>
 
           {/* Output column */}
