@@ -636,7 +636,8 @@ export default function Generator() {
 
       outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err: any) {
-      toast({ title: 'AI Assist failed', description: err.message || 'Something went wrong. Try again.', variant: 'destructive' });
+      const { description } = await describeFunctionError(err);
+      toast({ title: 'AI Assist failed', description, variant: 'destructive' });
     } finally {
       setAssistLoading(false);
       setAssistLoadingText('');
