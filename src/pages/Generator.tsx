@@ -139,6 +139,8 @@ export default function Generator() {
   // Lead Finder integration — persists across sessions
   const [lead, setLead] = useState<LeadSelection | null>(() => readActiveLead<LeadSelection>());
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Hard-lock for Option C (template mode): copy/send blocked until recipient added
+  const [leadUnlocked, setLeadUnlocked] = useState(false);
   const leadFinderRef = useRef<HTMLDivElement>(null);
 
   // Persist active lead whenever it changes
@@ -146,6 +148,10 @@ export default function Generator() {
     writeActiveLead(lead);
     // Re-show banner when a new recipient is selected
     if (lead) setBannerDismissed(false);
+    // Non-template leads are always unlocked; template leads stay locked
+    // until the post-generation gate is satisfied.
+    if (!lead || !lead.template_mode) setLeadUnlocked(true);
+    else setLeadUnlocked(false);
   }, [lead]);
 
   const focusLeadFinder = () => {
