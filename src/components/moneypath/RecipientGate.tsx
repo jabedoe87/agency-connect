@@ -1,116 +1,130 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Lock, Unlock } from 'lucide-react';
-import { isValidEmail, normalizeContact, type ContactKind } from '@/lib/leads';
+import { Sparkles, X } from 'lucide-react';
+import { saveRecentLead } from '@/lib/leads';
 
-export interface RecipientGateUnlock {
+export interface SmartSendPersonalize {
+  /** Current name typed by the user (may be empty). Triggers live token replace. */
   name: string;
-  contact: string;
-  kind: ContactKind;
 }
 
 interface Props {
-  onUnlock: (data: RecipientGateUnlock) => void;
+  /** Fired on every keystroke so the parent can live-replace [Name] tokens. */
+  onPersonalizeChange: (data: SmartSendPersonalize) => void;
+  /** Fired once the user clicks "Save recipient" with a non-empty name (and optional contact). */
+  onSaveRecipient?: (data: { name: string; contact?: string }) => void;
+  /** Hide the card entirely (persisted by parent if desired). */
+  onDismiss?: () => void;
 }
 
 /**
- * Hard-lock surface placed over generated output when the user chose
- * Option C (template). Copy + Send remain unreachable until both a
- * recipient name and a valid email/Instagram handle are provided.
+ * Smart Send Card — frictionless, NON-blocking personalization panel.
+ *
+ * Replaces the previous hard-lock RecipientGate. Copy/send always remain
+ * unlocked; this card simply offers an optional "add their name" field
+ * that live-replaces [Name]/[First Name] tokens in the generated output.
+ *
+ * Conversion-focused: zero required fields, dismissible, sits above output.
  */
-export default function RecipientGate({ onUnlock }: Props) {
+export default function RecipientGate({ onPersonalizeChange, onSaveRecipient, onDismiss }: Props) {
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [showContact, setShowContact] = useState(false);
 
-  const submit = () => {
+  // Live token replacement — fire on every keystroke.
+  useEffect(() => {
+    onPersonalizeChange({ name: name.trim() });
+    // Intentionally not depending on the callback identity to avoid loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name]);
+
+  const handleSave = () => {
     const tName = name.trim();
+    if (!tName) return;
     const tContact = contact.trim();
-    if (!tName) {
-      setError('Add the recipient name to unlock.');
-      return;
+    if (tContact) {
+      // Best-effort persist — kind detection happens in saveRecentLead's caller normally,
+      // but here we do a lightweight inference.
+      const kind = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tContact)
+        ? 'email'
+        : /^@?[\w.]{1,30}$/.test(tContact)
+        ? 'instagram'
+        : 'unknown';
+      const value = kind === 'instagram' && !tContact.startsWith('@') ? `@${tContact}` : tContact;
+      saveRecentLead({ name: tName, contact: value, kind: kind as 'email' | 'instagram' | 'unknown' });
+      onSaveRecipient?.({ name: tName, contact: value });
+    } else {
+      onSaveRecipient?.({ name: tName });
     }
-    if (!tContact) {
-      setError('Add an email or Instagram handle to unlock.');
-      return;
-    }
-    const norm = normalizeContact(tContact);
-    if (norm.kind === 'unknown') {
-      setError("That doesn't look like an email or @handle.");
-      return;
-    }
-    if (norm.kind === 'email' && !isValidEmail(norm.value)) {
-      setError("That email doesn't look right.");
-      return;
-    }
-    setError(null);
-    onUnlock({ name: tName, contact: norm.value, kind: norm.kind });
   };
 
   return (
     <div
-      className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto rounded-xl
-                 bg-background/80 backdrop-blur-md p-4 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Add recipient to unlock copy and send"
+      className="relative rounded-xl border border-primary/30 bg-primary/[0.04] p-4 sm:p-5
+                 shadow-[0_0_0_1px_hsl(var(--primary)/0.05)]"
+      role="region"
+      aria-label="Personalize this message (optional)"
     >
-      <div className="w-full max-w-md mt-10 glass-card-raised p-6 space-y-5 border border-primary/30 shadow-2xl">
-        <div className="flex items-center gap-2">
-          <Lock className="w-4 h-4 text-primary" />
-          <p className="label-uppercase text-primary text-[10px] font-bold">
-            Locked — recipient required
-          </p>
-        </div>
-        <div>
-          <h3 className="font-display text-lg text-foreground leading-tight">
-            Add who you're sending this to
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-            Templates sent to a real person get <span className="text-foreground font-semibold">3× more replies</span>.
-            Copy & send unlock once you add a name and contact.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <Label className="text-xs text-muted-foreground">Recipient name</Label>
-            <Input
-              value={name}
-              onChange={(e) => { setName(e.target.value); setError(null); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-              placeholder="e.g. Sarah Johnson"
-              className="mt-1.5"
-              autoFocus
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Email or Instagram handle</Label>
-            <Input
-              value={contact}
-              onChange={(e) => { setContact(e.target.value); setError(null); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-              placeholder="sarah@example.com or @sarahj"
-              className="mt-1.5"
-            />
-            {error && <p className="text-[11px] text-destructive mt-1.5">{error}</p>}
-          </div>
-        </div>
-
-        <Button
-          onClick={submit}
-          className="w-full cta-primary gap-2"
-          size="lg"
+      {onDismiss && (
+        <button
+          onClick={onDismiss}
+          aria-label="Hide personalize card"
+          className="absolute right-2 top-2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
         >
-          <Unlock className="w-4 h-4" /> Unlock copy & send
-        </Button>
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
 
-        <p className="text-[10px] text-muted-foreground/70 text-center leading-relaxed">
-          We'll personalize the message with their name automatically.
-        </p>
+      <div className="flex items-start gap-2 pr-6">
+        <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground leading-snug">
+            Personalize for 3× more replies <span className="text-muted-foreground font-normal">(optional)</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+            Type a name — we'll swap it into the message live. Copy & send already work.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-col sm:flex-row gap-2">
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Recipient name (e.g. Sarah)"
+          className="flex-1 h-9 text-sm"
+          aria-label="Recipient name"
+        />
+        {showContact ? (
+          <Input
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            placeholder="email or @handle"
+            className="flex-1 h-9 text-sm"
+            aria-label="Recipient contact (optional)"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowContact(true)}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-4 sm:self-center sm:px-2"
+          >
+            + add contact
+          </button>
+        )}
+        <Button
+          onClick={handleSave}
+          disabled={!name.trim()}
+          size="sm"
+          className="h-9 cta-primary shrink-0"
+        >
+          Save recipient
+        </Button>
       </div>
     </div>
   );
 }
+
+// Back-compat type export — no longer used as a hard-lock unlock payload.
+export type RecipientGateUnlock = { name: string; contact: string; kind: 'email' | 'instagram' | 'unknown' };

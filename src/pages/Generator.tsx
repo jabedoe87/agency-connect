@@ -29,8 +29,8 @@ import AutopilotPanel from '@/components/moneypath/AutopilotPanel';
 import DailyPlan from '@/components/moneypath/DailyPlan';
 import OutboundPipeline from '@/components/moneypath/OutboundPipeline';
 import LeadFinder, { type LeadSelection } from '@/components/moneypath/LeadFinder';
-import RecipientGate, { type RecipientGateUnlock } from '@/components/moneypath/RecipientGate';
-import { readActiveLead, writeActiveLead, saveRecentLead } from '@/lib/leads';
+import SmartSendCard from '@/components/moneypath/RecipientGate';
+import { readActiveLead, writeActiveLead, type ContactKind } from '@/lib/leads';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
@@ -139,19 +139,18 @@ export default function Generator() {
   // Lead Finder integration — persists across sessions
   const [lead, setLead] = useState<LeadSelection | null>(() => readActiveLead<LeadSelection>());
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  // Hard-lock for Option C (template mode): copy/send blocked until recipient added
-  const [leadUnlocked, setLeadUnlocked] = useState(false);
+  // Smart Send Card visibility (template mode only). User can dismiss it.
+  const [smartSendDismissed, setSmartSendDismissed] = useState(false);
   const leadFinderRef = useRef<HTMLDivElement>(null);
 
   // Persist active lead whenever it changes
   useEffect(() => {
     writeActiveLead(lead);
-    // Re-show banner when a new recipient is selected
-    if (lead) setBannerDismissed(false);
-    // Non-template leads are always unlocked; template leads stay locked
-    // until the post-generation gate is satisfied.
-    if (!lead || !lead.template_mode) setLeadUnlocked(true);
-    else setLeadUnlocked(false);
+    // Re-show banners when a new recipient is selected
+    if (lead) {
+      setBannerDismissed(false);
+      setSmartSendDismissed(false);
+    }
   }, [lead]);
 
   const focusLeadFinder = () => {
@@ -174,9 +173,12 @@ export default function Generator() {
     requestAnimationFrame(tryFocus);
   };
 
-  // Gate: derived flag — output exists in template_mode and recipient hasn't been added yet.
   const hasAnyOutput = !!(content || copywriterOutput || adsOutput || nicheOutput);
-  const gateActive = hasAnyOutput && lead?.template_mode === true && !leadUnlocked;
+  // Show the Smart Send Card when output exists in template mode (non-blocking nudge).
+  const showSmartSend = hasAnyOutput && lead?.template_mode === true && !smartSendDismissed;
+
+  // Live personalization name (controlled from SmartSendCard). Empty = no personalization.
+  const [personalizeName, setPersonalizeName] = useState('');
 
   // Token replacement: swap [Name]/[Their Name]/[Recipient]/[First Name] etc. with the recipient's name.
   // Pure local string transform — no API call, no re-generation.
@@ -189,6 +191,15 @@ export default function Generator() {
       );
   };
 
+  // Snapshot of the *original* generated text. Live personalization always
+  // re-derives from this snapshot so re-typing/clearing the name works correctly.
+  const originalsRef = useRef<{
+    content: GeneratedContent | null;
+    copywriterOutput: CopywriterOutput | null;
+    adsOutput: AdsOutput | null;
+    nicheOutput: NicheOutput | null;
+  }>({ content: null, copywriterOutput: null, adsOutput: null, nicheOutput: null });
+
   const applyTokensToVersion = <T extends Record<string, any>>(v: T, name: string): T => {
     const out: any = { ...v };
     for (const k of Object.keys(out)) {
@@ -197,62 +208,83 @@ export default function Generator() {
     return out as T;
   };
 
-  // Apply token replacement to every output state object currently on screen.
-  const applyTokensToAllOutputs = (name: string) => {
-    if (content) {
-      setContent({
-        ...content,
-        hook: replaceNameTokens(content.hook, name),
-        emotional_benefit: replaceNameTokens(content.emotional_benefit, name),
-        bullets: content.bullets.map((b) => replaceNameTokens(b, name)),
-        objection_handler: replaceNameTokens(content.objection_handler, name),
-        cta: replaceNameTokens(content.cta, name),
-      });
+  // Whenever personalizeName changes, re-derive output from originals.
+  useEffect(() => {
+    const name = personalizeName.trim();
+    const o = originalsRef.current;
+    if (o.content) {
+      setContent(
+        name
+          ? {
+              ...o.content,
+              hook: replaceNameTokens(o.content.hook, name),
+              emotional_benefit: replaceNameTokens(o.content.emotional_benefit, name),
+              bullets: o.content.bullets.map((b) => replaceNameTokens(b, name)),
+              objection_handler: replaceNameTokens(o.content.objection_handler, name),
+              cta: replaceNameTokens(o.content.cta, name),
+            }
+          : o.content,
+      );
     }
-    if (copywriterOutput) {
-      setCopywriterOutput({
-        ...copywriterOutput,
-        version_a: applyTokensToVersion(copywriterOutput.version_a, name),
-        version_b: applyTokensToVersion(copywriterOutput.version_b, name),
-        version_c: applyTokensToVersion(copywriterOutput.version_c, name),
-        final: applyTokensToVersion(copywriterOutput.final, name),
-        winner_reason: replaceNameTokens(copywriterOutput.winner_reason, name),
-      });
+    if (o.copywriterOutput) {
+      setCopywriterOutput(
+        name
+          ? {
+              ...o.copywriterOutput,
+              version_a: applyTokensToVersion(o.copywriterOutput.version_a, name),
+              version_b: applyTokensToVersion(o.copywriterOutput.version_b, name),
+              version_c: applyTokensToVersion(o.copywriterOutput.version_c, name),
+              final: applyTokensToVersion(o.copywriterOutput.final, name),
+              winner_reason: replaceNameTokens(o.copywriterOutput.winner_reason, name),
+            }
+          : o.copywriterOutput,
+      );
     }
-    if (adsOutput) {
-      setAdsOutput({
-        ...adsOutput,
-        version_a: applyTokensToVersion(adsOutput.version_a, name),
-        version_b: applyTokensToVersion(adsOutput.version_b, name),
-        version_c: applyTokensToVersion(adsOutput.version_c, name),
-        final: applyTokensToVersion(adsOutput.final, name),
-      });
+    if (o.adsOutput) {
+      setAdsOutput(
+        name
+          ? {
+              ...o.adsOutput,
+              version_a: applyTokensToVersion(o.adsOutput.version_a, name),
+              version_b: applyTokensToVersion(o.adsOutput.version_b, name),
+              version_c: applyTokensToVersion(o.adsOutput.version_c, name),
+              final: applyTokensToVersion(o.adsOutput.final, name),
+            }
+          : o.adsOutput,
+      );
     }
-    if (nicheOutput) {
-      setNicheOutput({
-        ...nicheOutput,
-        version_a: applyTokensToVersion(nicheOutput.version_a, name),
-        version_b: applyTokensToVersion(nicheOutput.version_b, name),
-        final: applyTokensToVersion(nicheOutput.final, name),
-      });
+    if (o.nicheOutput) {
+      setNicheOutput(
+        name
+          ? {
+              ...o.nicheOutput,
+              version_a: applyTokensToVersion(o.nicheOutput.version_a, name),
+              version_b: applyTokensToVersion(o.nicheOutput.version_b, name),
+              final: applyTokensToVersion(o.nicheOutput.final, name),
+            }
+          : o.nicheOutput,
+      );
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personalizeName]);
 
-  // Called by RecipientGate when user satisfies the lock.
-  const handleGateUnlock = (data: RecipientGateUnlock) => {
-    // Persist as recent lead + promote the active lead from template → real recipient.
-    saveRecentLead({ name: data.name, contact: data.contact, kind: data.kind });
+  // Called when user clicks "Save recipient" inside the Smart Send Card.
+  // Promotes the lead from template → real recipient and persists it.
+  const handleSmartSendSave = (data: { name: string; contact?: string }) => {
+    const kind: ContactKind = data.contact
+      ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.contact)
+        ? 'email'
+        : 'instagram'
+      : 'unknown';
     setLead({
       template_mode: false,
       recipient_name: data.name,
       recipient_contact: data.contact,
-      contact_kind: data.kind,
+      contact_kind: kind,
     });
-    applyTokensToAllOutputs(data.name);
-    setLeadUnlocked(true);
     toast({
-      title: `Unlocked — personalized for ${data.name}`,
-      description: 'Copy & send are now active.',
+      title: `Personalized for ${data.name}`,
+      description: data.contact ? 'Saved as a recent recipient.' : 'Name applied to the message.',
     });
   };
 
@@ -457,6 +489,10 @@ export default function Generator() {
     setCopywriterOutput(null);
     setAdsOutput(null);
     setNicheOutput(null);
+    // Reset live personalization for the new generation.
+    setPersonalizeName('');
+    setSmartSendDismissed(false);
+    originalsRef.current = { content: null, copywriterOutput: null, adsOutput: null, nicheOutput: null };
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -481,12 +517,16 @@ export default function Generator() {
       const generated = data.content;
       if (preset === 'copywriter') {
         setCopywriterOutput(generated as CopywriterOutput);
+        originalsRef.current.copywriterOutput = generated as CopywriterOutput;
       } else if (preset === 'ads') {
         setAdsOutput(generated as AdsOutput);
+        originalsRef.current.adsOutput = generated as AdsOutput;
       } else if (preset === 'niche') {
         setNicheOutput(generated as NicheOutput);
+        originalsRef.current.nicheOutput = generated as NicheOutput;
       } else {
         setContent(generated as GeneratedContent);
+        originalsRef.current.content = generated as GeneratedContent;
       }
 
       await supabase.from('generated_content').insert({
@@ -556,6 +596,9 @@ export default function Generator() {
       } else {
         setVariations(null);
         setContent(data.content as GeneratedContent);
+        // Reset live-personalization snapshot to the new edited content.
+        originalsRef.current.content = data.content as GeneratedContent;
+        setPersonalizeName('');
       }
 
       outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -837,15 +880,21 @@ export default function Generator() {
             )}
             {lead?.template_mode && !loading && (
               <p className="text-[11px] text-muted-foreground text-center -mt-2 inline-flex items-center justify-center gap-1.5 w-full">
-                <Lock className="w-3 h-3" />
-                Copy &amp; send will lock until you add a recipient.
+                <Sparkles className="w-3 h-3 text-primary" />
+                You can personalize after generating — copy &amp; send work right away.
               </p>
             )}
           </div>
 
           {/* Output column */}
-          <div ref={outputRef} className="space-y-6 relative">
-            {gateActive && <RecipientGate onUnlock={handleGateUnlock} /> }
+          <div ref={outputRef} className="space-y-6">
+            {showSmartSend && (
+              <SmartSendCard
+                onPersonalizeChange={({ name }) => setPersonalizeName(name)}
+                onSaveRecipient={handleSmartSendSave}
+                onDismiss={() => setSmartSendDismissed(true)}
+              />
+            )}
             {/* V4.1 — Daily output, target, social proof, loss aversion, end-of-day */}
             <DailyTracker onJumpToCompose={() => nicheRef.current?.focus()} />
             {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}
