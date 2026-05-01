@@ -489,6 +489,10 @@ export default function Generator() {
     setCopywriterOutput(null);
     setAdsOutput(null);
     setNicheOutput(null);
+    // Reset live personalization for the new generation.
+    setPersonalizeName('');
+    setSmartSendDismissed(false);
+    originalsRef.current = { content: null, copywriterOutput: null, adsOutput: null, nicheOutput: null };
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-content', {
@@ -513,12 +517,16 @@ export default function Generator() {
       const generated = data.content;
       if (preset === 'copywriter') {
         setCopywriterOutput(generated as CopywriterOutput);
+        originalsRef.current.copywriterOutput = generated as CopywriterOutput;
       } else if (preset === 'ads') {
         setAdsOutput(generated as AdsOutput);
+        originalsRef.current.adsOutput = generated as AdsOutput;
       } else if (preset === 'niche') {
         setNicheOutput(generated as NicheOutput);
+        originalsRef.current.nicheOutput = generated as NicheOutput;
       } else {
         setContent(generated as GeneratedContent);
+        originalsRef.current.content = generated as GeneratedContent;
       }
 
       await supabase.from('generated_content').insert({
