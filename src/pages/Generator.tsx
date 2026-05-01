@@ -877,15 +877,21 @@ export default function Generator() {
             )}
             {lead?.template_mode && !loading && (
               <p className="text-[11px] text-muted-foreground text-center -mt-2 inline-flex items-center justify-center gap-1.5 w-full">
-                <Lock className="w-3 h-3" />
-                Copy &amp; send will lock until you add a recipient.
+                <Sparkles className="w-3 h-3 text-primary" />
+                You can personalize after generating — copy &amp; send work right away.
               </p>
             )}
           </div>
 
           {/* Output column */}
-          <div ref={outputRef} className="space-y-6 relative">
-            {gateActive && <RecipientGate onUnlock={handleGateUnlock} /> }
+          <div ref={outputRef} className="space-y-6">
+            {showSmartSend && (
+              <SmartSendCard
+                onPersonalizeChange={({ name }) => setPersonalizeName(name)}
+                onSaveRecipient={handleSmartSendSave}
+                onDismiss={() => setSmartSendDismissed(true)}
+              />
+            )}
             {/* V4.1 — Daily output, target, social proof, loss aversion, end-of-day */}
             <DailyTracker onJumpToCompose={() => nicheRef.current?.focus()} />
             {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}
