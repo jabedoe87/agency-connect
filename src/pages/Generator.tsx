@@ -29,7 +29,8 @@ import AutopilotPanel from '@/components/moneypath/AutopilotPanel';
 import DailyPlan from '@/components/moneypath/DailyPlan';
 import OutboundPipeline from '@/components/moneypath/OutboundPipeline';
 import LeadFinder, { type LeadSelection } from '@/components/moneypath/LeadFinder';
-import { readActiveLead, writeActiveLead } from '@/lib/leads';
+import RecipientGate, { type RecipientGateUnlock } from '@/components/moneypath/RecipientGate';
+import { readActiveLead, writeActiveLead, saveRecentLead } from '@/lib/leads';
 import { useAddiction } from '@/hooks/useAddiction';
 import {
   computeInsights,
