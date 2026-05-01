@@ -174,6 +174,88 @@ export default function Generator() {
     requestAnimationFrame(tryFocus);
   };
 
+  // Gate: derived flag — output exists in template_mode and recipient hasn't been added yet.
+  const hasAnyOutput = !!(content || copywriterOutput || adsOutput || nicheOutput);
+  const gateActive = hasAnyOutput && lead?.template_mode === true && !leadUnlocked;
+
+  // Token replacement: swap [Name]/[Their Name]/[Recipient]/[First Name] etc. with the recipient's name.
+  // Pure local string transform — no API call, no re-generation.
+  const replaceNameTokens = (s: string, name: string): string => {
+    if (!s || !name) return s;
+    const first = name.split(/\s+/)[0] || name;
+    return s
+      .replace(/\[(?:their\s+)?(?:first\s*name|firstname|name|recipient|their\s+name)\]/gi, (m) =>
+        /first/i.test(m) ? first : name,
+      );
+  };
+
+  const applyTokensToVersion = <T extends Record<string, any>>(v: T, name: string): T => {
+    const out: any = { ...v };
+    for (const k of Object.keys(out)) {
+      if (typeof out[k] === 'string') out[k] = replaceNameTokens(out[k], name);
+    }
+    return out as T;
+  };
+
+  // Apply token replacement to every output state object currently on screen.
+  const applyTokensToAllOutputs = (name: string) => {
+    if (content) {
+      setContent({
+        ...content,
+        hook: replaceNameTokens(content.hook, name),
+        emotional_benefit: replaceNameTokens(content.emotional_benefit, name),
+        bullets: content.bullets.map((b) => replaceNameTokens(b, name)),
+        objection_handler: replaceNameTokens(content.objection_handler, name),
+        cta: replaceNameTokens(content.cta, name),
+      });
+    }
+    if (copywriterOutput) {
+      setCopywriterOutput({
+        ...copywriterOutput,
+        version_a: applyTokensToVersion(copywriterOutput.version_a, name),
+        version_b: applyTokensToVersion(copywriterOutput.version_b, name),
+        version_c: applyTokensToVersion(copywriterOutput.version_c, name),
+        final: applyTokensToVersion(copywriterOutput.final, name),
+        winner_reason: replaceNameTokens(copywriterOutput.winner_reason, name),
+      });
+    }
+    if (adsOutput) {
+      setAdsOutput({
+        ...adsOutput,
+        version_a: applyTokensToVersion(adsOutput.version_a, name),
+        version_b: applyTokensToVersion(adsOutput.version_b, name),
+        version_c: applyTokensToVersion(adsOutput.version_c, name),
+        final: applyTokensToVersion(adsOutput.final, name),
+      });
+    }
+    if (nicheOutput) {
+      setNicheOutput({
+        ...nicheOutput,
+        version_a: applyTokensToVersion(nicheOutput.version_a, name),
+        version_b: applyTokensToVersion(nicheOutput.version_b, name),
+        final: applyTokensToVersion(nicheOutput.final, name),
+      });
+    }
+  };
+
+  // Called by RecipientGate when user satisfies the lock.
+  const handleGateUnlock = (data: RecipientGateUnlock) => {
+    // Persist as recent lead + promote the active lead from template → real recipient.
+    saveRecentLead({ name: data.name, contact: data.contact, kind: data.kind });
+    setLead({
+      template_mode: false,
+      recipient_name: data.name,
+      recipient_contact: data.contact,
+      contact_kind: data.kind,
+    });
+    applyTokensToAllOutputs(data.name);
+    setLeadUnlocked(true);
+    toast({
+      title: `Unlocked — personalized for ${data.name}`,
+      description: 'Copy & send are now active.',
+    });
+  };
+
   // ── Money Path state ────────────────────────────────────────────────
   // Tracks the current ads-winner result row (per generation) and all stored results.
   const [results, setResults] = useState<MoneyResult[]>(() => readResults());
