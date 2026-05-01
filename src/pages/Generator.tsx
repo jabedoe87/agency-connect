@@ -838,7 +838,8 @@ export default function Generator() {
           </div>
 
           {/* Output column */}
-          <div ref={outputRef} className="space-y-6">
+          <div ref={outputRef} className="space-y-6 relative">
+            {gateActive && <RecipientGate onUnlock={handleGateUnlock} /> }
             {/* V4.1 — Daily output, target, social proof, loss aversion, end-of-day */}
             <DailyTracker onJumpToCompose={() => nicheRef.current?.focus()} />
             {/* V5.1 — Money dashboard: revenue, clients, leads, replies, scale signal */}
