@@ -596,6 +596,9 @@ export default function Generator() {
       } else {
         setVariations(null);
         setContent(data.content as GeneratedContent);
+        // Reset live-personalization snapshot to the new edited content.
+        originalsRef.current.content = data.content as GeneratedContent;
+        setPersonalizeName('');
       }
 
       outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
