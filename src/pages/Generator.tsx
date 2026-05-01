@@ -397,7 +397,8 @@ export default function Generator() {
       outputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       toast({ title: '3 variations generated', description: 'Same winning hook, fresh openings + CTAs.' });
     } catch (err: any) {
-      toast({ title: 'Variation failed', description: err.message || 'Try again.', variant: 'destructive' });
+      const { description } = await describeFunctionError(err);
+      toast({ title: 'Variation failed', description, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
