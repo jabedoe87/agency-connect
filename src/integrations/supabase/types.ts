@@ -293,12 +293,14 @@ export type Database = {
           company_name: string
           created_at: string
           full_name: string
+          grace_period_ends_at: string | null
           id: string
           onboarding_completed: boolean
           phone: string
           plan: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          subscription_status: string
           trial_ends_at: string
           user_id: string
         }
@@ -310,12 +312,14 @@ export type Database = {
           company_name?: string
           created_at?: string
           full_name?: string
+          grace_period_ends_at?: string | null
           id?: string
           onboarding_completed?: boolean
           phone?: string
           plan?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_status?: string
           trial_ends_at?: string
           user_id: string
         }
@@ -327,12 +331,14 @@ export type Database = {
           company_name?: string
           created_at?: string
           full_name?: string
+          grace_period_ends_at?: string | null
           id?: string
           onboarding_completed?: boolean
           phone?: string
           plan?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_status?: string
           trial_ends_at?: string
           user_id?: string
         }
@@ -367,6 +373,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_access: { Args: { _user_id: string }; Returns: boolean }
       is_active_subscriber: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }

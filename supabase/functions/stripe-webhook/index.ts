@@ -170,6 +170,8 @@ Deno.serve(async (req) => {
 
       const updateFields: Record<string, any> = {
         plan: resolvedPlan,
+        subscription_status: stripeStatus === "trialing" ? "trialing" : "active",
+        grace_period_ends_at: null,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
       };
@@ -208,11 +210,18 @@ Deno.serve(async (req) => {
 
       if (event.type === "customer.subscription.deleted" || stripeStatus === "canceled") {
         updateFields.plan = "trial";
+        updateFields.subscription_status = "canceled";
         updateFields.stripe_subscription_id = null;
+        updateFields.grace_period_ends_at = null;
       } else if (stripeStatus === "past_due" || stripeStatus === "unpaid") {
+        // Start 48h grace period
         updateFields.plan = "past_due";
+        updateFields.subscription_status = "grace_period";
+        updateFields.grace_period_ends_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
       } else if (resolvedPlan && PAID_STATUSES.includes(stripeStatus)) {
         updateFields.plan = resolvedPlan;
+        updateFields.subscription_status = stripeStatus === "trialing" ? "trialing" : "active";
+        updateFields.grace_period_ends_at = null;
         if (stripeStatus === "active") updateFields.trial_ends_at = new Date().toISOString();
         else if (stripeStatus === "trialing" && subscription.trial_end) {
           updateFields.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
@@ -238,6 +247,8 @@ Deno.serve(async (req) => {
 
       await upsertProfile(userId, {
         plan: resolvedPlan,
+        subscription_status: "active",
+        grace_period_ends_at: null,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
         trial_ends_at: new Date().toISOString(),
@@ -249,7 +260,12 @@ Deno.serve(async (req) => {
       const customerId = invoice.customer as string;
       const { userId, email } = await resolveUserIdFromCustomer(customerId, invoice.customer_email);
       if (userId) {
-        await upsertProfile(userId, { plan: "past_due" });
+        // Start 48h grace period — user keeps access until grace_period_ends_at
+        await upsertProfile(userId, {
+          plan: "past_due",
+          subscription_status: "grace_period",
+          grace_period_ends_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        });
         if (email) {
           const { name } = await getProfileNameAndPlan(userId);
           await fireEmail(supabase, "payment-failed", email, userId, { name });

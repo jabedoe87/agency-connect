@@ -22,6 +22,7 @@ import Booking from "./pages/Booking";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AdminEmails from "./pages/AdminEmails";
+import { HardGateProvider } from "./components/HardGateModal";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <HardGateProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -80,6 +82,7 @@ const App = () => (
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </HardGateProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
