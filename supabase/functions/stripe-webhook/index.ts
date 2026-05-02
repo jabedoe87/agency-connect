@@ -170,6 +170,8 @@ Deno.serve(async (req) => {
 
       const updateFields: Record<string, any> = {
         plan: resolvedPlan,
+        subscription_status: stripeStatus === "trialing" ? "trialing" : "active",
+        grace_period_ends_at: null,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
       };
