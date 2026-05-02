@@ -146,6 +146,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          provider_message_id: string | null
+          recipient_email: string
+          status: string
+          template_name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_message_id?: string | null
+          recipient_email: string
+          status?: string
+          template_name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       generated_content: {
         Row: {
           content: Json
@@ -329,6 +368,7 @@ export type Database = {
     }
     Functions: {
       is_active_subscriber: { Args: { _user_id: string }; Returns: boolean }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
