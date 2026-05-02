@@ -257,6 +257,15 @@ Deno.serve(async (req) => {
       // (Subscription updated/deleted events will adjust plan if it ultimately fails.)
     }
 
+    // ─── customer.subscription.trial_will_end ────────────────────
+    // Fires ~3 days before trial_end. Log + idempotent; email hook can pick this up.
+    if (event.type === "customer.subscription.trial_will_end") {
+      const subscription = event.data.object as Stripe.Subscription;
+      const customerId = subscription.customer as string;
+      const resolvedUserId = await resolveUserIdFromCustomer(customerId);
+      console.log("[WEBHOOK] trial_will_end for user:", resolvedUserId ?? "unknown", "trial_end:", subscription.trial_end);
+    }
+
     return new Response("OK", { status: 200 });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
