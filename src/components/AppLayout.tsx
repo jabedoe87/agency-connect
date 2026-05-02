@@ -234,17 +234,40 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      {/* Trial expired modal */}
+      {/* Trial expired hard-lock modal — cannot be dismissed */}
       <Dialog open={showTrialExpired} onOpenChange={() => {}}>
-        <DialogContent className="[&>button]:hidden">
+        <DialogContent
+          className="[&>button]:hidden max-w-lg"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
-            <DialogTitle>Your free trial has ended</DialogTitle>
+            <DialogTitle>Your trial has ended</DialogTitle>
             <DialogDescription>
-              Your 7-day free trial has expired. Choose a plan to continue using AgencyOS.
+              Upgrade to continue sending messages. You won't lose any of your data.
             </DialogDescription>
           </DialogHeader>
+          <div className="grid grid-cols-3 gap-2 my-2">
+            {[
+              { name: 'Starter', price: 49 },
+              { name: 'Pro', price: 99, highlight: true },
+              { name: 'Business', price: 149 },
+            ].map((p) => (
+              <div
+                key={p.name}
+                className={`rounded-lg border p-3 text-center ${
+                  p.highlight ? 'border-primary bg-primary/5' : 'border-border'
+                }`}
+              >
+                <div className="text-xs text-muted-foreground">{p.name}</div>
+                <div className="text-lg font-bold text-foreground">€{p.price}</div>
+                <div className="text-[10px] text-muted-foreground">/month</div>
+              </div>
+            ))}
+          </div>
           <Link to="/pricing">
-            <Button className="w-full cta-primary">Choose a Plan</Button>
+            <Button className="w-full cta-primary">Choose a plan</Button>
           </Link>
         </DialogContent>
       </Dialog>
