@@ -105,11 +105,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <span className="font-display text-xl text-foreground tracking-tight">AgencyOS</span>
         </div>
 
-        {!hasPaidPlan && profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
-          <div className="mx-4 mt-4 p-3 rounded-xl bg-warning/10 border border-warning/20">
-            <p className="text-xs text-warning font-medium">Your trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</p>
-          </div>
-        )}
+        {/* Trial countdown moved to global TrialBanner above the top bar */}
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {primaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
