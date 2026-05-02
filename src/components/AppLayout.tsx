@@ -139,6 +139,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main content */}
+        <TrialBanner />
       <main className="flex-1 md:ml-64 pb-20 md:pb-0">
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur-md">
