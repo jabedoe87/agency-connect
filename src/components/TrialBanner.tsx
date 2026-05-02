@@ -1,61 +1,85 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { useAccess } from '@/hooks/useAccess';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import { AlertTriangle, Clock, ShieldAlert } from 'lucide-react';
 
 /**
- * Global trial banner — shown on every authenticated page.
- * - Neutral state: "Your trial ends in X days" (always visible while on trial)
- * - Red state: "Trial expired" (when trial_ends_at < now and no paid plan)
- * - Hidden entirely for paid users (starter / pro / business) and unauthenticated views.
+ * Global trial / status banner.
+ * - trialing: neutral "X days left" (warning style)
+ * - grace_period: red "Payment failed — fix to keep access"
+ * - past_due: red (PaymentFailedBanner handles deeper CTA)
+ * - expired (no access, not trialing): red "Trial expired"
+ * - active / paid: hidden
  */
 export default function TrialBanner() {
-  const { profile, subscription } = useAuth();
+  const { profile } = useAuth();
+  const { hasAccess, isTrialing, isGracePeriod, isExpired, status, trialDaysRemaining } =
+    useAccess();
+  const { track } = useAnalytics();
+
   if (!profile) return null;
+  // Hide entirely for active paid users.
+  if (status === 'active') return null;
+  // Hide if user has access AND is not on trial AND not in grace (nothing to nag about).
+  if (hasAccess && !isTrialing && !isGracePeriod) return null;
 
-  const hasPaidPlan =
-    subscription?.subscribed === true ||
-    profile.plan === 'starter' ||
-    profile.plan === 'pro' ||
-    profile.plan === 'business';
-  if (hasPaidPlan) return null;
+  let style: 'neutral' | 'danger' = 'neutral';
+  let Icon = Clock;
+  let message = '';
+  let cta = 'Upgrade';
 
-  const trialEndsAt = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
-  const now = new Date();
-  const expired = !!trialEndsAt && trialEndsAt < now;
-  const daysLeft = trialEndsAt
-    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / 86400000))
-    : 0;
+  if (isGracePeriod) {
+    style = 'danger';
+    Icon = ShieldAlert;
+    message = 'Payment failed — update your card within 48h to keep access.';
+    cta = 'Update card';
+  } else if (isTrialing) {
+    style = 'neutral';
+    Icon = Clock;
+    const d = trialDaysRemaining ?? 0;
+    message = `Your trial ends in ${d} day${d !== 1 ? 's' : ''} — upgrade to keep access`;
+    cta = 'Upgrade';
+  } else if (isExpired) {
+    style = 'danger';
+    Icon = AlertTriangle;
+    message =
+      status === 'canceled'
+        ? 'Subscription canceled — reactivate to continue'
+        : 'Trial expired — upgrade to continue';
+    cta = 'Choose a plan';
+  } else {
+    return null;
+  }
+
+  const handleClick = () => {
+    track('trial_banner_clicked', { status, days_remaining: trialDaysRemaining });
+    track('upgrade_clicked', { source: 'trial_banner', status });
+  };
 
   return (
     <div
       className={`w-full border-b text-sm flex items-center justify-between gap-3 px-4 py-2.5 ${
-        expired
+        style === 'danger'
           ? 'bg-destructive/15 border-destructive/40 text-destructive'
           : 'bg-warning/10 border-warning/30 text-warning'
       }`}
       role="status"
     >
       <div className="flex items-center gap-2 min-w-0">
-        {expired ? (
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-        ) : (
-          <Clock className="w-4 h-4 shrink-0" />
-        )}
-        <span className="truncate">
-          {expired
-            ? 'Trial expired — upgrade to continue'
-            : `Your trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} — upgrade to keep access`}
-        </span>
+        <Icon className="w-4 h-4 shrink-0" />
+        <span className="truncate">{message}</span>
       </div>
       <Link
-        to="/pricing"
+        to={isGracePeriod ? '/settings?action=update_card' : '/pricing'}
+        onClick={handleClick}
         className={`shrink-0 px-3 py-1 rounded-md text-xs font-medium ${
-          expired
+          style === 'danger'
             ? 'bg-destructive text-destructive-foreground hover:opacity-90'
             : 'bg-warning text-warning-foreground hover:opacity-90'
         }`}
       >
-        {expired ? 'Choose a plan' : 'Upgrade'}
+        {cta}
       </Link>
     </div>
   );

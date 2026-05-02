@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, type MouseEvent } from 'react';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 interface PricingCardsProps {
   ctaPath?: string;
@@ -15,6 +16,7 @@ interface PricingCardsProps {
 export default function PricingCards({ ctaPath = '/register' }: PricingCardsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { track } = useAnalytics();
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [priceIds, setPriceIds] = useState<Record<string, string>>({});
@@ -38,6 +40,8 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
   ) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
+
+    track('upgrade_clicked', { source: 'pricing_cards', plan: planName, mode: checkoutMode });
 
     if (!priceId) {
       toast({ title: 'Not available', description: 'This plan is not yet configured for checkout.', variant: 'destructive' });

@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { FolderOpen, Sparkles, Clock, Copy, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useAccess } from '@/hooks/useAccess';
+import { useHardGate } from '@/components/HardGateModal';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 interface ContentItem {
   id: string;
@@ -26,8 +29,24 @@ export default function Projects() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasAccess, isPaymentFailed, status } = useAccess();
+  const { show: showHardGate } = useHardGate();
+  const { track } = useAnalytics();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const enforceAccess = (event: 'copy_blocked' | 'export_blocked'): boolean => {
+    if (hasAccess) return true;
+    track(event, { status });
+    showHardGate(
+      isPaymentFailed
+        ? 'payment_failed'
+        : status === 'inactive' || status === 'canceled'
+        ? 'inactive'
+        : 'trial_expired'
+    );
+    return false;
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -53,9 +72,11 @@ export default function Projects() {
   };
 
   const handleCopy = async (item: ContentItem) => {
+    if (!enforceAccess('copy_blocked')) return;
     const c = item.content;
     const text = `${c.hook}\n\n${c.emotional_benefit}\n\n${c.bullets.map(b => `• ${b}`).join('\n')}\n\n${c.objection_handler}\n\n${c.cta}`;
     await navigator.clipboard.writeText(text);
+    track('copy_success', { from: 'projects' });
     toast({ title: 'Copied to clipboard' });
   };
 

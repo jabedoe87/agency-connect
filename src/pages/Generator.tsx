@@ -32,6 +32,9 @@ import LeadFinder, { type LeadSelection } from '@/components/moneypath/LeadFinde
 import SmartSendCard from '@/components/moneypath/RecipientGate';
 import { readActiveLead, writeActiveLead, type ContactKind } from '@/lib/leads';
 import { useAddiction } from '@/hooks/useAddiction';
+import { useAccess } from '@/hooks/useAccess';
+import { useHardGate } from '@/components/HardGateModal';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   computeInsights,
   genAdId,
@@ -159,6 +162,22 @@ export default function Generator() {
   const { user, profile, subscription } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { hasAccess, isPaymentFailed, status } = useAccess();
+  const { show: showHardGate } = useHardGate();
+  const { track } = useAnalytics();
+
+  const enforceAccess = (event: 'generate_blocked' | 'send_blocked' | 'copy_blocked' | 'export_blocked'): boolean => {
+    if (hasAccess) return true;
+    track(event, { status, preset });
+    showHardGate(
+      isPaymentFailed
+        ? 'payment_failed'
+        : status === 'inactive' || status === 'canceled'
+        ? 'inactive'
+        : 'trial_expired'
+    );
+    return false;
+  };
   const nicheRef = useRef<HTMLTextAreaElement>(null);
   const [niche, setNiche] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
@@ -386,6 +405,7 @@ export default function Generator() {
 
   const handleScaleVariations = async () => {
     if (!adsOutput) return;
+    if (!enforceAccess('generate_blocked')) return;
     const winnerKey = (adsOutput.winner || 'a') as 'a' | 'b' | 'c';
     const winnerVersion = adsOutput[`version_${winnerKey}` as 'version_a'];
     // Reuse runAssistAction-equivalent path via direct invoke — keeps inputs locked.
@@ -433,6 +453,7 @@ export default function Generator() {
   // Generates `count` ads sequentially, returning the winner text from each.
   // Fails gracefully — partial batches still surface to the user.
   const handleGenerateBatch = async (count: number): Promise<string[]> => {
+    if (!enforceAccess('generate_blocked')) return [];
     const nicheValue = niche.trim() || DEMO_NICHE;
     const out: string[] = [];
     for (let i = 0; i < count; i += 1) {
@@ -515,6 +536,7 @@ export default function Generator() {
 
   const handleGenerate = async (demoMode = false) => {
     if (!user) return;
+    if (!enforceAccess('generate_blocked')) return;
     const nicheValue = demoMode ? DEMO_NICHE : niche.trim();
     if (!nicheValue) {
       toast({ title: 'Enter your niche or business description', variant: 'destructive' });
@@ -607,6 +629,7 @@ export default function Generator() {
 
   const runAssistAction = async (actionInstruction: string, newPreset?: string) => {
     if (!user || !content) return;
+    if (!enforceAccess('generate_blocked')) return;
     const activePreset = newPreset || preset;
     if (newPreset) setPreset(newPreset);
 
@@ -658,9 +681,11 @@ export default function Generator() {
   };
 
   const copyToClipboard = async (text: string, field: string) => {
+    if (!enforceAccess('copy_blocked')) return;
     await navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+    track('copy_success', { field, preset });
     toast({ title: 'Copied to clipboard' });
   };
 
