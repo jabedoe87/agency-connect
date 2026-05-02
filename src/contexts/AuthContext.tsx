@@ -43,7 +43,9 @@ interface Profile {
   business_type: string;
   business_description: string;
   plan: string;
+  subscription_status: string;
   trial_ends_at: string;
+  grace_period_ends_at: string | null;
   onboarding_completed: boolean;
   created_at: string;
   ai_generations_count: number;
