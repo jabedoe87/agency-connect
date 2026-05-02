@@ -54,7 +54,7 @@ export default function Register() {
       <div className="w-full max-w-md fade-in">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">Create your account</h1>
-          <p className="text-muted-foreground mt-2">Start your 7-day free trial</p>
+          <p className="text-muted-foreground mt-2">Start your 7-day trial — cancel anytime</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 glass-card p-6">
           <div className="grid grid-cols-2 gap-4">
@@ -91,7 +91,7 @@ export default function Register() {
             </Select>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Start Free Trial'}
+            {loading ? 'Creating account...' : 'Start Trial'}
           </Button>
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
