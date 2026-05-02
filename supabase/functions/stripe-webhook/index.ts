@@ -8,9 +8,14 @@ const corsHeaders = {
 
 // Maps Stripe price IDs → internal plan names. Keep in sync with PricingCards.tsx
 const PRICE_TO_PLAN: Record<string, string> = {
-  "price_1TGgrbAu1BgRc5ulqTuDzcer": "starter",  // TEST €49/mo
-  "price_1TGgrdAu1BgRc5ulzP7eBSW9": "pro",      // TEST €99/mo
-  "price_1TGgreAu1BgRc5ulrOh3mr4u": "business", // TEST €149/mo
+  // LIVE
+  "price_1TSY0hAu1BgRc5ulYJxYnjPR": "starter",  // LIVE €49/mo
+  "price_1TSY0kAu1BgRc5ulHX8zVb6a": "pro",      // LIVE €99/mo
+  "price_1TSY0kAu1BgRc5ulAzVRdMMd": "business", // LIVE €149/mo
+  // TEST (kept so legacy test events still resolve)
+  "price_1TGgrbAu1BgRc5ulqTuDzcer": "starter",
+  "price_1TGgrdAu1BgRc5ulzP7eBSW9": "pro",
+  "price_1TGgreAu1BgRc5ulrOh3mr4u": "business",
 };
 
 const PAID_STATUSES = ["active", "trialing"];
