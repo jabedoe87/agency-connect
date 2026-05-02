@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import TrialBanner from '@/components/TrialBanner';
+import PaymentFailedBanner from '@/components/PaymentFailedBanner';
 
 const primaryNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
@@ -140,6 +141,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 md:ml-64 pb-20 md:pb-0">
+        <PaymentFailedBanner />
         <TrialBanner />
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur-md">

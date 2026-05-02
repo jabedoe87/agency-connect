@@ -21,6 +21,7 @@ import Clients from "./pages/Clients";
 import Booking from "./pages/Booking";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import AdminEmails from "./pages/AdminEmails";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,9 @@ const App = () => (
             } />
             <Route path="/analytics" element={
               <ProtectedRoute><OnboardingGuard><Analytics /></OnboardingGuard></ProtectedRoute>
+            } />
+            <Route path="/admin/emails" element={
+              <ProtectedRoute><AdminEmails /></ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>
