@@ -405,6 +405,7 @@ export default function Generator() {
 
   const handleScaleVariations = async () => {
     if (!adsOutput) return;
+    if (!enforceAccess('generate_blocked')) return;
     const winnerKey = (adsOutput.winner || 'a') as 'a' | 'b' | 'c';
     const winnerVersion = adsOutput[`version_${winnerKey}` as 'version_a'];
     // Reuse runAssistAction-equivalent path via direct invoke — keeps inputs locked.
@@ -534,6 +535,7 @@ export default function Generator() {
 
   const handleGenerate = async (demoMode = false) => {
     if (!user) return;
+    if (!enforceAccess('generate_blocked')) return;
     const nicheValue = demoMode ? DEMO_NICHE : niche.trim();
     if (!nicheValue) {
       toast({ title: 'Enter your niche or business description', variant: 'destructive' });
@@ -626,6 +628,7 @@ export default function Generator() {
 
   const runAssistAction = async (actionInstruction: string, newPreset?: string) => {
     if (!user || !content) return;
+    if (!enforceAccess('generate_blocked')) return;
     const activePreset = newPreset || preset;
     if (newPreset) setPreset(newPreset);
 
@@ -677,9 +680,11 @@ export default function Generator() {
   };
 
   const copyToClipboard = async (text: string, field: string) => {
+    if (!enforceAccess('copy_blocked')) return;
     await navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+    track('copy_success', { field, preset });
     toast({ title: 'Copied to clipboard' });
   };
 
