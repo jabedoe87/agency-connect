@@ -32,6 +32,9 @@ import LeadFinder, { type LeadSelection } from '@/components/moneypath/LeadFinde
 import SmartSendCard from '@/components/moneypath/RecipientGate';
 import { readActiveLead, writeActiveLead, type ContactKind } from '@/lib/leads';
 import { useAddiction } from '@/hooks/useAddiction';
+import { useAccess } from '@/hooks/useAccess';
+import { useHardGate } from '@/components/HardGateModal';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   computeInsights,
   genAdId,
@@ -159,6 +162,22 @@ export default function Generator() {
   const { user, profile, subscription } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { hasAccess, isPaymentFailed, status } = useAccess();
+  const { show: showHardGate } = useHardGate();
+  const { track } = useAnalytics();
+
+  const enforceAccess = (event: 'generate_blocked' | 'send_blocked' | 'copy_blocked' | 'export_blocked'): boolean => {
+    if (hasAccess) return true;
+    track(event, { status, preset });
+    showHardGate(
+      isPaymentFailed
+        ? 'payment_failed'
+        : status === 'inactive' || status === 'canceled'
+        ? 'inactive'
+        : 'trial_expired'
+    );
+    return false;
+  };
   const nicheRef = useRef<HTMLTextAreaElement>(null);
   const [niche, setNiche] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
