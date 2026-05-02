@@ -453,6 +453,7 @@ export default function Generator() {
   // Generates `count` ads sequentially, returning the winner text from each.
   // Fails gracefully — partial batches still surface to the user.
   const handleGenerateBatch = async (count: number): Promise<string[]> => {
+    if (!enforceAccess('generate_blocked')) return [];
     const nicheValue = niche.trim() || DEMO_NICHE;
     const out: string[] = [];
     for (let i = 0; i < count; i += 1) {
