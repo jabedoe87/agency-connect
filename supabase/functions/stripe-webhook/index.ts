@@ -208,11 +208,18 @@ Deno.serve(async (req) => {
 
       if (event.type === "customer.subscription.deleted" || stripeStatus === "canceled") {
         updateFields.plan = "trial";
+        updateFields.subscription_status = "canceled";
         updateFields.stripe_subscription_id = null;
+        updateFields.grace_period_ends_at = null;
       } else if (stripeStatus === "past_due" || stripeStatus === "unpaid") {
+        // Start 48h grace period
         updateFields.plan = "past_due";
+        updateFields.subscription_status = "grace_period";
+        updateFields.grace_period_ends_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
       } else if (resolvedPlan && PAID_STATUSES.includes(stripeStatus)) {
         updateFields.plan = resolvedPlan;
+        updateFields.subscription_status = stripeStatus === "trialing" ? "trialing" : "active";
+        updateFields.grace_period_ends_at = null;
         if (stripeStatus === "active") updateFields.trial_ends_at = new Date().toISOString();
         else if (stripeStatus === "trialing" && subscription.trial_end) {
           updateFields.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
