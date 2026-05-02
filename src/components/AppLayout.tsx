@@ -11,6 +11,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import TrialBanner from '@/components/TrialBanner';
 
 const primaryNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
@@ -104,11 +105,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <span className="font-display text-xl text-foreground tracking-tight">AgencyOS</span>
         </div>
 
-        {!hasPaidPlan && profile?.plan === 'trial' && daysLeft <= 3 && !trialExpired && (
-          <div className="mx-4 mt-4 p-3 rounded-xl bg-warning/10 border border-warning/20">
-            <p className="text-xs text-warning font-medium">Your trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</p>
-          </div>
-        )}
+        {/* Trial countdown moved to global TrialBanner above the top bar */}
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {primaryNav.map((item) => renderNavButton(item, location.pathname === item.path))}
@@ -143,6 +140,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 md:ml-64 pb-20 md:pb-0">
+        <TrialBanner />
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur-md">
           <div className="flex items-center justify-between px-6 h-14">
@@ -236,17 +234,40 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      {/* Trial expired modal */}
+      {/* Trial expired hard-lock modal — cannot be dismissed */}
       <Dialog open={showTrialExpired} onOpenChange={() => {}}>
-        <DialogContent className="[&>button]:hidden">
+        <DialogContent
+          className="[&>button]:hidden max-w-lg"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
-            <DialogTitle>Your free trial has ended</DialogTitle>
+            <DialogTitle>Your trial has ended</DialogTitle>
             <DialogDescription>
-              Your 7-day free trial has expired. Choose a plan to continue using AgencyOS.
+              Upgrade to continue sending messages. You won't lose any of your data.
             </DialogDescription>
           </DialogHeader>
+          <div className="grid grid-cols-3 gap-2 my-2">
+            {[
+              { name: 'Starter', price: 49 },
+              { name: 'Pro', price: 99, highlight: true },
+              { name: 'Business', price: 149 },
+            ].map((p) => (
+              <div
+                key={p.name}
+                className={`rounded-lg border p-3 text-center ${
+                  p.highlight ? 'border-primary bg-primary/5' : 'border-border'
+                }`}
+              >
+                <div className="text-xs text-muted-foreground">{p.name}</div>
+                <div className="text-lg font-bold text-foreground">€{p.price}</div>
+                <div className="text-[10px] text-muted-foreground">/month</div>
+              </div>
+            ))}
+          </div>
           <Link to="/pricing">
-            <Button className="w-full cta-primary">Choose a Plan</Button>
+            <Button className="w-full cta-primary">Choose a plan</Button>
           </Link>
         </DialogContent>
       </Dialog>

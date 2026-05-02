@@ -15,7 +15,7 @@ export default function Pricing() {
       </nav>
       <div className="max-w-6xl mx-auto px-4 py-20">
         <h1 className="text-4xl font-bold text-foreground text-center mb-4">Choose Your Plan</h1>
-        <p className="text-muted-foreground text-center mb-12">Start with a 7-day free trial. No credit card required.</p>
+        <p className="text-muted-foreground text-center mb-12">7-day free trial included. Cancel anytime.</p>
         <PricingCards />
       </div>
     </div>

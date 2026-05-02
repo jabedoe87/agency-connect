@@ -225,7 +225,7 @@ export default function Onboarding() {
           <div className="glass-card p-8">
             <h2 className="text-xl font-bold text-foreground mb-2">Choose Your Plan</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              You are on a 7-day free trial. Choose a plan to activate after your trial.
+              You are on a 7-day trial. Choose a plan to activate after your trial.
             </p>
             <div className="space-y-4 mb-6">
               {PLANS.map((plan) => (

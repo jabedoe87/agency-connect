@@ -34,7 +34,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</Link>
             <Link to="/register">
-              <Button size="sm">Start Free Trial</Button>
+              <Button size="sm">Start Trial</Button>
             </Link>
           </div>
         </div>
@@ -50,12 +50,13 @@ export default function LandingPage() {
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <Link to="/register">
-            <Button size="lg" className="text-base px-8">Start Free Trial – 7 Days Free</Button>
+            <Button size="lg" className="text-base px-8">Start your 7-day trial</Button>
           </Link>
           <a href="#pricing">
             <Button size="lg" variant="outline" className="text-base px-8">See Pricing</Button>
           </a>
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">Cancel anytime.</p>
       </section>
 
       {/* Features */}

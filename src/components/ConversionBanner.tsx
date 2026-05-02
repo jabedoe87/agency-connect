@@ -37,7 +37,7 @@ export default function ConversionBanner() {
               <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-1">
                 <Zap className="w-4 h-4 text-primary" />
                 {trialExpired
-                  ? "Your free trial has ended"
+                  ? "Your trial has ended"
                   : "You're 1 step away from unlimited client-generating content."}
               </h3>
               <p className="text-sm text-muted-foreground">
