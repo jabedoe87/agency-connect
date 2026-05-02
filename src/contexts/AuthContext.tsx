@@ -212,12 +212,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => authSub.unsubscribe();
   }, []);
 
-  // Check subscription on login and periodically
+  // Check subscription on login + 15s safety poll + realtime instant updates on profile changes
   useEffect(() => {
     if (!user) return;
     checkSubscription();
-    const interval = setInterval(checkSubscription, 60000);
-    return () => clearInterval(interval);
+
+    // 15s safety poll — keeps state fresh if realtime/webhook is delayed
+    const interval = setInterval(checkSubscription, 15000);
+
+    // Realtime: instant gating when stripe-webhook updates the profile row
+    const channel = supabase
+      .channel(`profile-changes-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `user_id=eq.${user.id}` },
+        () => {
+          fetchProfile(user.id);
+          checkSubscription();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [user, checkSubscription]);
 
   const signUp = async (email: string, password: string, metadata: Record<string, string>) => {
