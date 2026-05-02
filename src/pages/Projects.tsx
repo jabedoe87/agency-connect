@@ -72,9 +72,11 @@ export default function Projects() {
   };
 
   const handleCopy = async (item: ContentItem) => {
+    if (!enforceAccess('copy_blocked')) return;
     const c = item.content;
     const text = `${c.hook}\n\n${c.emotional_benefit}\n\n${c.bullets.map(b => `• ${b}`).join('\n')}\n\n${c.objection_handler}\n\n${c.cta}`;
     await navigator.clipboard.writeText(text);
+    track('copy_success', { from: 'projects' });
     toast({ title: 'Copied to clipboard' });
   };
 
