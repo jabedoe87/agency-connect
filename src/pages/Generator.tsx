@@ -510,7 +510,7 @@ export default function Generator() {
     profile?.plan === 'pro' ||
     profile?.plan === 'business';
   const isPaidUser = hasPaidPlan || subscription?.subscribed === true;
-  const isFreePlan = !isPaidUser;
+  const isLockedUser = !isPaidUser;
   console.log('[access] plan:', profile?.plan, 'subscribed:', subscription?.subscribed, 'isPaidUser:', isPaidUser);
 
   const handleGenerate = async (demoMode = false) => {
@@ -1413,7 +1413,7 @@ export default function Generator() {
                     <Save className="w-3.5 h-3.5" />
                     {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : saveState === 'error' ? 'Save failed — try again' : 'Save'}
                   </Button>
-                  {isFreePlan ? (
+                  {isLockedUser ? (
                     <Button className="gap-1.5 flex-1 cta-primary min-h-[44px]" onClick={() => navigate('/pricing')}>
                       <Lock className="w-3.5 h-3.5" /> Unlock Unlimited
                     </Button>
@@ -1472,7 +1472,7 @@ export default function Generator() {
                 />
 
                 {/* Upgrade nudge — below AI Assist, secondary presence */}
-                {isFreePlan && (
+                {isLockedUser && (
                   <div className="rounded-xl border border-white/10 bg-primary/5 p-6 text-center space-y-3">
                     <p className="text-foreground font-medium">Keep generating client-winning content without limits.</p>
                     <p className="text-sm text-muted-foreground">You've seen what one output can do. Don't stop now.</p>
