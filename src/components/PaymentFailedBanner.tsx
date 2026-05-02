@@ -1,28 +1,26 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAccess } from '@/hooks/useAccess';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 export default function PaymentFailedBanner() {
-  const { profile, subscription } = useAuth();
+  const { isPaymentFailed, isGracePeriod, status } = useAccess();
+  const { track } = useAnalytics();
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  // Show when subscription status indicates a failed payment
-  const hasFailedPayment =
-    subscription?.status === 'past_due' ||
-    subscription?.status === 'unpaid' ||
-    profile?.plan === 'past_due';
-
   useEffect(() => {
-    if (hasFailedPayment) setDismissed(false);
-  }, [hasFailedPayment]);
+    if (isPaymentFailed) setDismissed(false);
+  }, [isPaymentFailed]);
 
-  if (!hasFailedPayment || dismissed) return null;
+  if (!isPaymentFailed || dismissed) return null;
 
   const handleUpdateCard = async () => {
+    track('payment_failed_banner_clicked', { status, grace: isGracePeriod });
+    track('upgrade_clicked', { source: 'payment_failed_banner', status });
     setLoading(true);
     const popup = window.open('about:blank', '_blank');
     try {
@@ -42,16 +40,19 @@ export default function PaymentFailedBanner() {
     }
   };
 
+  const headline = isGracePeriod ? 'Payment failed — 48h to fix' : 'Payment failed';
+  const sub = isGracePeriod
+    ? 'Update your card now to avoid losing access. After 48 hours, all features will be locked.'
+    : 'Update your card to restore full access. It only takes a moment.';
+
   return (
     <div className="bg-destructive/10 border-b border-destructive/30 px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
           <div className="text-sm">
-            <p className="font-semibold text-foreground">Payment failed</p>
-            <p className="text-muted-foreground">
-              Update your card to restore full access. It only takes a moment.
-            </p>
+            <p className="font-semibold text-foreground">{headline}</p>
+            <p className="text-muted-foreground">{sub}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -67,9 +68,11 @@ export default function PaymentFailedBanner() {
               'Update card'
             )}
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setDismissed(true)}>
-            Dismiss
-          </Button>
+          {!isGracePeriod && (
+            <Button size="sm" variant="ghost" onClick={() => setDismissed(true)}>
+              Dismiss
+            </Button>
+          )}
         </div>
       </div>
     </div>
