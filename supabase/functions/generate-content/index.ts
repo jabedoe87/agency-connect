@@ -585,6 +585,10 @@ function validateAutoInput(content: any): { valid: boolean; errors: string[] } {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Gate: server-side trial / paid enforcement (no client-only bypass possible)
+  const gateError = await enforceActiveSubscription(req);
+  if (gateError) return gateError;
+
   try {
     const body = await req.json();
     const { niche, preset = "high-converting", businessContext, assistInstruction, action, rawInput, targetEngine } = body;
