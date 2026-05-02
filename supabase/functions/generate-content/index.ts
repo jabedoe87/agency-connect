@@ -1,9 +1,62 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Server-side enforcement: only active subscribers (paid plan or unexpired trial) may generate.
+// Returns null on success, or a Response when the request must be rejected.
+async function enforceActiveSubscription(req: Request): Promise<Response | null> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "unauthorized", redirect: "/login" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) {
+    console.error("[GATE] Missing SUPABASE env vars");
+    return new Response(
+      JSON.stringify({ error: "server_misconfigured" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const token = authHeader.replace("Bearer ", "");
+  const { data: userData, error: userErr } = await admin.auth.getUser(token);
+  if (userErr || !userData?.user) {
+    return new Response(
+      JSON.stringify({ error: "unauthorized", redirect: "/login" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("plan, trial_ends_at")
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+
+  const paidPlan = profile?.plan === "starter" || profile?.plan === "pro" || profile?.plan === "business";
+  const trialValid =
+    profile?.plan === "trial" &&
+    profile?.trial_ends_at &&
+    new Date(profile.trial_ends_at).getTime() > Date.now();
+
+  if (!paidPlan && !trialValid) {
+    return new Response(
+      JSON.stringify({ error: "trial_expired", redirect: "/pricing" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  return null;
+}
 
 const BANNED_WORDS = [
   "improve", "enhance", "boost", "optimize", "elevate", "empower", "leverage",
