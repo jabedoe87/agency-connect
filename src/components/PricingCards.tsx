@@ -6,14 +6,7 @@ import { Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useState, type MouseEvent } from 'react';
-
-// Map plan names to Stripe price IDs — LIVE MODE (per-plan recurring)
-const PRICE_IDS: Record<string, string> = {
-  Starter: 'price_1TSY0hAu1BgRc5ulYJxYnjPR',  // LIVE €49/mo
-  Pro: 'price_1TSY0kAu1BgRc5ulHX8zVb6a',      // LIVE €99/mo
-  Business: 'price_1TSY0kAu1BgRc5ulAzVRdMMd', // LIVE €149/mo
-};
+import { useEffect, useState, type MouseEvent } from 'react';
 
 interface PricingCardsProps {
   ctaPath?: string;
@@ -24,6 +17,18 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
   const { toast } = useToast();
   const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [priceIds, setPriceIds] = useState<Record<string, string>>({});
+
+  // Resolve current price IDs from edge function (single source of truth via STRIPE_MODE)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.functions.invoke('get-price-ids');
+      if (cancelled) return;
+      if (!error && data?.priceIds) setPriceIds(data.priceIds);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleCheckout = async (
     e: MouseEvent<HTMLButtonElement> | undefined,
@@ -42,8 +47,6 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
     setLoadingBtn(`${planName}-${checkoutMode}`);
     setCheckoutError(null);
 
-    // Open popup synchronously on click (required for Safari / mobile webviews)
-    // Note: do NOT use 'noopener' here — we need the popup reference to set its location after the async call
     const popup = window.open('about:blank', '_blank');
 
     try {
@@ -59,12 +62,8 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
         throw new Error('Invalid Stripe checkout URL');
       }
 
-      if (popup) {
-        popup.location = checkoutUrl;
-      } else {
-        // fallback if popup blocked
-        window.location.href = checkoutUrl;
-      }
+      if (popup) popup.location = checkoutUrl;
+      else window.location.href = checkoutUrl;
     } catch (err: any) {
       if (popup && !popup.closed) popup.close();
       setLoadingBtn(null);
@@ -76,7 +75,9 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
   return (
     <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
       {PLANS.map((plan) => {
-        const hasPriceId = !!PRICE_IDS[plan.name];
+        const planKey = plan.name.toLowerCase();
+        const priceId = priceIds[planKey];
+        const hasPriceId = !!priceId;
 
         return (
           <div key={plan.name} className={`glass-card p-6 flex flex-col relative ${plan.badge ? 'ring-2 ring-primary' : ''}`}>
@@ -106,7 +107,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
                     className="w-full"
                     variant={plan.badge ? 'default' : 'outline'}
                     disabled={loadingBtn === `${plan.name}-trial`}
-                    onClick={(e) => handleCheckout(e, PRICE_IDS[plan.name], 'trial', plan.name)}
+                    onClick={(e) => handleCheckout(e, priceId, 'trial', plan.name)}
                   >
                     {loadingBtn === `${plan.name}-trial` ? 'Loading...' : 'Start your 7-day trial'}
                   </Button>
@@ -115,7 +116,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
                     className="w-full"
                     variant="secondary"
                     disabled={loadingBtn === `${plan.name}-direct`}
-                    onClick={(e) => handleCheckout(e, PRICE_IDS[plan.name], 'direct', plan.name)}
+                    onClick={(e) => handleCheckout(e, priceId, 'direct', plan.name)}
                   >
                     {loadingBtn === `${plan.name}-direct` ? 'Loading...' : 'Get Clients Now'}
                   </Button>

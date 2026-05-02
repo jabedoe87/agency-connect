@@ -1,5 +1,6 @@
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { getStripeMode, getStripeSecretKey } from "../_shared/stripe-mode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,8 +13,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    const mode = getStripeMode();
+    const stripeKey = getStripeSecretKey(mode);
+    if (!stripeKey) throw new Error(`Stripe secret key for mode=${mode} is not set`);
+    console.log('[EDGE] STRIPE_MODE:', mode);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {

@@ -1,57 +1,56 @@
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { PRICE_TO_PLAN, getStripeMode, getStripeSecretKey, getWebhookSecret } from "../_shared/stripe-mode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-// Maps Stripe price IDs → internal plan names. Keep in sync with PricingCards.tsx
-const PRICE_TO_PLAN: Record<string, string> = {
-  // LIVE
-  "price_1TSY0hAu1BgRc5ulYJxYnjPR": "starter",  // LIVE €49/mo
-  "price_1TSY0kAu1BgRc5ulHX8zVb6a": "pro",      // LIVE €99/mo
-  "price_1TSY0kAu1BgRc5ulAzVRdMMd": "business", // LIVE €149/mo
-  // TEST (kept so legacy test events still resolve)
-  "price_1TGgrbAu1BgRc5ulqTuDzcer": "starter",
-  "price_1TGgrdAu1BgRc5ulzP7eBSW9": "pro",
-  "price_1TGgreAu1BgRc5ulrOh3mr4u": "business",
-};
-
 const PAID_STATUSES = ["active", "trialing"];
 
+async function fireEmail(
+  supabase: any,
+  templateName: "welcome" | "trial-ending" | "payment-failed",
+  recipientEmail: string,
+  userId: string | null,
+  templateData: Record<string, any> = {}
+) {
+  try {
+    await supabase.functions.invoke("send-transactional-email", {
+      body: { templateName, recipientEmail, userId, templateData },
+    });
+  } catch (e) {
+    console.error("[WEBHOOK] email trigger failed:", e);
+  }
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
+  const mode = getStripeMode();
+  const stripeKey = getStripeSecretKey(mode);
+  const webhookSecret = getWebhookSecret(mode);
 
-  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   if (!stripeKey) {
-    console.error("[WEBHOOK] STRIPE_SECRET_KEY missing");
+    console.error(`[WEBHOOK] no stripe key for mode=${mode}`);
     return new Response("Server misconfigured", { status: 500 });
+  }
+  if (!webhookSecret) {
+    console.error(`[WEBHOOK] no webhook secret for mode=${mode}`);
+    return new Response("Webhook secret not configured", { status: 500 });
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } }
   );
 
-  // ─── Verify webhook signature ──────────────────────────────────
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
-  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-
-  if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET missing — configure in environment.");
-    return new Response("Webhook secret not configured", { status: 500 });
-  }
 
   let event: Stripe.Event;
   try {
@@ -63,49 +62,64 @@ Deno.serve(async (req) => {
     return new Response(`Webhook signature verification failed: ${msg}`, { status: 400 });
   }
 
-  console.log("[WEBHOOK] event type:", event.type);
+  console.log(`[WEBHOOK] mode=${mode} event=${event.type}`);
 
-  // ─── Helpers ───────────────────────────────────────────────────
-  async function resolveUserIdFromCustomer(customerId: string | null | undefined, email?: string | null): Promise<string | null> {
+  async function resolveUserIdFromCustomer(customerId: string | null | undefined, email?: string | null): Promise<{ userId: string | null; email: string | null }> {
+    let userId: string | null = null;
+    let resolvedEmail: string | null = email ?? null;
+
     if (customerId) {
       const { data } = await supabase
         .from("profiles")
         .select("user_id")
         .eq("stripe_customer_id", customerId)
         .maybeSingle();
-      if (data?.user_id) return data.user_id;
+      if (data?.user_id) userId = data.user_id;
 
-      // Fallback: read metadata.user_id from the Stripe customer
-      try {
-        const customer = await stripe.customers.retrieve(customerId);
-        if (!("deleted" in customer) || !customer.deleted) {
-          const metaUserId = (customer as Stripe.Customer).metadata?.user_id;
-          if (metaUserId) return metaUserId;
-        }
-      } catch (_) { /* ignore */ }
+      if (!userId) {
+        try {
+          const customer = await stripe.customers.retrieve(customerId);
+          if (!("deleted" in customer) || !customer.deleted) {
+            const c = customer as Stripe.Customer;
+            const metaUserId = c.metadata?.user_id;
+            if (metaUserId) userId = metaUserId;
+            if (!resolvedEmail && c.email) resolvedEmail = c.email;
+          }
+        } catch (_) {}
+      }
     }
-    if (email) {
-      // No direct email index on profiles — best-effort via auth admin
+
+    if (!userId && resolvedEmail) {
       try {
-        // @ts-ignore admin API available with service role
+        // @ts-ignore
         const { data: list } = await supabase.auth.admin.listUsers();
-        const match = list?.users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-        if (match?.id) return match.id;
-      } catch (_) { /* ignore */ }
+        const match = list?.users?.find((u: any) => u.email?.toLowerCase() === resolvedEmail!.toLowerCase());
+        if (match?.id) {
+          userId = match.id;
+          if (!resolvedEmail) resolvedEmail = match.email ?? null;
+        }
+      } catch (_) {}
     }
-    return null;
+
+    // Final email fallback from auth user
+    if (userId && !resolvedEmail) {
+      try {
+        // @ts-ignore
+        const { data: u } = await supabase.auth.admin.getUserById(userId);
+        if (u?.user?.email) resolvedEmail = u.user.email;
+      } catch (_) {}
+    }
+
+    return { userId, email: resolvedEmail };
   }
 
-  async function upsertProfile(userId: string, fields: Record<string, any>): Promise<{ ok: boolean; error?: any }> {
-    // Update first (profile row is created by handle_new_user trigger).
+  async function upsertProfile(userId: string, fields: Record<string, any>) {
     const { data: updated, error: updateErr } = await supabase
       .from("profiles")
       .update({ ...fields })
       .eq("user_id", userId)
       .select("id");
     if (updateErr) return { ok: false, error: updateErr };
-
-    // Fallback: if no row matched, insert.
     if (!updated || updated.length === 0) {
       const { error: insertErr } = await supabase
         .from("profiles")
@@ -115,63 +129,63 @@ Deno.serve(async (req) => {
     return { ok: true };
   }
 
+  async function getProfileNameAndPlan(userId: string): Promise<{ name: string; previousPlan: string | null }> {
+    const { data } = await supabase.from("profiles").select("full_name, plan").eq("user_id", userId).maybeSingle();
+    return { name: data?.full_name || "", previousPlan: data?.plan ?? null };
+  }
+
   try {
-    // ─── checkout.session.completed ──────────────────────────────
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const customerId = (session.customer as string) || null;
       const subscriptionId = (session.subscription as string) || null;
 
-      console.log("metadata:", session.metadata);
-
-      // Resolve user (priority: metadata → customer → email)
-      let resolvedUserId: string | null =
+      let userId: string | null =
         session.metadata?.supabase_user_id ?? session.metadata?.user_id ?? null;
-      if (!resolvedUserId) {
-        resolvedUserId = await resolveUserIdFromCustomer(customerId, session.customer_details?.email);
+      let email: string | null = session.customer_details?.email ?? null;
+      if (!userId) {
+        const r = await resolveUserIdFromCustomer(customerId, email);
+        userId = r.userId; email = r.email;
+      } else if (!email) {
+        const r = await resolveUserIdFromCustomer(customerId, null);
+        email = r.email;
       }
-      console.log("[WEBHOOK] user resolved:", resolvedUserId ? "YES" : "NO");
-      if (!resolvedUserId) return new Response("OK", { status: 200 });
 
-      // Resolve priceId — fetch subscription if not on session
+      if (!userId) return new Response("OK", { status: 200 });
+
       let priceId: string | null = null;
       let stripeStatus = "unknown";
       let trialEnd: number | null = null;
-
       if (subscriptionId) {
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
         priceId = sub.items.data[0]?.price?.id ?? null;
         stripeStatus = sub.status;
         trialEnd = sub.trial_end ?? null;
       }
-      console.log("[WEBHOOK] priceId:", priceId);
 
       const resolvedPlan = priceId ? PRICE_TO_PLAN[priceId] : null;
-      console.log("[WEBHOOK] plan resolved:", resolvedPlan ?? "NO");
-      console.log("[WEBHOOK] subscription status:", stripeStatus);
-
       if (!resolvedPlan) return new Response("OK", { status: 200 });
+
+      const { name, previousPlan } = await getProfileNameAndPlan(userId);
 
       const updateFields: Record<string, any> = {
         plan: resolvedPlan,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
       };
-      if (stripeStatus === "active") {
-        updateFields.trial_ends_at = new Date().toISOString();
-      } else if (stripeStatus === "trialing" && trialEnd) {
-        updateFields.trial_ends_at = new Date(trialEnd * 1000).toISOString();
-      }
+      if (stripeStatus === "active") updateFields.trial_ends_at = new Date().toISOString();
+      else if (stripeStatus === "trialing" && trialEnd) updateFields.trial_ends_at = new Date(trialEnd * 1000).toISOString();
 
-      const { ok, error: updateError } = await upsertProfile(resolvedUserId, updateFields);
-      console.log("[WEBHOOK] database update success:", ok ? "YES" : "NO");
-      if (!ok) {
-        console.error("[WEBHOOK] DB ERROR — forcing retry", updateError);
-        return new Response("DB update failed", { status: 500 });
+      const { ok } = await upsertProfile(userId, updateFields);
+      if (!ok) return new Response("DB update failed", { status: 500 });
+
+      // Welcome email — only on first time entering a paid plan
+      const wasFree = !previousPlan || previousPlan === "trial" || previousPlan === "past_due";
+      if (wasFree && email) {
+        await fireEmail(supabase, "welcome", email, userId, { name });
       }
     }
 
-    // ─── customer.subscription.{created,updated,deleted} ─────────
     if (
       event.type === "customer.subscription.created" ||
       event.type === "customer.subscription.updated" ||
@@ -182,14 +196,10 @@ Deno.serve(async (req) => {
       const priceId = subscription.items.data[0]?.price?.id ?? null;
       const stripeStatus = subscription.status || "unknown";
 
-      const resolvedUserId = await resolveUserIdFromCustomer(customerId);
-      console.log("[WEBHOOK] user resolved:", resolvedUserId ? "YES" : "NO");
-      console.log("[WEBHOOK] priceId:", priceId);
-      console.log("[WEBHOOK] subscription status:", stripeStatus);
-      if (!resolvedUserId) return new Response("OK", { status: 200 });
+      const { userId } = await resolveUserIdFromCustomer(customerId);
+      if (!userId) return new Response("OK", { status: 200 });
 
-      let resolvedPlan: string | null = priceId ? PRICE_TO_PLAN[priceId] ?? null : null;
-      console.log("[WEBHOOK] plan resolved:", resolvedPlan ?? "NO");
+      const resolvedPlan: string | null = priceId ? PRICE_TO_PLAN[priceId] ?? null : null;
 
       const updateFields: Record<string, any> = {
         stripe_customer_id: customerId,
@@ -197,27 +207,21 @@ Deno.serve(async (req) => {
       };
 
       if (event.type === "customer.subscription.deleted" || stripeStatus === "canceled") {
-        // FORCE downgrade
-        updateFields.plan = "trial"; // schema default; "free" is not in this app's plan set
+        updateFields.plan = "trial";
         updateFields.stripe_subscription_id = null;
+      } else if (stripeStatus === "past_due" || stripeStatus === "unpaid") {
+        updateFields.plan = "past_due";
       } else if (resolvedPlan && PAID_STATUSES.includes(stripeStatus)) {
         updateFields.plan = resolvedPlan;
-        if (stripeStatus === "active") {
-          updateFields.trial_ends_at = new Date().toISOString();
-        } else if (stripeStatus === "trialing" && subscription.trial_end) {
+        if (stripeStatus === "active") updateFields.trial_ends_at = new Date().toISOString();
+        else if (stripeStatus === "trialing" && subscription.trial_end) {
           updateFields.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString();
         }
       }
 
-      const { ok, error: updateError } = await upsertProfile(resolvedUserId, updateFields);
-      console.log("[WEBHOOK] database update success:", ok ? "YES" : "NO");
-      if (!ok) {
-        console.error("[WEBHOOK] DB ERROR — forcing retry", updateError);
-        return new Response("DB update failed", { status: 500 });
-      }
+      await upsertProfile(userId, updateFields);
     }
 
-    // ─── invoice.payment_succeeded ───────────────────────────────
     if (event.type === "invoice.payment_succeeded") {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = invoice.customer as string;
@@ -226,49 +230,41 @@ Deno.serve(async (req) => {
 
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
       const priceId = sub.items.data[0]?.price?.id ?? null;
-      const stripeStatus = sub.status || "unknown";
-      const resolvedUserId = await resolveUserIdFromCustomer(customerId, invoice.customer_email);
-
-      console.log("[WEBHOOK] user resolved:", resolvedUserId ? "YES" : "NO");
-      console.log("[WEBHOOK] priceId:", priceId);
-      console.log("[WEBHOOK] subscription status:", stripeStatus);
-      if (!resolvedUserId || !priceId) return new Response("OK", { status: 200 });
+      const { userId } = await resolveUserIdFromCustomer(customerId, invoice.customer_email);
+      if (!userId || !priceId) return new Response("OK", { status: 200 });
 
       const resolvedPlan = PRICE_TO_PLAN[priceId];
-      console.log("[WEBHOOK] plan resolved:", resolvedPlan ?? "NO");
       if (!resolvedPlan) return new Response("OK", { status: 200 });
 
-      const { ok, error: updateError } = await upsertProfile(resolvedUserId, {
+      await upsertProfile(userId, {
         plan: resolvedPlan,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
         trial_ends_at: new Date().toISOString(),
       });
-      console.log("[WEBHOOK] database update success:", ok ? "YES" : "NO");
-      if (!ok) {
-        console.error("[WEBHOOK] DB ERROR — forcing retry", updateError);
-        return new Response("DB update failed", { status: 500 });
-      }
     }
 
-    // ─── invoice.payment_failed ──────────────────────────────────
     if (event.type === "invoice.payment_failed") {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = invoice.customer as string;
-      const resolvedUserId = await resolveUserIdFromCustomer(customerId, invoice.customer_email);
-      console.log("[WEBHOOK] user resolved:", resolvedUserId ? "YES" : "NO");
-      console.log("[WEBHOOK] subscription status:", "past_due");
-      // Do not downgrade immediately — Stripe retries. Just log.
-      // (Subscription updated/deleted events will adjust plan if it ultimately fails.)
+      const { userId, email } = await resolveUserIdFromCustomer(customerId, invoice.customer_email);
+      if (userId) {
+        await upsertProfile(userId, { plan: "past_due" });
+        if (email) {
+          const { name } = await getProfileNameAndPlan(userId);
+          await fireEmail(supabase, "payment-failed", email, userId, { name });
+        }
+      }
     }
 
-    // ─── customer.subscription.trial_will_end ────────────────────
-    // Fires ~3 days before trial_end. Log + idempotent; email hook can pick this up.
     if (event.type === "customer.subscription.trial_will_end") {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
-      const resolvedUserId = await resolveUserIdFromCustomer(customerId);
-      console.log("[WEBHOOK] trial_will_end for user:", resolvedUserId ?? "unknown", "trial_end:", subscription.trial_end);
+      const { userId, email } = await resolveUserIdFromCustomer(customerId);
+      if (userId && email) {
+        const { name } = await getProfileNameAndPlan(userId);
+        await fireEmail(supabase, "trial-ending", email, userId, { name });
+      }
     }
 
     return new Response("OK", { status: 200 });
