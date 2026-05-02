@@ -134,6 +134,18 @@ async function describeFunctionError(err: any): Promise<{ title: string; descrip
         description: 'Add funds in Settings → Workspace → Usage to keep generating.',
       };
     }
+    if (status === 403 && body?.error === 'trial_expired') {
+      return {
+        title: 'Trial expired',
+        description: 'Upgrade to continue generating. Your data is safe.',
+      };
+    }
+    if (status === 401) {
+      return {
+        title: 'Please sign in again',
+        description: 'Your session expired.',
+      };
+    }
     if (status === 429) {
       return { title: 'Too many requests', description: 'Slow down a moment and try again.' };
     }
