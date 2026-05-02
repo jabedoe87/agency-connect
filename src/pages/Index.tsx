@@ -34,7 +34,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</Link>
             <Link to="/register">
-              <Button size="sm">Start Free Trial</Button>
+              <Button size="sm">Start Trial</Button>
             </Link>
           </div>
         </div>
