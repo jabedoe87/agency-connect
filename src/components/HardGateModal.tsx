@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 type Reason = 'trial_expired' | 'payment_failed' | 'inactive';
 
@@ -37,16 +38,19 @@ export function HardGateProvider({ children }: { children: ReactNode }) {
   const [reason, setReason] = useState<Reason>('trial_expired');
   const navigate = useNavigate();
   const { isPaymentFailed } = useAccess();
+  const { track } = useAnalytics();
 
   const show = useCallback((r: Reason = 'trial_expired') => {
     setReason(r);
     setOpen(true);
-  }, []);
+    track('gate_shown', { reason: r });
+  }, [track]);
   const hide = useCallback(() => setOpen(false), []);
 
   const copy = COPY[reason];
 
   const handleCta = () => {
+    track('upgrade_clicked', { source: 'hard_gate', reason });
     hide();
     if (reason === 'payment_failed' || isPaymentFailed) {
       navigate('/settings?action=update_card');
