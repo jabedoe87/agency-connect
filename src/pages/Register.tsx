@@ -91,7 +91,7 @@ export default function Register() {
             </Select>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Start Trial'}
+            {loading ? 'Creating account...' : 'Start 7-Day Trial'}
           </Button>
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
