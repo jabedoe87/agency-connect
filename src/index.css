@@ -6,50 +6,51 @@
 
 @layer base {
   :root {
-    --background: 220 20% 7%;
-    --foreground: 210 40% 96%;
+    /* Theme test: light bg, orange CTA, teal secondary accent */
+    --background: 210 17% 98%;        /* #F8F9FA */
+    --foreground: 210 29% 24%;        /* #2C3E50 */
 
-    --card: 220 17% 14%;
-    --card-foreground: 210 40% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 29% 24%;
 
-    --popover: 220 17% 14%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 29% 24%;
 
-    --primary: 239 84% 67%;
+    --primary: 16 100% 60%;           /* #FF6B35 orange CTA */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 17% 20%;
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 210 16% 93%;
+    --secondary-foreground: 210 29% 24%;
 
-    --muted: 220 17% 18%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 210 11% 40%;
 
-    --accent: 239 84% 67%;
+    --accent: 180 81% 27%;            /* #0D7C7C teal — secondary accent */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 17% 22%;
-    --input: 220 17% 22%;
-    --ring: 239 84% 67%;
+    --border: 210 14% 89%;
+    --input: 210 14% 89%;
+    --ring: 16 100% 60%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 20% 5%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 239 84% 67%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 29% 24%;
+    --sidebar-primary: 16 100% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 17% 16%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 220 17% 18%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-accent: 210 16% 95%;
+    --sidebar-accent-foreground: 210 29% 24%;
+    --sidebar-border: 210 14% 89%;
+    --sidebar-ring: 16 100% 60%;
 
-    --success: 142 71% 45%;
+    --success: 145 63% 49%;           /* #2ECC71 */
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
-    --info: 217 91% 60%;
+    --info: 180 81% 27%;              /* teal as info accent */
     --info-foreground: 0 0% 100%;
   }
 }
@@ -88,7 +89,7 @@
   }
 
   .cta-primary {
-    @apply px-7 py-3 font-medium shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:scale-[1.02] active:scale-95 transition-all duration-150;
+    @apply px-7 py-3 font-medium shadow-[0_0_12px_hsl(var(--primary)/0.35)] hover:bg-[hsl(16,100%,50%)] hover:scale-[1.02] active:scale-95 transition-all duration-150;
   }
 
   .card-interactive {
