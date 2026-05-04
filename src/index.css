@@ -89,7 +89,7 @@
   }
 
   .cta-primary {
-    @apply px-7 py-3 font-medium shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:scale-[1.02] active:scale-95 transition-all duration-150;
+    @apply px-7 py-3 font-medium shadow-[0_0_12px_hsl(var(--primary)/0.35)] hover:bg-[hsl(16,100%,50%)] hover:scale-[1.02] active:scale-95 transition-all duration-150;
   }
 
   .card-interactive {
