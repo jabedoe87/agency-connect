@@ -113,7 +113,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
                     disabled={loadingBtn === `${plan.name}-trial`}
                     onClick={(e) => handleCheckout(e, priceId, 'trial', plan.name)}
                   >
-                    {loadingBtn === `${plan.name}-trial` ? 'Loading...' : 'Start your 7-day trial'}
+                    {loadingBtn === `${plan.name}-trial` ? 'Loading...' : 'Start 7-Day Trial'}
                   </Button>
                   <Button
                     type="button"
@@ -127,7 +127,7 @@ export default function PricingCards({ ctaPath = '/register' }: PricingCardsProp
                 </>
               ) : (
                 <Link to={ctaPath}>
-                  <Button className="w-full" variant={plan.badge ? 'default' : 'outline'}>Start your 7-day trial</Button>
+                  <Button className="w-full" variant={plan.badge ? 'default' : 'outline'}>Start 7-Day Trial</Button>
                 </Link>
               )}
               {checkoutError && (
