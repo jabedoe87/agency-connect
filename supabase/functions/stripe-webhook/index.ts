@@ -291,12 +291,14 @@ Deno.serve(async (req) => {
 
       const resolvedPlan = PRICE_TO_PLAN[priceId];
       if (!resolvedPlan) {
+        console.log(`[WEBHOOK] unknown price_id ${priceId}`);
         console.log("[WEBHOOK] OK 200");
         return new Response("OK", { status: 200 });
       }
 
       await upsertProfile(userId, {
         plan: resolvedPlan,
+        plan_id: priceId,
         subscription_status: "active",
         grace_period_ends_at: null,
         stripe_customer_id: customerId,
