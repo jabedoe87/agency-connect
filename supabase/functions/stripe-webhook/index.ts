@@ -29,16 +29,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
+  console.log("[WEBHOOK] received raw request");
+
   const mode = getStripeMode();
   const stripeKey = getStripeSecretKey(mode);
   const webhookSecret = getWebhookSecret(mode);
 
   if (!stripeKey) {
-    console.error(`[WEBHOOK] no stripe key for mode=${mode}`);
+    console.error(`[WEBHOOK] ERROR no stripe key for mode=${mode}`);
     return new Response("Server misconfigured", { status: 500 });
   }
   if (!webhookSecret) {
-    console.error(`[WEBHOOK] no webhook secret for mode=${mode}`);
+    console.error(`[WEBHOOK] ERROR no webhook secret for mode=${mode}`);
     return new Response("Webhook secret not configured", { status: 500 });
   }
 
@@ -58,11 +60,32 @@ Deno.serve(async (req) => {
     event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[WEBHOOK] signature verification failed:", msg);
+    console.error(`[WEBHOOK] ERROR signature verification failed: ${msg}`);
     return new Response(`Webhook signature verification failed: ${msg}`, { status: 400 });
   }
 
-  console.log(`[WEBHOOK] mode=${mode} event=${event.type}`);
+  console.log("[WEBHOOK] verified signature");
+  console.log(`[WEBHOOK] mode=${mode} event=${event.type} id=${event.id}`);
+
+  // Idempotency: skip if event was already received
+  try {
+    const { data: existing } = await supabase
+      .from("stripe_webhook_events")
+      .select("id")
+      .eq("id", event.id)
+      .maybeSingle();
+    if (existing) {
+      console.log(`[WEBHOOK] duplicate event=${event.type} id=${event.id}`);
+      return new Response("OK (duplicate)", { status: 200 });
+    }
+    await supabase
+      .from("stripe_webhook_events")
+      .insert({ id: event.id, type: event.type, processed: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[WEBHOOK] ERROR event log write failed: ${msg}`);
+    // Non-fatal — continue processing
+  }
 
   async function resolveUserIdFromCustomer(customerId: string | null | undefined, email?: string | null): Promise<{ userId: string | null; email: string | null }> {
     let userId: string | null = null;
@@ -101,7 +124,6 @@ Deno.serve(async (req) => {
       } catch (_) {}
     }
 
-    // Final email fallback from auth user
     if (userId && !resolvedEmail) {
       try {
         // @ts-ignore
@@ -151,7 +173,12 @@ Deno.serve(async (req) => {
         email = r.email;
       }
 
-      if (!userId) return new Response("OK", { status: 200 });
+      console.log(`[WEBHOOK] event=${event.type} user_id=${userId} sub_id=${subscriptionId}`);
+
+      if (!userId) {
+        console.log("[WEBHOOK] OK 200");
+        return new Response("OK", { status: 200 });
+      }
 
       let priceId: string | null = null;
       let stripeStatus = "unknown";
@@ -164,7 +191,10 @@ Deno.serve(async (req) => {
       }
 
       const resolvedPlan = priceId ? PRICE_TO_PLAN[priceId] : null;
-      if (!resolvedPlan) return new Response("OK", { status: 200 });
+      if (!resolvedPlan) {
+        console.log("[WEBHOOK] OK 200");
+        return new Response("OK", { status: 200 });
+      }
 
       const { name, previousPlan } = await getProfileNameAndPlan(userId);
 
@@ -179,9 +209,11 @@ Deno.serve(async (req) => {
       else if (stripeStatus === "trialing" && trialEnd) updateFields.trial_ends_at = new Date(trialEnd * 1000).toISOString();
 
       const { ok } = await upsertProfile(userId, updateFields);
-      if (!ok) return new Response("DB update failed", { status: 500 });
+      if (!ok) {
+        console.error("[WEBHOOK] ERROR DB update failed");
+        return new Response("DB update failed", { status: 500 });
+      }
 
-      // Welcome email — only on first time entering a paid plan
       const wasFree = !previousPlan || previousPlan === "trial" || previousPlan === "past_due";
       if (wasFree && email) {
         await fireEmail(supabase, "welcome", email, userId, { name });
@@ -199,7 +231,11 @@ Deno.serve(async (req) => {
       const stripeStatus = subscription.status || "unknown";
 
       const { userId } = await resolveUserIdFromCustomer(customerId);
-      if (!userId) return new Response("OK", { status: 200 });
+      console.log(`[WEBHOOK] event=${event.type} user_id=${userId} sub_id=${subscription.id}`);
+      if (!userId) {
+        console.log("[WEBHOOK] OK 200");
+        return new Response("OK", { status: 200 });
+      }
 
       const resolvedPlan: string | null = priceId ? PRICE_TO_PLAN[priceId] ?? null : null;
 
@@ -214,7 +250,6 @@ Deno.serve(async (req) => {
         updateFields.stripe_subscription_id = null;
         updateFields.grace_period_ends_at = null;
       } else if (stripeStatus === "past_due" || stripeStatus === "unpaid") {
-        // Start 48h grace period
         updateFields.plan = "past_due";
         updateFields.subscription_status = "grace_period";
         updateFields.grace_period_ends_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
@@ -235,15 +270,25 @@ Deno.serve(async (req) => {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = invoice.customer as string;
       const subscriptionId = (invoice as any).subscription as string | null;
-      if (!subscriptionId) return new Response("OK", { status: 200 });
+      console.log(`[WEBHOOK] event=${event.type} customer=${customerId} sub_id=${subscriptionId}`);
+      if (!subscriptionId) {
+        console.log("[WEBHOOK] OK 200");
+        return new Response("OK", { status: 200 });
+      }
 
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
       const priceId = sub.items.data[0]?.price?.id ?? null;
       const { userId } = await resolveUserIdFromCustomer(customerId, invoice.customer_email);
-      if (!userId || !priceId) return new Response("OK", { status: 200 });
+      if (!userId || !priceId) {
+        console.log("[WEBHOOK] OK 200");
+        return new Response("OK", { status: 200 });
+      }
 
       const resolvedPlan = PRICE_TO_PLAN[priceId];
-      if (!resolvedPlan) return new Response("OK", { status: 200 });
+      if (!resolvedPlan) {
+        console.log("[WEBHOOK] OK 200");
+        return new Response("OK", { status: 200 });
+      }
 
       await upsertProfile(userId, {
         plan: resolvedPlan,
@@ -259,8 +304,8 @@ Deno.serve(async (req) => {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = invoice.customer as string;
       const { userId, email } = await resolveUserIdFromCustomer(customerId, invoice.customer_email);
+      console.log(`[WEBHOOK] event=${event.type} user_id=${userId} customer=${customerId}`);
       if (userId) {
-        // Start 48h grace period — user keeps access until grace_period_ends_at
         await upsertProfile(userId, {
           plan: "past_due",
           subscription_status: "grace_period",
@@ -277,16 +322,18 @@ Deno.serve(async (req) => {
       const subscription = event.data.object as Stripe.Subscription;
       const customerId = subscription.customer as string;
       const { userId, email } = await resolveUserIdFromCustomer(customerId);
+      console.log(`[WEBHOOK] event=${event.type} user_id=${userId} sub_id=${subscription.id}`);
       if (userId && email) {
         const { name } = await getProfileNameAndPlan(userId);
         await fireEmail(supabase, "trial-ending", email, userId, { name });
       }
     }
 
+    console.log("[WEBHOOK] OK 200");
     return new Response("OK", { status: 200 });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error("[WEBHOOK] handler error:", msg);
+    console.error(`[WEBHOOK] ERROR ${msg}`);
     return new Response("Webhook handler error", { status: 500 });
   }
 });

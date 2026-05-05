@@ -398,6 +398,27 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_events: {
+        Row: {
+          id: string
+          processed: boolean
+          received_at: string
+          type: string | null
+        }
+        Insert: {
+          id: string
+          processed?: boolean
+          received_at?: string
+          type?: string | null
+        }
+        Update: {
+          id?: string
+          processed?: boolean
+          received_at?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
