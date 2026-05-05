@@ -22,6 +22,8 @@ import Booking from "./pages/Booking";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AdminEmails from "./pages/AdminEmails";
+import Upgrade from "./pages/Upgrade";
+import Success from "./pages/Success";
 import { HardGateProvider } from "./components/HardGateModal";
 
 const queryClient = new QueryClient();
