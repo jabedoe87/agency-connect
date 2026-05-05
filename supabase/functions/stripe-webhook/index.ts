@@ -192,6 +192,7 @@ Deno.serve(async (req) => {
 
       const resolvedPlan = priceId ? PRICE_TO_PLAN[priceId] : null;
       if (!resolvedPlan) {
+        if (priceId) console.log(`[WEBHOOK] unknown price_id ${priceId}`);
         console.log("[WEBHOOK] OK 200");
         return new Response("OK", { status: 200 });
       }
@@ -200,6 +201,7 @@ Deno.serve(async (req) => {
 
       const updateFields: Record<string, any> = {
         plan: resolvedPlan,
+        plan_id: priceId,
         subscription_status: stripeStatus === "trialing" ? "trialing" : "active",
         grace_period_ends_at: null,
         stripe_customer_id: customerId,
