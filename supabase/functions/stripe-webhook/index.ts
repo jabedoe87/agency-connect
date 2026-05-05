@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
       }
 
       const resolvedPlan: string | null = priceId ? PRICE_TO_PLAN[priceId] ?? null : null;
+      if (priceId && !resolvedPlan) console.log(`[WEBHOOK] unknown price_id ${priceId}`);
 
       const updateFields: Record<string, any> = {
         stripe_customer_id: customerId,
@@ -248,6 +249,7 @@ Deno.serve(async (req) => {
 
       if (event.type === "customer.subscription.deleted" || stripeStatus === "canceled") {
         updateFields.plan = "trial";
+        updateFields.plan_id = null;
         updateFields.subscription_status = "canceled";
         updateFields.stripe_subscription_id = null;
         updateFields.grace_period_ends_at = null;
@@ -257,6 +259,7 @@ Deno.serve(async (req) => {
         updateFields.grace_period_ends_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
       } else if (resolvedPlan && PAID_STATUSES.includes(stripeStatus)) {
         updateFields.plan = resolvedPlan;
+        updateFields.plan_id = priceId;
         updateFields.subscription_status = stripeStatus === "trialing" ? "trialing" : "active";
         updateFields.grace_period_ends_at = null;
         if (stripeStatus === "active") updateFields.trial_ends_at = new Date().toISOString();
