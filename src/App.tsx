@@ -22,6 +22,8 @@ import Booking from "./pages/Booking";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AdminEmails from "./pages/AdminEmails";
+import Upgrade from "./pages/Upgrade";
+import Success from "./pages/Success";
 import { HardGateProvider } from "./components/HardGateModal";
 
 const queryClient = new QueryClient();
@@ -50,6 +52,8 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/upgrade" element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
+            <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
             <Route path="/onboarding" element={
               <ProtectedRoute><Onboarding /></ProtectedRoute>
             } />

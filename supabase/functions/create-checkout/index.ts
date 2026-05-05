@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/dashboard?checkout=success`,
-      cancel_url: `${origin}/pricing`,
+      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/upgrade`,
       metadata: { user_id: userId, supabase_user_id: userId, price_id: priceId },
       subscription_data: {
         metadata: { user_id: userId, supabase_user_id: userId },
