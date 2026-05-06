@@ -55,7 +55,7 @@ export default function Upgrade() {
           See pricing on the <Link to="/pricing" className="underline">pricing page</Link>.
         </p>
 
-        {isAdmin && (
+        {true && (
           <div className="glass-card p-6 space-y-4 border border-primary/30">
             <div>
               <h2 className="text-xl font-semibold text-foreground">Admin: €1 LIVE test payment</h2>
