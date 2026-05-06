@@ -1,26 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/components/AppLayout';
+import { LIVE_TEST_PRICE_ID, TEST_BUTTON_ADMIN_EMAIL } from '@/lib/testPrice';
 
 export default function Upgrade() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [priceIds, setPriceIds] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase.functions.invoke('get-price-ids');
-      if (!cancelled && !error && data?.priceIds) setPriceIds(data.priceIds);
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const isAdmin = user?.email?.toLowerCase() === TEST_BUTTON_ADMIN_EMAIL.toLowerCase();
 
   const handlePay = async () => {
     setError(null);
@@ -30,16 +23,15 @@ export default function Upgrade() {
       return;
     }
 
-    const priceId = priceIds.starter;
-    if (!priceId) {
-      setError('Checkout is not configured yet. Please try again in a moment.');
+    if (!LIVE_TEST_PRICE_ID) {
+      setError('€1 test price is not configured yet.');
       return;
     }
 
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId, checkoutMode: 'direct' },
+        body: { priceId: LIVE_TEST_PRICE_ID, checkoutMode: 'direct' },
       });
       if (error) throw new Error(error.message);
 
@@ -60,34 +52,36 @@ export default function Upgrade() {
       <div className="p-6 md:p-12 max-w-xl mx-auto fade-in">
         <h1 className="text-3xl font-bold text-foreground mb-3">Upgrade your account</h1>
         <p className="text-muted-foreground mb-8">
-          Run a quick test charge to verify the payment flow end-to-end.
+          See pricing on the <Link to="/pricing" className="underline">pricing page</Link>.
         </p>
 
-        <div className="glass-card p-6 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Test payment</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              You'll be redirected to Stripe to complete the payment securely.
-            </p>
+        {isAdmin && (
+          <div className="glass-card p-6 space-y-4 border border-primary/30">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">Admin: €1 LIVE test payment</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Visible only to admin. Charges €1 in LIVE mode to validate the full Stripe → webhook → Supabase flow.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              disabled={loading || !LIVE_TEST_PRICE_ID}
+              onClick={handlePay}
+            >
+              {loading ? 'Redirecting to Stripe…' : 'Pay €1 test'}
+            </Button>
+
+            {!LIVE_TEST_PRICE_ID && (
+              <p className="text-sm text-destructive">
+                €1 price ID not set. Edit <code>src/lib/testPrice.ts</code> and paste the LIVE price_xxx.
+              </p>
+            )}
+            {error && <p className="text-destructive text-sm">{error}</p>}
           </div>
-
-          <Button
-            type="button"
-            size="lg"
-            className="w-full"
-            disabled={loading}
-            onClick={handlePay}
-          >
-            {loading ? 'Redirecting to Stripe…' : 'Pay €1 test'}
-          </Button>
-
-          {error && <p className="text-destructive text-sm">{error}</p>}
-
-          <p className="text-xs text-muted-foreground text-center">
-            Need the full plans?{' '}
-            <Link to="/pricing" className="underline">View pricing</Link>
-          </p>
-        </div>
+        )}
       </div>
     </AppLayout>
   );
