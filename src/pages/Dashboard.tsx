@@ -112,9 +112,34 @@ export default function Dashboard() {
       setActivities((data as Activity[]) || []);
     };
 
+    const fetchUpcoming = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, client_or_lead_name, date, time, appointment_type')
+        .eq('user_id', user.id)
+        .gte('date', today)
+        .order('date', { ascending: true })
+        .order('time', { ascending: true })
+        .limit(5);
+      setUpcoming((data as UpcomingAppointment[]) || []);
+    };
+
     fetchStats();
     fetchActivities();
+    fetchUpcoming();
   }, [user]);
+
+  const refreshAppointments = async () => {
+    if (!user) return;
+    const today = new Date().toISOString().split('T')[0];
+    const [countRes, listRes] = await Promise.all([
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('date', today),
+      supabase.from('appointments').select('id, client_or_lead_name, date, time, appointment_type').eq('user_id', user.id).gte('date', today).order('date', { ascending: true }).order('time', { ascending: true }).limit(5),
+    ]);
+    setStats((s) => ({ ...s, upcomingAppointments: countRes.count || 0 }));
+    setUpcoming((listRes.data as UpcomingAppointment[]) || []);
+  };
 
   const statCards = [
     { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-info' },
