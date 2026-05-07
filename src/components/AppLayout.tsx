@@ -14,6 +14,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import TrialBanner from '@/components/TrialBanner';
 import PaymentFailedBanner from '@/components/PaymentFailedBanner';
 import UsageBanner from '@/components/UsageBanner';
+import UpgradeNudge from '@/components/UpgradeNudge';
+import GracePeriodLimitMessage from '@/components/GracePeriodLimitMessage';
 import { trackEvent } from '@/lib/analytics';
 
 const primaryNav = [
@@ -148,6 +150,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             onUpgrade={() => navigate('/pricing')}
           />
         )}
+        <UpgradeNudge />
+        <GracePeriodLimitMessage />
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur-md">
           <div className="flex items-center justify-between px-6 h-14">

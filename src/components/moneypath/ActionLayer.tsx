@@ -8,6 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
 import { getEmailLink, getInstagramDMLink } from '@/lib/platformLinks';
+import useMessageLimit from '@/hooks/useMessageLimit';
+
+function showProgressToast(toast: ReturnType<typeof useToast>['toast'], newTotal: number) {
+  if (newTotal === 1) {
+    toast({ title: '🔥 First message sent!', description: "You're ahead of 80% of users who never start." });
+  } else if (newTotal === 3) {
+    toast({ title: '3 messages sent', description: 'Most users get their first reply after 5 messages.' });
+  } else if (newTotal === 5) {
+    toast({ title: '5 messages sent!', description: "You're building real momentum." });
+  }
+}
 
 interface ActionLayerProps {
   adText: string;
@@ -101,6 +112,7 @@ export default function ActionLayer({
 }: ActionLayerProps) {
   const { toast } = useToast();
   const { state: addiction } = useAddiction();
+  const { increment: incrementMessageCount, isDailyLimitReached, isPaidUser } = useMessageLimit();
 
   // Editable working copy (tone + micro-edit)
   const [workingText, setWorkingText] = useState(adText);
@@ -438,6 +450,10 @@ export default function ActionLayer({
       // Now flip to completion state (reveals "Send Another" via existing logic)
       setSendConfirmed(true);
       onPosted();
+      // Server-side increment + progress toast (lifetime/daily counters)
+      void incrementMessageCount().then((newTotal) => {
+        if (newTotal != null) showProgressToast(toast, newTotal);
+      });
 
       // 3s celebration animation
       setCelebrate(true);
