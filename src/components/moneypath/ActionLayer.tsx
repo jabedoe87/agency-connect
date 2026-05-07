@@ -641,8 +641,8 @@ export default function ActionLayer({
           </Button>
         )}
 
-        {/* === STEP 2: Send Card === */}
-        {sendPathVisible && (
+        {/* === STEP 2: Send Card === always visible */}
+        {true && (
           <div
             ref={sendPathRef}
             className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-3 mt-1 space-y-2 animate-fade-in"
