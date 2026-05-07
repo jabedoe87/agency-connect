@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import TrialBanner from '@/components/TrialBanner';
 import PaymentFailedBanner from '@/components/PaymentFailedBanner';
 import UsageBanner from '@/components/UsageBanner';
+import { trackEvent } from '@/lib/analytics';
 
 const primaryNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
