@@ -26,6 +26,14 @@ interface Activity {
   created_at: string;
 }
 
+interface UpcomingAppointment {
+  id: string;
+  client_or_lead_name: string;
+  date: string;
+  time: string;
+  appointment_type: string;
+}
+
 export default function Dashboard() {
   const { user, profile, subscription, refreshProfile, checkSubscription } = useAuth();
   const navigate = useNavigate();
