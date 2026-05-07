@@ -450,6 +450,10 @@ export default function ActionLayer({
       // Now flip to completion state (reveals "Send Another" via existing logic)
       setSendConfirmed(true);
       onPosted();
+      // Server-side increment + progress toast (lifetime/daily counters)
+      void incrementMessageCount().then((newTotal) => {
+        if (newTotal != null) showProgressToast(toast, newTotal);
+      });
 
       // 3s celebration animation
       setCelebrate(true);
