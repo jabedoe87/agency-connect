@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/AppLayout';
 import DashboardHero from '@/components/DashboardHero';
 import ConversionBanner from '@/components/ConversionBanner';
-import { Users, UserCheck, CalendarDays, DollarSign, Clock, Sparkles, CreditCard } from 'lucide-react';
+import { Users, UserCheck, CalendarDays, DollarSign, Clock, Sparkles, CreditCard, Plus } from 'lucide-react';
+import AddAppointmentDialog from '@/components/AddAppointmentDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({ totalLeads: 0, totalClients: 0, upcomingAppointments: 0, monthlyRevenue: 0 });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [showAddAppt, setShowAddAppt] = useState(false);
 
   // Handle Stripe checkout return: refresh profile + subscription, then clean URL.
   useEffect(() => {
@@ -137,11 +139,30 @@ export default function Dashboard() {
                 {portalLoading ? 'Loading...' : 'Manage'}
               </Button>
             )}
+            <Button variant="outline" className="gap-2" onClick={() => setShowAddAppt(true)}>
+              <Plus className="w-4 h-4" /> Add Appointment
+            </Button>
             <Button className="gap-2 cta-primary" onClick={() => navigate('/generator')}>
               <Sparkles className="w-4 h-4" /> Generate Content
             </Button>
           </div>
         </div>
+
+        <AddAppointmentDialog
+          open={showAddAppt}
+          onOpenChange={setShowAddAppt}
+          onCreated={() => {
+            // refresh upcoming appointments stat
+            if (user) {
+              supabase
+                .from('appointments')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .gte('date', new Date().toISOString().split('T')[0])
+                .then(({ count }) => setStats((s) => ({ ...s, upcomingAppointments: count || 0 })));
+            }
+          }}
+        />
 
         <ConversionBanner />
         <DashboardHero />
