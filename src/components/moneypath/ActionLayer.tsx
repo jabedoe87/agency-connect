@@ -358,7 +358,30 @@ export default function ActionLayer({
       }, 80);
     }
     setTimeout(() => setCopied(null), 2000);
-    toast({ title: key === 'cta' ? '✓ CTA copied' : '✓ Copied — ready to paste' });
+    toast({ title: 'Copied to clipboard ✓', duration: 2000 });
+  };
+
+  // Open Instagram DM via ig.me; show fallback card if user returns to tab (app didn't open).
+  const openInstagramDM = (username: string) => {
+    const u = (username || '').replace(/^@/, '').trim();
+    setIgFallbackUsername(u);
+    setIgFallbackVisible(false);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setIgFallbackVisible(true);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }, 500);
+
+    window.location.href = getInstagramDMLink(u);
+
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, 10000);
   };
 
   const applyToneChoice = (t: 'casual' | 'professional' | 'direct') => {
