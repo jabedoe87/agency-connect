@@ -39,7 +39,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [showTrialExpired, setShowTrialExpired] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -226,8 +225,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* Upgrade modal */}
-      <Dialog open={showUpgrade} onOpenChange={setShowUpgrade}>
+      {/* Upgrade modal — fully dismissible (X, ESC, backdrop, Maybe later) */}
+      <Dialog
+        open={showUpgrade}
+        onOpenChange={(open) => {
+          if (!open) trackEvent('upgrade_dismissed', { source: 'modal' });
+          setShowUpgrade(open);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upgrade to Pro</DialogTitle>
@@ -238,44 +243,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Link to="/pricing">
             <Button className="w-full cta-primary">View Plans</Button>
           </Link>
-        </DialogContent>
-      </Dialog>
-
-      {/* Trial expired hard-lock modal — cannot be dismissed */}
-      <Dialog open={showTrialExpired} onOpenChange={() => {}}>
-        <DialogContent
-          className="[&>button]:hidden max-w-lg"
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>Your trial has ended</DialogTitle>
-            <DialogDescription>
-              Upgrade to continue sending messages. You won't lose any of your data.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-3 gap-2 my-2">
-            {[
-              { name: 'Starter', price: 49 },
-              { name: 'Pro', price: 99, highlight: true },
-              { name: 'Business', price: 149 },
-            ].map((p) => (
-              <div
-                key={p.name}
-                className={`rounded-lg border p-3 text-center ${
-                  p.highlight ? 'border-primary bg-primary/5' : 'border-border'
-                }`}
-              >
-                <div className="text-xs text-muted-foreground">{p.name}</div>
-                <div className="text-lg font-bold text-foreground">€{p.price}</div>
-                <div className="text-[10px] text-muted-foreground">/month</div>
-              </div>
-            ))}
-          </div>
-          <Link to="/pricing">
-            <Button className="w-full cta-primary">Choose a plan</Button>
-          </Link>
+          <button
+            onClick={() => {
+              trackEvent('upgrade_dismissed', { source: 'modal' });
+              setShowUpgrade(false);
+            }}
+            className="mt-4 text-sm text-muted-foreground hover:underline w-full text-center"
+          >
+            Maybe later
+          </button>
         </DialogContent>
       </Dialog>
     </div>
