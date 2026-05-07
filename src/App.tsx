@@ -25,6 +25,7 @@ import AdminEmails from "./pages/AdminEmails";
 import AdminGuard from "./components/auth/AdminGuard";
 import Upgrade from "./pages/Upgrade";
 import Success from "./pages/Success";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import { HardGateProvider } from "./components/HardGateModal";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/upgrade" element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
             <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/onboarding" element={
               <ProtectedRoute><Onboarding /></ProtectedRoute>
             } />
