@@ -365,7 +365,11 @@ export default function ActionLayer({
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
     setCopied(key);
     if (key === 'msg') {
-      const isFirstCopy = !copyClicked;
+      // Idempotent guard keyed off the actual message text — survives rapid
+      // double-clicks and React state batching.
+      const messageKey = text;
+      const isFirstCopy = countedMessageKeyRef.current !== messageKey;
+      if (isFirstCopy) countedMessageKeyRef.current = messageKey;
       setCopyClicked(true);
       setSendStarted(true);
       setSendPathVisible(true);
@@ -374,7 +378,7 @@ export default function ActionLayer({
         try { sendPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
       }, 80);
       if (isFirstCopy) {
-        // Server-side increment fires on first copy of the message (not just on send confirm)
+        // Server-side increment fires on first copy of this message (not just on send confirm)
         void incrementMessageCount().then((newTotal) => {
           if (newTotal != null) showProgressToast(toast, newTotal);
         });
