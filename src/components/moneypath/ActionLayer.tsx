@@ -129,6 +129,8 @@ export default function ActionLayer({
   const [idleSavePrompt, setIdleSavePrompt] = useState(false);
   const [savedForLater, setSavedForLater] = useState(false);
   const [clipboardPill, setClipboardPill] = useState(false);
+  const [igFallbackVisible, setIgFallbackVisible] = useState(false);
+  const [igFallbackUsername, setIgFallbackUsername] = useState('');
 
   // V11.1 — Platform click feedback
   const [platformActionClicked, setPlatformActionClicked] = useState(false);
