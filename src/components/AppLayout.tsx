@@ -13,6 +13,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import TrialBanner from '@/components/TrialBanner';
 import PaymentFailedBanner from '@/components/PaymentFailedBanner';
+import UsageBanner from '@/components/UsageBanner';
 
 const primaryNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
@@ -59,14 +60,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     trialEndsAt &&
     trialEndsAt < now;
 
-  useEffect(() => {
-    if (trialExpired) {
-      setShowTrialExpired(true);
-    } else if (hasPaidPlan) {
-      // Auto-dismiss if user becomes paid (e.g. webhook lands or subscription check resolves).
-      setShowTrialExpired(false);
-    }
-  }, [trialExpired, hasPaidPlan]);
+  // Soft nudge: no blocking modal — render dismissible UsageBanner instead.
+  // Used/limit are dynamic from real profile data.
+  const usedCount = profile?.ai_generations_count ?? 0;
+  const limitCount = usedCount; // free tier: at-limit when trial expired
+  const showUsageBanner = !!trialExpired;
 
   const handleNavClick = (item: { path: string; locked: boolean }) => {
     if (item.locked) {
@@ -143,6 +141,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <main className="flex-1 md:ml-64 pb-20 md:pb-0">
         <PaymentFailedBanner />
         <TrialBanner />
+        {showUsageBanner && (
+          <UsageBanner
+            used={usedCount}
+            limit={limitCount}
+            onUpgrade={() => navigate('/pricing')}
+          />
+        )}
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur-md">
           <div className="flex items-center justify-between px-6 h-14">
