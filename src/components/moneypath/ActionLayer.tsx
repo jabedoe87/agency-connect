@@ -7,6 +7,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
+import { getEmailLink, getInstagramDMLink } from '@/lib/platformLinks';
 
 interface ActionLayerProps {
   adText: string;
@@ -128,6 +129,8 @@ export default function ActionLayer({
   const [idleSavePrompt, setIdleSavePrompt] = useState(false);
   const [savedForLater, setSavedForLater] = useState(false);
   const [clipboardPill, setClipboardPill] = useState(false);
+  const [igFallbackVisible, setIgFallbackVisible] = useState(false);
+  const [igFallbackUsername, setIgFallbackUsername] = useState('');
 
   // V11.1 — Platform click feedback
   const [platformActionClicked, setPlatformActionClicked] = useState(false);
@@ -355,7 +358,30 @@ export default function ActionLayer({
       }, 80);
     }
     setTimeout(() => setCopied(null), 2000);
-    toast({ title: key === 'cta' ? '✓ CTA copied' : '✓ Copied — ready to paste' });
+    toast({ title: 'Copied to clipboard ✓', duration: 2000 });
+  };
+
+  // Open Instagram DM via ig.me; show fallback card if user returns to tab (app didn't open).
+  const openInstagramDM = (username: string) => {
+    const u = (username || '').replace(/^@/, '').trim();
+    setIgFallbackUsername(u);
+    setIgFallbackVisible(false);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setIgFallbackVisible(true);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }, 500);
+
+    window.location.href = getInstagramDMLink(u);
+
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, 10000);
   };
 
   const applyToneChoice = (t: 'casual' | 'professional' | 'direct') => {
@@ -666,11 +692,8 @@ export default function ActionLayer({
                     dismissNudges();
                     markPlatformOpened();
                     handlePlatformClick('Gmail', () => {
-                      const subject = encodeURIComponent('Quick question');
-                      const body = encodeURIComponent(workingText);
-                      const to = encodeURIComponent(targetEmail || '');
-                      const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-                      window.open(gmail, '_blank');
+                      const firstLine = (workingText.split('\n').find(l => l.trim()) || workingText).slice(0, 80);
+                      window.open(getEmailLink(targetEmail || '', firstLine, workingText), '_blank', 'noopener,noreferrer');
                     });
                   }}
                 >
@@ -696,7 +719,7 @@ export default function ActionLayer({
                 )}
 
                 <a
-                  href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent('Quick question')}&body=${encodeURIComponent(workingText)}`}
+                  href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent((workingText.split('\n').find(l => l.trim()) || workingText).slice(0, 80))}&body=${encodeURIComponent(workingText)}`}
                   className="block text-[11px] text-primary underline text-center hover:opacity-80"
                   onClick={() => { markPlatformOpened(); handlePlatformClick('Email', () => {}); }}
                 >
@@ -717,11 +740,8 @@ export default function ActionLayer({
                         dismissNudges();
                         markPlatformOpened();
                         handlePlatformClick('Gmail', () => {
-                          const subject = encodeURIComponent('Quick question');
-                          const body = encodeURIComponent(workingText);
-                          const to = encodeURIComponent(targetEmail || '');
-                          const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-                          window.open(gmail, '_blank');
+                          const firstLine = (workingText.split('\n').find(l => l.trim()) || workingText).slice(0, 80);
+                          window.open(getEmailLink(targetEmail || '', firstLine, workingText), '_blank', 'noopener,noreferrer');
                         });
                       }}
                     >
@@ -756,24 +776,32 @@ export default function ActionLayer({
                       dismissNudges();
                       markPlatformOpened();
                       handlePlatformClick('Instagram', () => {
-                        const username = targetUsername || '';
-                        const start = Date.now();
-                        if (username) {
-                          try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
-                          setTimeout(() => {
-                            if (Date.now() - start < 1000) {
-                              try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
-                            }
-                          }, 500);
-                        } else {
-                          window.open('https://www.instagram.com/', '_blank');
-                        }
+                        openInstagramDM(targetUsername || '');
                       });
                     }}
                   >
                     <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : `DM${targetName ? ` ${targetName}` : ''} on Instagram`}
                   </Button>
                   <p className="text-[11px] text-muted-foreground px-1">Use this if you're already in their DMs.</p>
+
+                  {igFallbackVisible && (
+                    <div className="relative rounded-lg border border-white/10 bg-muted/40 p-3 mt-1 animate-fade-in">
+                      <button
+                        type="button"
+                        onClick={() => setIgFallbackVisible(false)}
+                        aria-label="Dismiss"
+                        className="absolute right-1.5 top-1.5 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+                      >
+                        <span className="text-xs leading-none">✕</span>
+                      </button>
+                      <p className="text-[12px] font-semibold text-foreground pr-5">Couldn't open Instagram automatically.</p>
+                      <ol className="mt-1 space-y-0.5 text-[11px] text-muted-foreground list-decimal list-inside">
+                        <li>Open Instagram</li>
+                        <li>Search for @{igFallbackUsername}</li>
+                        <li>Paste your message</li>
+                      </ol>
+                    </div>
+                  )}
 
                   {/* V11.3 — Instagram distraction warning (calm, no urgency) */}
                   {instagramWarningVisible && (
