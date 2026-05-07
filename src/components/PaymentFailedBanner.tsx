@@ -42,7 +42,7 @@ export default function PaymentFailedBanner() {
 
   const headline = isGracePeriod ? 'Payment failed — 48h to fix' : 'Payment failed';
   const sub = isGracePeriod
-    ? 'Update your card now to avoid losing access. After 48 hours, all features will be locked.'
+    ? 'Update your card now to avoid losing access. After 48 hours, all features will be waiting for you.'
     : 'Update your card to restore full access. It only takes a moment.';
 
   return (
