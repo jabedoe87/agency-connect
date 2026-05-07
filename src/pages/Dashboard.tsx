@@ -26,6 +26,14 @@ interface Activity {
   created_at: string;
 }
 
+interface UpcomingAppointment {
+  id: string;
+  client_or_lead_name: string;
+  date: string;
+  time: string;
+  appointment_type: string;
+}
+
 export default function Dashboard() {
   const { user, profile, subscription, refreshProfile, checkSubscription } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +41,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [stats, setStats] = useState<Stats>({ totalLeads: 0, totalClients: 0, upcomingAppointments: 0, monthlyRevenue: 0 });
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [upcoming, setUpcoming] = useState<UpcomingAppointment[]>([]);
   const [portalLoading, setPortalLoading] = useState(false);
   const [showAddAppt, setShowAddAppt] = useState(false);
 
@@ -103,9 +112,34 @@ export default function Dashboard() {
       setActivities((data as Activity[]) || []);
     };
 
+    const fetchUpcoming = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, client_or_lead_name, date, time, appointment_type')
+        .eq('user_id', user.id)
+        .gte('date', today)
+        .order('date', { ascending: true })
+        .order('time', { ascending: true })
+        .limit(5);
+      setUpcoming((data as UpcomingAppointment[]) || []);
+    };
+
     fetchStats();
     fetchActivities();
+    fetchUpcoming();
   }, [user]);
+
+  const refreshAppointments = async () => {
+    if (!user) return;
+    const today = new Date().toISOString().split('T')[0];
+    const [countRes, listRes] = await Promise.all([
+      supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('date', today),
+      supabase.from('appointments').select('id, client_or_lead_name, date, time, appointment_type').eq('user_id', user.id).gte('date', today).order('date', { ascending: true }).order('time', { ascending: true }).limit(5),
+    ]);
+    setStats((s) => ({ ...s, upcomingAppointments: countRes.count || 0 }));
+    setUpcoming((listRes.data as UpcomingAppointment[]) || []);
+  };
 
   const statCards = [
     { label: 'Total Leads', value: stats.totalLeads, icon: Users, color: 'text-info' },
@@ -151,17 +185,7 @@ export default function Dashboard() {
         <AddAppointmentDialog
           open={showAddAppt}
           onOpenChange={setShowAddAppt}
-          onCreated={() => {
-            // refresh upcoming appointments stat
-            if (user) {
-              supabase
-                .from('appointments')
-                .select('id', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .gte('date', new Date().toISOString().split('T')[0])
-                .then(({ count }) => setStats((s) => ({ ...s, upcomingAppointments: count || 0 })));
-            }
-          }}
+          onCreated={refreshAppointments}
         />
 
         <ConversionBanner />
@@ -182,6 +206,39 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Upcoming Appointments */}
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-muted-foreground" /> Upcoming Appointments
+            </h2>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowAddAppt(true)}>
+              <Plus className="w-3.5 h-3.5" /> Add
+            </Button>
+          </div>
+          {upcoming.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No upcoming appointments. Click "Add" to book one.</p>
+          ) : (
+            <div className="space-y-0">
+              {upcoming.map((a) => {
+                const dt = new Date(`${a.date}T${a.time}`);
+                return (
+                  <div key={a.id} className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
+                    <div>
+                      <p className="text-sm text-foreground font-medium">{a.client_or_lead_name}</p>
+                      <p className="text-xs text-muted-foreground">{a.appointment_type}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-foreground">{dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
+                      <p className="text-xs text-muted-foreground">{a.time.slice(0, 5)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Recent Activity */}
