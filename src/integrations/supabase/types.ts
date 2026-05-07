@@ -346,6 +346,8 @@ export type Database = {
           business_type: string
           company_name: string
           created_at: string
+          daily_messages_count: number
+          daily_reset_date: string
           full_name: string
           grace_period_ends_at: string | null
           id: string
@@ -356,6 +358,7 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string
+          total_messages_sent: number
           trial_ends_at: string
           user_id: string
         }
@@ -366,6 +369,8 @@ export type Database = {
           business_type?: string
           company_name?: string
           created_at?: string
+          daily_messages_count?: number
+          daily_reset_date?: string
           full_name?: string
           grace_period_ends_at?: string | null
           id?: string
@@ -376,6 +381,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string
+          total_messages_sent?: number
           trial_ends_at?: string
           user_id: string
         }
@@ -386,6 +392,8 @@ export type Database = {
           business_type?: string
           company_name?: string
           created_at?: string
+          daily_messages_count?: number
+          daily_reset_date?: string
           full_name?: string
           grace_period_ends_at?: string | null
           id?: string
@@ -396,6 +404,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string
+          total_messages_sent?: number
           trial_ends_at?: string
           user_id?: string
         }
@@ -452,6 +461,13 @@ export type Database = {
     }
     Functions: {
       has_access: { Args: { _user_id: string }; Returns: boolean }
+      increment_message_count: {
+        Args: { _user_id: string }
+        Returns: {
+          daily_messages_count: number
+          total_messages_sent: number
+        }[]
+      }
       is_active_subscriber: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
