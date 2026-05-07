@@ -361,6 +361,7 @@ export default function ActionLayer({
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
     setCopied(key);
     if (key === 'msg') {
+      const isFirstCopy = !copyClicked;
       setCopyClicked(true);
       setSendStarted(true);
       setSendPathVisible(true);
@@ -368,6 +369,12 @@ export default function ActionLayer({
       setTimeout(() => {
         try { sendPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
       }, 80);
+      if (isFirstCopy) {
+        // Server-side increment fires on first copy of the message (not just on send confirm)
+        void incrementMessageCount().then((newTotal) => {
+          if (newTotal != null) showProgressToast(toast, newTotal);
+        });
+      }
     }
     setTimeout(() => setCopied(null), 2000);
     toast({ title: 'Copied to clipboard ✓', duration: 2000 });
@@ -450,10 +457,8 @@ export default function ActionLayer({
       // Now flip to completion state (reveals "Send Another" via existing logic)
       setSendConfirmed(true);
       onPosted();
-      // Server-side increment + progress toast (lifetime/daily counters)
-      void incrementMessageCount().then((newTotal) => {
-        if (newTotal != null) showProgressToast(toast, newTotal);
-      });
+      // Note: server-side increment + progress toast already fired on first copy
+
 
       // 3s celebration animation
       setCelebrate(true);

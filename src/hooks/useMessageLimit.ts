@@ -46,13 +46,13 @@ export default function useMessageLimit() {
   /** Server-side increment. Returns new total or null on failure. */
   const increment = useCallback(async (): Promise<number | null> => {
     if (!user?.id) return null;
-    const { data, error } = await supabase.rpc('increment_message_count' as any, {
+    const { data, error } = await supabase.rpc('increment_message_count', {
       _user_id: user.id,
     });
     if (error) return null;
     const row = Array.isArray(data) ? data[0] : data;
-    const newTotal = (row as any)?.total_messages_sent ?? totalSent + 1;
-    const newDaily = (row as any)?.daily_messages_count ?? dailyCount + 1;
+    const newTotal = row?.total_messages_sent ?? totalSent + 1;
+    const newDaily = row?.daily_messages_count ?? dailyCount + 1;
     setTotalSent(newTotal);
     setDailyCount(newDaily);
     return newTotal;
