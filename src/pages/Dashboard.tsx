@@ -139,11 +139,30 @@ export default function Dashboard() {
                 {portalLoading ? 'Loading...' : 'Manage'}
               </Button>
             )}
+            <Button variant="outline" className="gap-2" onClick={() => setShowAddAppt(true)}>
+              <Plus className="w-4 h-4" /> Add Appointment
+            </Button>
             <Button className="gap-2 cta-primary" onClick={() => navigate('/generator')}>
               <Sparkles className="w-4 h-4" /> Generate Content
             </Button>
           </div>
         </div>
+
+        <AddAppointmentDialog
+          open={showAddAppt}
+          onOpenChange={setShowAddAppt}
+          onCreated={() => {
+            // refresh upcoming appointments stat
+            if (user) {
+              supabase
+                .from('appointments')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .gte('date', new Date().toISOString().split('T')[0])
+                .then(({ count }) => setStats((s) => ({ ...s, upcomingAppointments: count || 0 })));
+            }
+          }}
+        />
 
         <ConversionBanner />
         <DashboardHero />
