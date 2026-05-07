@@ -8,6 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
 import { getEmailLink, getInstagramDMLink } from '@/lib/platformLinks';
+import useMessageLimit from '@/hooks/useMessageLimit';
+
+function showProgressToast(toast: ReturnType<typeof useToast>['toast'], newTotal: number) {
+  if (newTotal === 1) {
+    toast({ title: '🔥 First message sent!', description: "You're ahead of 80% of users who never start." });
+  } else if (newTotal === 3) {
+    toast({ title: '3 messages sent', description: 'Most users get their first reply after 5 messages.' });
+  } else if (newTotal === 5) {
+    toast({ title: '5 messages sent!', description: "You're building real momentum." });
+  }
+}
 
 interface ActionLayerProps {
   adText: string;
