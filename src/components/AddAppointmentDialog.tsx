@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivityLog } from '@/hooks/useActivityLog';
@@ -15,6 +16,13 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
 }
+
+const schema = z.object({
+  name: z.string().trim().min(1, 'Client or lead name is required').max(100, 'Name too long'),
+  date: z.string().min(1, 'Date is required'),
+  time: z.string().min(1, 'Time is required'),
+  type: z.string().min(1, 'Appointment type is required'),
+});
 
 export default function AddAppointmentDialog({ open, onOpenChange, onCreated }: Props) {
   const { user, profile } = useAuth();
@@ -40,14 +48,50 @@ export default function AddAppointmentDialog({ open, onOpenChange, onCreated }: 
   }, [open, apptTypes]);
 
   const handleSave = async () => {
-    if (!user || !name.trim() || !date || !time) {
-      toast({ title: 'Please fill in all required fields', variant: 'destructive' });
+    if (!user) return;
+
+    const parsed = schema.safeParse({ name, date, time, type });
+    if (!parsed.success) {
+      toast({ title: 'Invalid input', description: parsed.error.errors[0].message, variant: 'destructive' });
       return;
     }
+
+    // Reject past date/time
+    const apptDateTime = new Date(`${date}T${time}`);
+    if (isNaN(apptDateTime.getTime())) {
+      toast({ title: 'Invalid date or time', variant: 'destructive' });
+      return;
+    }
+    if (apptDateTime.getTime() <= Date.now()) {
+      toast({ title: 'Cannot book in the past', description: 'Please choose a future date and time.', variant: 'destructive' });
+      return;
+    }
+
     setSaving(true);
+
+    // Duplicate check: same user, same date, same time
+    const { data: existing, error: dupErr } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('date', date)
+      .eq('time', time)
+      .maybeSingle();
+
+    if (dupErr) {
+      setSaving(false);
+      toast({ title: 'Error', description: dupErr.message, variant: 'destructive' });
+      return;
+    }
+    if (existing) {
+      setSaving(false);
+      toast({ title: 'Duplicate appointment', description: 'You already have an appointment at that date and time.', variant: 'destructive' });
+      return;
+    }
+
     const { error } = await supabase.from('appointments').insert({
       user_id: user.id,
-      client_or_lead_name: name.trim(),
+      client_or_lead_name: parsed.data.name,
       date,
       time,
       appointment_type: type || apptTypes[0],
@@ -57,11 +101,13 @@ export default function AddAppointmentDialog({ open, onOpenChange, onCreated }: 
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
       return;
     }
-    await logActivity('Appointment Booked', `Booked appointment with ${name}`);
+    await logActivity('Appointment Booked', `Booked appointment with ${parsed.data.name}`);
     toast({ title: 'Appointment booked' });
     onOpenChange(false);
     onCreated?.();
   };
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,12 +118,12 @@ export default function AddAppointmentDialog({ open, onOpenChange, onCreated }: 
         <div className="space-y-4">
           <div>
             <Label>Client or Lead Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Date *</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="date" value={date} min={todayStr} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div>
               <Label>Time *</Label>
