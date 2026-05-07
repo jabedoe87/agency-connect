@@ -74,12 +74,43 @@ export default function Upgrade() {
               {loading ? 'Redirecting to Stripe…' : 'Pay €1 test'}
             </Button>
 
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              disabled={loading || !LIVE_TEST_PRICE_ID}
+              onClick={handlePay}
+            >
+              {loading ? (
+                <>
+                  <span className="inline-block w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Pay €1 test'
+              )}
+            </Button>
+
             {!LIVE_TEST_PRICE_ID && (
               <p className="text-sm text-destructive">
                 €1 price ID not set. Edit <code>src/lib/testPrice.ts</code> and paste the LIVE price_xxx.
               </p>
             )}
-            {error && <p className="text-destructive text-sm">{error}</p>}
+            {error && (
+              <div className="space-y-2">
+                <p className="text-sm text-destructive mt-2">
+                  Payment couldn't be processed. Please try again or use a different card.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setError(null); setLoading(false); }}
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

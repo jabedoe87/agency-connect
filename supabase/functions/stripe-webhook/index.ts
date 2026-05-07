@@ -336,11 +336,28 @@ Deno.serve(async (req) => {
       }
     }
 
+    try {
+      await supabase.from("payments_log").insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        status: "processed",
+      });
+    } catch (_) {}
+
     console.log("[WEBHOOK] OK 200");
     return new Response("OK", { status: 200 });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error(`[WEBHOOK] ERROR ${msg}`);
-    return new Response("Webhook handler error", { status: 500 });
+    try {
+      await supabase.from("payments_log").insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        status: "error",
+        error_message: msg,
+      });
+    } catch (_) {}
+    // Always return 200 so Stripe does not retry a partially processed event
+    return new Response("OK", { status: 200 });
   }
 });
