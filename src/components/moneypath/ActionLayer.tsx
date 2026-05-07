@@ -776,24 +776,32 @@ export default function ActionLayer({
                       dismissNudges();
                       markPlatformOpened();
                       handlePlatformClick('Instagram', () => {
-                        const username = targetUsername || '';
-                        const start = Date.now();
-                        if (username) {
-                          try { window.location.href = `instagram://user?username=${username}`; } catch { /* ignore */ }
-                          setTimeout(() => {
-                            if (Date.now() - start < 1000) {
-                              try { window.open(`https://www.instagram.com/${username}/`, '_blank'); } catch { /* ignore */ }
-                            }
-                          }, 500);
-                        } else {
-                          window.open('https://www.instagram.com/', '_blank');
-                        }
+                        openInstagramDM(targetUsername || '');
                       });
                     }}
                   >
                     <Instagram className="w-3.5 h-3.5" /> {isOpening && openingLabel === 'Instagram' ? 'Opening…' : `DM${targetName ? ` ${targetName}` : ''} on Instagram`}
                   </Button>
                   <p className="text-[11px] text-muted-foreground px-1">Use this if you're already in their DMs.</p>
+
+                  {igFallbackVisible && (
+                    <div className="relative rounded-lg border border-white/10 bg-muted/40 p-3 mt-1 animate-fade-in">
+                      <button
+                        type="button"
+                        onClick={() => setIgFallbackVisible(false)}
+                        aria-label="Dismiss"
+                        className="absolute right-1.5 top-1.5 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+                      >
+                        <span className="text-xs leading-none">✕</span>
+                      </button>
+                      <p className="text-[12px] font-semibold text-foreground pr-5">Couldn't open Instagram automatically.</p>
+                      <ol className="mt-1 space-y-0.5 text-[11px] text-muted-foreground list-decimal list-inside">
+                        <li>Open Instagram</li>
+                        <li>Search for @{igFallbackUsername}</li>
+                        <li>Paste your message</li>
+                      </ol>
+                    </div>
+                  )}
 
                   {/* V11.3 — Instagram distraction warning (calm, no urgency) */}
                   {instagramWarningVisible && (
