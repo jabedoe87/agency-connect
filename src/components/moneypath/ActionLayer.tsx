@@ -112,6 +112,7 @@ export default function ActionLayer({
 }: ActionLayerProps) {
   const { toast } = useToast();
   const { state: addiction } = useAddiction();
+  const { increment: incrementMessageCount, isDailyLimitReached, isPaidUser } = useMessageLimit();
 
   // Editable working copy (tone + micro-edit)
   const [workingText, setWorkingText] = useState(adText);
