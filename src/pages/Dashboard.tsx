@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({ totalLeads: 0, totalClients: 0, upcomingAppointments: 0, monthlyRevenue: 0 });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [showAddAppt, setShowAddAppt] = useState(false);
 
   // Handle Stripe checkout return: refresh profile + subscription, then clean URL.
   useEffect(() => {
