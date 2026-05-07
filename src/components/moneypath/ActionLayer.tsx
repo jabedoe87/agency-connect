@@ -313,6 +313,7 @@ export default function ActionLayer({
       instagramWarningTimerRef.current = null;
     }
     sendTimerStartRef.current = null;
+    countedMessageKeyRef.current = null;
   }, [adText]);
 
   // Idle timeout (>30s on send screen)
