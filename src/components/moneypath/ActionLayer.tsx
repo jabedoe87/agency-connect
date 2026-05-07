@@ -692,11 +692,8 @@ export default function ActionLayer({
                     dismissNudges();
                     markPlatformOpened();
                     handlePlatformClick('Gmail', () => {
-                      const subject = encodeURIComponent('Quick question');
-                      const body = encodeURIComponent(workingText);
-                      const to = encodeURIComponent(targetEmail || '');
-                      const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-                      window.open(gmail, '_blank');
+                      const firstLine = (workingText.split('\n').find(l => l.trim()) || workingText).slice(0, 80);
+                      window.open(getEmailLink(targetEmail || '', firstLine, workingText), '_blank', 'noopener,noreferrer');
                     });
                   }}
                 >
@@ -722,7 +719,7 @@ export default function ActionLayer({
                 )}
 
                 <a
-                  href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent('Quick question')}&body=${encodeURIComponent(workingText)}`}
+                  href={`mailto:${targetEmail || ''}?subject=${encodeURIComponent((workingText.split('\n').find(l => l.trim()) || workingText).slice(0, 80))}&body=${encodeURIComponent(workingText)}`}
                   className="block text-[11px] text-primary underline text-center hover:opacity-80"
                   onClick={() => { markPlatformOpened(); handlePlatformClick('Email', () => {}); }}
                 >
