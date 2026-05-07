@@ -14,6 +14,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import TrialBanner from '@/components/TrialBanner';
 import PaymentFailedBanner from '@/components/PaymentFailedBanner';
 import UsageBanner from '@/components/UsageBanner';
+import UpgradeNudge from '@/components/UpgradeNudge';
+import GracePeriodLimitMessage from '@/components/GracePeriodLimitMessage';
 import { trackEvent } from '@/lib/analytics';
 
 const primaryNav = [
