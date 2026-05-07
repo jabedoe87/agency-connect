@@ -16,6 +16,7 @@ import PaymentFailedBanner from '@/components/PaymentFailedBanner';
 import UsageBanner from '@/components/UsageBanner';
 import UpgradeNudge from '@/components/UpgradeNudge';
 import GracePeriodLimitMessage from '@/components/GracePeriodLimitMessage';
+import TrialEndedModal from '@/components/TrialEndedModal';
 import { trackEvent } from '@/lib/analytics';
 
 const primaryNav = [
@@ -100,6 +101,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <TrialEndedModal />
       {/* Desktop Sidebar — deepest layer */}
       <aside className="hidden md:flex flex-col w-64 border-r border-white/10 bg-sidebar fixed h-full">
         <div className="px-6 py-5 border-b border-white/10">
