@@ -172,6 +172,10 @@ export default function ActionLayer({
   const instagramWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sendPathRef = useRef<HTMLDivElement | null>(null);
   const confirmCtaRef = useRef<HTMLButtonElement | null>(null);
+  // Idempotent per-message guard: ensures incrementMessageCount() runs at most
+  // once per unique message text, even if copy() is invoked multiple times
+  // before React state (copyClicked) has a chance to update.
+  const countedMessageKeyRef = useRef<string | null>(null);
 
   // V11.1 — central handler for any platform-button click
   const handlePlatformClick = (label: string, openFn: () => void) => {
@@ -309,6 +313,7 @@ export default function ActionLayer({
       instagramWarningTimerRef.current = null;
     }
     sendTimerStartRef.current = null;
+    countedMessageKeyRef.current = null;
   }, [adText]);
 
   // Idle timeout (>30s on send screen)
@@ -361,7 +366,11 @@ export default function ActionLayer({
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
     setCopied(key);
     if (key === 'msg') {
-      const isFirstCopy = !copyClicked;
+      // Idempotent guard keyed off the actual message text — survives rapid
+      // double-clicks and React state batching.
+      const messageKey = text;
+      const isFirstCopy = countedMessageKeyRef.current !== messageKey;
+      if (isFirstCopy) countedMessageKeyRef.current = messageKey;
       setCopyClicked(true);
       setSendStarted(true);
       setSendPathVisible(true);
@@ -370,7 +379,7 @@ export default function ActionLayer({
         try { sendPathRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* ignore */ }
       }, 80);
       if (isFirstCopy) {
-        // Server-side increment fires on first copy of the message (not just on send confirm)
+        // Server-side increment fires on first copy of this message (not just on send confirm)
         void incrementMessageCount().then((newTotal) => {
           if (newTotal != null) showProgressToast(toast, newTotal);
         });
