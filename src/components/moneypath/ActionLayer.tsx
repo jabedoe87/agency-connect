@@ -7,6 +7,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAddiction } from '@/hooks/useAddiction';
 import { formatEUR } from '@/lib/addiction';
+import { getEmailLink, getInstagramDMLink } from '@/lib/platformLinks';
 
 interface ActionLayerProps {
   adText: string;
