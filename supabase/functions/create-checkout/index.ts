@@ -107,14 +107,10 @@ Deno.serve(async (req) => {
       console.log('[EDGE] session created:', !!session);
       console.log('[EDGE] session.url:', session?.url);
     } catch (err: any) {
-      console.log('[EDGE] ❌ STRIPE ERROR:', err);
-
+      const reqId = crypto.randomUUID();
+      console.error('[EDGE] STRIPE ERROR', { reqId, message: err?.message, type: err?.type, code: err?.code, stack: err?.stack });
       return new Response(
-        JSON.stringify({
-          error: err?.message,
-          type: err?.type,
-          code: err?.code,
-        }),
+        JSON.stringify({ error: 'Unable to start checkout. Please try again.', requestId: reqId }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
