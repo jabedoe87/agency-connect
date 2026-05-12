@@ -111,6 +111,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // For non-service-role callers, only allow sending to the authed user's own email
+    if (!isServiceRole && authedUserEmail !== body.recipientEmail.toLowerCase()) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
