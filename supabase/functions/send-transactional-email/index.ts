@@ -70,13 +70,51 @@ Deno.serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+
+    // Auth: only allow service-role (internal callers like stripe-webhook) or
+    // authenticated users sending to their own email address.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const isServiceRole = !!SERVICE_ROLE_KEY && token === SERVICE_ROLE_KEY;
+
+    let authedUserEmail: string | null = null;
+    if (!isServiceRole) {
+      if (!token) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const authClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+      const { data: u, error: uErr } = await authClient.auth.getUser(token);
+      if (uErr || !u?.user?.email) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      authedUserEmail = u.user.email.toLowerCase();
+    }
 
     const body = (await req.json()) as Body;
     if (!body.templateName || !body.recipientEmail) {
       return new Response(JSON.stringify({ error: "templateName and recipientEmail required" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // For non-service-role callers, only allow sending to the authed user's own email
+    if (!isServiceRole && authedUserEmail !== body.recipientEmail.toLowerCase()) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

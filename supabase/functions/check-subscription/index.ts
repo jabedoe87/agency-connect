@@ -35,13 +35,10 @@ Deno.serve(async (req) => {
     const hasSupaUrl = !!Deno.env.get("SUPABASE_URL");
     const hasServiceKey = !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const ready = hasStripe && hasSupaUrl && hasServiceKey;
+    // Log full diagnostics server-side only; never expose env presence to callers.
     logStep("health", { ready, hasStripe, hasSupaUrl, hasServiceKey, requestId });
     return new Response(
-      JSON.stringify({
-        ready,
-        checks: { stripe: hasStripe, supabase_url: hasSupaUrl, service_key: hasServiceKey },
-        ts: new Date().toISOString(),
-      }),
+      JSON.stringify({ ok: ready, ts: new Date().toISOString() }),
       {
         status: ready ? 200 : 503,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
