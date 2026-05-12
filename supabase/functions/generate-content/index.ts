@@ -592,6 +592,39 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { niche, preset = "high-converting", businessContext, assistInstruction, action, rawInput, targetEngine } = body;
+
+    // Server-side input length caps to prevent prompt abuse and excessive token consumption.
+    const INPUT_LIMITS = {
+      niche: 500,
+      offer: 300,
+      target_audience: 300,
+      business_type: 100,
+      recipient_name: 100,
+      profile_note: 500,
+      assistInstruction: 1000,
+      rawInput: 2000,
+    };
+    const tooLong: string[] = [];
+    const check = (val: unknown, key: keyof typeof INPUT_LIMITS) => {
+      if (typeof val === "string" && val.length > INPUT_LIMITS[key]) tooLong.push(`${key} exceeds ${INPUT_LIMITS[key]} chars`);
+    };
+    check(niche, "niche");
+    check(assistInstruction, "assistInstruction");
+    check(rawInput, "rawInput");
+    if (businessContext && typeof businessContext === "object") {
+      check(businessContext.offer, "offer");
+      check(businessContext.target_audience, "target_audience");
+      check(businessContext.business_type, "business_type");
+      check(businessContext.recipient_name, "recipient_name");
+      check(businessContext.profile_note, "profile_note");
+    }
+    if (tooLong.length > 0) {
+      return new Response(JSON.stringify({ error: "input_too_long", details: tooLong }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -819,8 +852,9 @@ Return ONLY valid JSON matching the exact structure and length limits.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-content error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    const reqId = crypto.randomUUID();
+    console.error("generate-content error:", { reqId, message: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined });
+    return new Response(JSON.stringify({ error: "An unexpected error occurred", requestId: reqId }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

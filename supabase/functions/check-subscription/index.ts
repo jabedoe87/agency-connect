@@ -163,9 +163,10 @@ Deno.serve(async (req) => {
     const msg = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
     logStep("unhandled_error", { requestId, message: msg, stack }, "error");
-    // Return 200 with fallback flag so frontend doesn't blank-screen on transient errors
+    // Return 200 with fallback flag so frontend doesn't blank-screen on transient errors.
+    // Do NOT leak internal error details (env var names, Stripe internals) to clients.
     return new Response(
-      JSON.stringify({ error: msg, fallback: true, requestId }),
+      JSON.stringify({ error: "An unexpected error occurred", fallback: true, requestId }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

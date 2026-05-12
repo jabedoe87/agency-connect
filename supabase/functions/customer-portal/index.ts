@@ -85,8 +85,9 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error(`[portal] ERROR - ${msg}`);
-    return new Response(JSON.stringify({ error: msg }), {
+    const reqId = crypto.randomUUID();
+    console.error(`[portal] ERROR`, { reqId, message: msg, stack: error instanceof Error ? error.stack : undefined });
+    return new Response(JSON.stringify({ error: "An unexpected error occurred", requestId: reqId }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
