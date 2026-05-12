@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 
-const ADMIN_EMAIL = 'jabedoe87@gmail.com';
+import { ADMIN_EMAIL } from '@/lib/admin';
 
 interface EmailLog {
   id: string;
