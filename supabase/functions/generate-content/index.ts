@@ -852,8 +852,9 @@ Return ONLY valid JSON matching the exact structure and length limits.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-content error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    const reqId = crypto.randomUUID();
+    console.error("generate-content error:", { reqId, message: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined });
+    return new Response(JSON.stringify({ error: "An unexpected error occurred", requestId: reqId }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
