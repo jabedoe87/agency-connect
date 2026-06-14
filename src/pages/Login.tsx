@@ -56,7 +56,6 @@ export default function Login() {
   useEffect(() => {
     if (!authLoading && user) {
       navigate('/dashboard', { replace: true });
-      navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
@@ -133,7 +132,7 @@ export default function Login() {
             disabled={loading}
             onClick={async () => {
               const result = await lovable.auth.signInWithOAuth("google", {
-                redirect_uri: window.location.origin,
+                redirect_uri: `${window.location.origin}/auth/callback`,
               });
               if (result.error) {
                 toast({ title: 'Google sign-in failed', description: String(result.error), variant: 'destructive' });
