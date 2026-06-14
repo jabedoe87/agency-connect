@@ -22,6 +22,7 @@ import Booking from "./pages/Booking";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AdminEmails from "./pages/AdminEmails";
+import AuthCallback from "./pages/AuthCallback";
 import AdminGuard from "./components/auth/AdminGuard";
 import Upgrade from "./pages/Upgrade";
 import Success from "./pages/Success";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/upgrade" element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
             <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />

@@ -21,7 +21,6 @@ export default function LandingPage() {
   useEffect(() => {
     if (!loading && user) {
       navigate('/dashboard', { replace: true });
-      navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
 

@@ -104,7 +104,7 @@ export default function Register() {
             disabled={loading}
             onClick={async () => {
               const result = await lovable.auth.signInWithOAuth("google", {
-                redirect_uri: window.location.origin,
+                redirect_uri: `${window.location.origin}/auth/callback`,
               });
               if (result.error) {
                 toast({ title: 'Google sign-up failed', description: String(result.error), variant: 'destructive' });
