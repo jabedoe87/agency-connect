@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X, Sparkles, BarChart3, ChevronDown, FolderOpen, ChevronRight,
+  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X, Sparkles, BarChart3, ChevronDown, FolderOpen, ChevronRight, Hammer,
 } from 'lucide-react';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -25,8 +26,10 @@ const primaryNav = [
   { label: 'Projects', icon: FolderOpen, path: '/projects', locked: false },
   { label: 'Clients', icon: UserCheck, path: '/clients', locked: false },
   { label: 'Analytics', icon: BarChart3, path: '/analytics', locked: false },
+  { label: 'Tool Builder', icon: Hammer, path: '/tools', locked: false, badge: 'NEW' },
   { label: 'Settings', icon: Settings, path: '/settings', locked: false },
 ];
+
 
 const secondaryNav = [
   { label: 'Leads', icon: Users, path: '/leads', locked: false },
@@ -95,9 +98,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     >
       <item.icon className="w-4 h-4 shrink-0" />
       <span className="flex-1 text-left">{item.label}</span>
+      {'badge' in item && item.badge && (
+        <span className="text-[10px] font-semibold bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+          {item.badge as string}
+        </span>
+      )}
       {item.locked && <Lock className="w-3 h-3 text-muted-foreground" />}
     </button>
   );
+
 
   return (
     <div className="min-h-screen bg-background flex">
