@@ -27,7 +27,10 @@ import AdminGuard from "./components/auth/AdminGuard";
 import Upgrade from "./pages/Upgrade";
 import Success from "./pages/Success";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import ToolsPage from "./pages/ToolsPage";
+import ToolPreviewPage from "./pages/ToolPreviewPage";
 import { HardGateProvider } from "./components/HardGateModal";
+
 
 const queryClient = new QueryClient();
 
@@ -89,8 +92,15 @@ const App = () => (
             <Route path="/admin/emails" element={
               <AdminGuard><AdminEmails /></AdminGuard>
             } />
+            <Route path="/tools" element={
+              <ProtectedRoute><OnboardingGuard><ToolsPage /></OnboardingGuard></ProtectedRoute>
+            } />
+            <Route path="/tools/:id" element={
+              <ProtectedRoute><ToolPreviewPage /></ProtectedRoute>
+            } />
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<NotFound />} />
+
           </Routes>
           </HardGateProvider>
         </AuthProvider>
