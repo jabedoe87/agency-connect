@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
@@ -24,23 +24,39 @@ function classifyAuthError(error: any): { errorCase: ErrorCase; provider: string
 
   if (msg.includes('email not confirmed')) {
     return { errorCase: 'D', provider: null };
-    return { errorCase: 'D', provider: null };
   }
   if (msg.includes('rate limit') || msg.includes('too many requests')) {
     return { errorCase: 'E', provider: null };
-    return { errorCase: 'E', provider: null };
   }
   if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch')) {
-    return { errorCase: 'F', provider: null };
     return { errorCase: 'F', provider: null };
   }
   if (msg.includes('invalid login credentials') || msg.includes('invalid_login_credentials')) {
     // Cannot detect provider without session — always fallback to Case B
     return { errorCase: 'B', provider: null };
-    return { errorCase: 'B', provider: null };
   }
   return { errorCase: 'B', provider: null };
-  return { errorCase: 'B', provider: null };
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Unknown error';
+}
+
+function logAuthInfo(message: string, extra?: Record<string, unknown>) {
+  console.info(`[auth-login] ${message}`, extra ?? {});
+}
+
+function logAuthError(message: string, error: unknown, extra?: Record<string, unknown>) {
+  const maybe = error as { name?: string; message?: string; status?: number; code?: string } | null;
+  console.error(`[auth-login] ${message}`, {
+    ...extra,
+    name: maybe?.name,
+    message: maybe?.message ?? String(error),
+    status: maybe?.status,
+    code: maybe?.code,
+  });
 }
 
 export default function Login() {
@@ -51,10 +67,23 @@ export default function Login() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const authError = (location.state as { authError?: string } | null)?.authError;
+    if (!authError) return;
+    toast({
+      title: 'Google sign-in failed',
+      description: authError,
+      variant: 'destructive',
+    });
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state, navigate, toast]);
 
   // Redirect to dashboard if already logged in (handles Google OAuth return)
   useEffect(() => {
     if (!authLoading && user) {
+      logAuthInfo('existing session detected; redirecting to dashboard', { userId: user.id });
       navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);
@@ -66,6 +95,7 @@ export default function Login() {
     try {
       const { data: { session: existingSession } } = await supabase.auth.getSession();
       if (existingSession) {
+        logAuthInfo('clearing existing session before password login', { userId: existingSession.user.id });
         await supabase.auth.signOut();
       }
 
@@ -73,6 +103,7 @@ export default function Login() {
       
 
       if (error) {
+        logAuthError('password login failed', error, { emailDomain: email.split('@')[1] ?? null });
         const { errorCase } = classifyAuthError(error);
         setLastErrorCase(errorCase);
         toast({ title: 'Login failed', description: ERROR_MESSAGES[errorCase], variant: 'destructive' });
@@ -80,11 +111,14 @@ export default function Login() {
       }
 
       if (data.session) {
+        logAuthInfo('password login succeeded', { userId: data.session.user.id });
         navigate('/dashboard');
       } else {
+        logAuthError('password login returned no session', new Error('No session returned'));
         toast({ title: 'Login failed', description: 'No session returned. Please try again.', variant: 'destructive' });
       }
     } catch (err: any) {
+      logAuthError('password login threw exception', err, { emailDomain: email.split('@')[1] ?? null });
       const { errorCase } = classifyAuthError(err);
       setLastErrorCase(errorCase);
       toast({ title: 'Login failed', description: ERROR_MESSAGES[errorCase], variant: 'destructive' });
@@ -131,12 +165,31 @@ export default function Login() {
             className={`w-full ${hasError ? 'border-white/30 shadow-sm opacity-100' : ''}`}
             disabled={loading}
             onClick={async () => {
+              setLoading(true);
+              setLastErrorCase(null);
+              logAuthInfo('starting Google OAuth', {
+                redirectUri: `${window.location.origin}/auth/callback`,
+                currentPath: window.location.pathname,
+              });
               const result = await lovable.auth.signInWithOAuth("google", {
                 redirect_uri: `${window.location.origin}/auth/callback`,
+                extraParams: { prompt: 'select_account' },
               });
-              if (result.error) {
-                toast({ title: 'Google sign-in failed', description: String(result.error), variant: 'destructive' });
+              if (result.redirected) {
+                logAuthInfo('Google OAuth redirected to provider');
+                return;
               }
+              if (result.error) {
+                const message = getErrorMessage(result.error);
+                logAuthError('Google OAuth failed before session setup', result.error);
+                toast({ title: 'Google sign-in failed', description: message, variant: 'destructive' });
+                setLoading(false);
+                return;
+              }
+
+              logAuthInfo('Google OAuth session set; redirecting to dashboard');
+              navigate('/dashboard', { replace: true });
+              setLoading(false);
             }}
           >
             <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
