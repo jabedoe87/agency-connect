@@ -6,11 +6,11 @@ import PricingCards from '@/components/PricingCards';
 import { useAuth } from '@/contexts/AuthContext';
 
 const features = [
-  { icon: Users, title: 'Get More Customers', description: 'Capture and manage leads from every channel. Turn prospects into paying clients with a clear pipeline.' },
-  { icon: Zap, title: 'Less Manual Work', description: 'Automate repetitive tasks so you can focus on growing your business instead of admin work.' },
-  { icon: MessageSquare, title: 'Automated Follow-Ups', description: 'Never lose a lead again. Set up smart follow-up sequences that run on autopilot.' },
-  { icon: PenTool, title: 'AI Content for Social Media', description: 'Generate engaging social posts, captions and content ideas tailored to your business.' },
-  { icon: BarChart3, title: 'Manage Clients & Leads', description: 'Track every interaction, appointment and deal in one place with real-time analytics.' },
+  { icon: Users, title: 'Never Lose a Lead Again', description: 'Capture leads from Zillow, Realtor.com, Facebook and your website in one pipeline. Respond in minutes, not hours — because the first agent to reply usually wins the deal.' },
+  { icon: Zap, title: 'Less Admin, More Showings', description: 'Automate repetitive tasks like lead responses, showing confirmations, and post-closing review requests — so you can focus on clients, not admin work.' },
+  { icon: MessageSquare, title: 'Automated Follow-Ups', description: 'Never lose a lead to slow follow-up. Set up smart sequences that text and email new leads automatically until they book a showing.' },
+  { icon: PenTool, title: 'AI Content for Listings', description: 'Generate engaging property descriptions, social posts, and captions for your listings — tailored to your local market.' },
+  { icon: BarChart3, title: 'Manage Your Pipeline', description: 'Track every lead, showing, and closing in one place. See exactly which listings are generating the most interest with real-time analytics.' },
 ];
 
 export default function LandingPage() {
@@ -42,10 +42,10 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-4 py-24 text-center fade-in">
         <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
-          Get More Customers and Appointments <span className="text-primary">Automatically</span>
+          Get More Real Estate Leads Into Closed Deals — <span className="text-primary">Automatically</span>
         </h1>
         <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-          AgencyOS helps local businesses manage leads, book appointments, respond to reviews and automate follow-ups — all in one system.
+          AgencyOS helps solo agents and small real estate teams respond to leads instantly, book showings, request reviews after closing, and follow up automatically — all in one system.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <Link to="/register">
