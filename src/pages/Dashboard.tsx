@@ -173,11 +173,11 @@ export default function Dashboard() {
                 {portalLoading ? 'Loading...' : 'Manage'}
               </Button>
             )}
-            <Button variant="outline" className="gap-2 flex-1 md:flex-none min-w-0" onClick={() => setShowAddAppt(true)}>
-              <Plus className="w-4 h-4" /> <span className="truncate">Add Appointment</span>
+            <Button variant="outline" className="gap-2" onClick={() => setShowAddAppt(true)}>
+              <Plus className="w-4 h-4" /> Add Appointment
             </Button>
-            <Button className="gap-2 cta-primary flex-1 md:flex-none min-w-0" onClick={() => navigate('/generator')}>
-              <Sparkles className="w-4 h-4" /> <span className="truncate">Generate Content</span>
+            <Button className="gap-2 cta-primary" onClick={() => navigate('/generator')}>
+              <Sparkles className="w-4 h-4" /> Generate Content
             </Button>
           </div>
         </div>
