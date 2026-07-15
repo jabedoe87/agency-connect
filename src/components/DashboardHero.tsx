@@ -18,12 +18,12 @@ export default function DashboardHero() {
         </p>
         <Button
           size="lg"
-          className="gap-2 cta-primary"
+          className="gap-2 cta-primary max-w-full h-auto py-3 whitespace-normal text-left"
           onClick={() => navigate('/generator')}
         >
-          <Sparkles className="w-4 h-4" />
-          Generate My First Client-Getting Content
-          <ArrowRight className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 shrink-0" />
+          <span className="flex-1 leading-tight">Generate My First Client-Getting Content</span>
+          <ArrowRight className="w-4 h-4 shrink-0" />
         </Button>
       </div>
 
