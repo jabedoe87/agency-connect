@@ -159,7 +159,7 @@ export default function Dashboard() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your business today.</p>
           </div>
-          <div className="flex items-center gap-2 mt-3 md:mt-0">
+          <div className="flex flex-wrap items-center gap-2 mt-3 md:mt-0 w-full md:w-auto">
             {activePlan ? (
               <Badge className="bg-success/15 text-success border-success/20 border">
                 {activePlan} {subscription?.status === 'trialing' ? '(Trial)' : ''}

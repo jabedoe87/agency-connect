@@ -151,7 +151,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 md:ml-64 pb-20 md:pb-0">
+      <main className="flex-1 md:ml-64 pb-20 md:pb-0 overflow-x-hidden min-w-0">
         <PaymentFailedBanner />
         <TrialBanner />
         {showUsageBanner && (
