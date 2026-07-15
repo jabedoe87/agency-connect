@@ -159,7 +159,7 @@ export default function Dashboard() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your business today.</p>
           </div>
-          <div className="flex items-center gap-2 mt-3 md:mt-0">
+          <div className="flex flex-wrap items-center gap-2 mt-3 md:mt-0 w-full md:w-auto">
             {activePlan ? (
               <Badge className="bg-success/15 text-success border-success/20 border">
                 {activePlan} {subscription?.status === 'trialing' ? '(Trial)' : ''}
@@ -173,11 +173,11 @@ export default function Dashboard() {
                 {portalLoading ? 'Loading...' : 'Manage'}
               </Button>
             )}
-            <Button variant="outline" className="gap-2" onClick={() => setShowAddAppt(true)}>
-              <Plus className="w-4 h-4" /> Add Appointment
+            <Button variant="outline" className="gap-2 flex-1 md:flex-none min-w-0" onClick={() => setShowAddAppt(true)}>
+              <Plus className="w-4 h-4" /> <span className="truncate">Add Appointment</span>
             </Button>
-            <Button className="gap-2 cta-primary" onClick={() => navigate('/generator')}>
-              <Sparkles className="w-4 h-4" /> Generate Content
+            <Button className="gap-2 cta-primary flex-1 md:flex-none min-w-0" onClick={() => navigate('/generator')}>
+              <Sparkles className="w-4 h-4" /> <span className="truncate">Generate Content</span>
             </Button>
           </div>
         </div>
