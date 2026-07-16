@@ -1,3 +1,4 @@
+import { Hammer } from 'lucide-react';
 import ToolCard from './ToolCard';
 import type { GeneratedTool } from './types';
 
@@ -11,7 +12,7 @@ export default function MyToolsList({ tools, onDelete, focusEmbed }: Props) {
   if (tools.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/10 bg-card/40 p-10 text-center">
-        <div className="text-4xl mb-2">🔨</div>
+        <Hammer className="h-10 w-10 text-muted-foreground mx-auto mb-3" aria-hidden="true" />
         <p className="text-muted-foreground">
           No tools yet. Go to <b>Build New Tool</b> to create your first one!
         </p>

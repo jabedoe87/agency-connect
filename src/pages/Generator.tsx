@@ -532,7 +532,7 @@ export default function Generator() {
     profile?.plan === 'business';
   const isPaidUser = hasPaidPlan || subscription?.subscribed === true;
   const isLockedUser = !isPaidUser;
-  console.log('[access] plan:', profile?.plan, 'subscribed:', subscription?.subscribed, 'isPaidUser:', isPaidUser);
+  
 
   const handleGenerate = async (demoMode = false) => {
     if (!user) return;

@@ -81,7 +81,6 @@ export default function BuilderModal({ open, template, onClose, onSaved }: Props
       id: `tool_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       templateId: tpl.id,
       templateName: tpl.name,
-      templateIcon: tpl.icon,
       niche: tpl.niche,
       bizName: form.bizName,
       color: form.color,
@@ -98,7 +97,7 @@ export default function BuilderModal({ open, template, onClose, onSaved }: Props
       toast.error('Could not save to local storage');
       return;
     }
-    toast.success('Tool saved ✓');
+    toast.success('Tool saved');
     onSaved(tool);
     onClose();
   };
@@ -108,7 +107,11 @@ export default function BuilderModal({ open, template, onClose, onSaved }: Props
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="text-2xl">{template?.icon}</span>
+            {template && (
+              <span className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <template.Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+              </span>
+            )}
             Build: {template?.name}
           </DialogTitle>
           <DialogDescription>
@@ -132,9 +135,9 @@ export default function BuilderModal({ open, template, onClose, onSaved }: Props
                 <Select value={form.niche} onValueChange={(v) => update('niche', v as NicheId)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(NICHES) as [NicheId, { label: string; icon: string }][]).map(
+                    {(Object.entries(NICHES) as [NicheId, { label: string }][]).map(
                       ([id, v]) => (
-                        <SelectItem key={id} value={id}>{v.icon} {v.label}</SelectItem>
+                        <SelectItem key={id} value={id}>{v.label}</SelectItem>
                       )
                     )}
                   </SelectContent>
@@ -146,7 +149,7 @@ export default function BuilderModal({ open, template, onClose, onSaved }: Props
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {nicheTemplates.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -205,15 +208,15 @@ export default function BuilderModal({ open, template, onClose, onSaved }: Props
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           {stage === 'form' && (
-            <Button onClick={generate} disabled={!form.templateId}>🚀 Generate Tool</Button>
+            <Button onClick={generate} disabled={!form.templateId}>Generate Tool</Button>
           )}
           {stage === 'generating' && (
             <Button disabled>Generating…</Button>
           )}
           {stage === 'preview' && (
             <>
-              <Button variant="outline" onClick={generate}>🔄 Regenerate</Button>
-              <Button onClick={save}>💾 Save Tool</Button>
+              <Button variant="outline" onClick={generate}>Regenerate</Button>
+              <Button onClick={save}>Save Tool</Button>
             </>
           )}
         </DialogFooter>

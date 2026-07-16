@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Hammer, Lock } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +84,10 @@ export default function ToolsPage() {
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-display flex items-center gap-2">🔨 Mini Tool Builder</h1>
+            <h1 className="text-3xl font-display flex items-center gap-2">
+              <Hammer className="h-7 w-7 text-primary" aria-hidden="true" />
+              Mini Tool Builder
+            </h1>
             <p className="text-muted-foreground text-sm mt-1">
               Generate embeddable lead-magnet tools for your clients in seconds.
             </p>
@@ -100,8 +104,9 @@ export default function ToolsPage() {
 
         {gated && (
           <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 flex items-center justify-between gap-4 flex-wrap">
-            <div className="text-sm">
-              🔒 <b>Tool Builder</b> is a Pro feature. Upgrade to unlock all 20 templates.
+            <div className="text-sm flex items-center gap-2">
+              <Lock className="h-4 w-4" aria-hidden="true" />
+              <span><b>Tool Builder</b> is a Pro feature. Upgrade to unlock all 20 templates.</span>
             </div>
             <Button asChild size="sm">
               <Link to="/upgrade">Upgrade →</Link>
@@ -135,9 +140,7 @@ export default function ToolsPage() {
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold">Pick a niche</h2>
                 {niche !== 'all' && (
-                  <Badge variant="outline">
-                    {NICHES[niche].icon} {NICHES[niche].label}
-                  </Badge>
+                  <Badge variant="outline">{NICHES[niche].label}</Badge>
                 )}
               </div>
               <NicheGrid selected={niche} onSelect={setNiche} />
