@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Eye, Download, Link2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { NICHES } from './toolTemplates';
+import { NICHES, getTemplateIcon } from './toolTemplates';
 import type { GeneratedTool } from './types';
 
 interface Props {
@@ -16,6 +17,7 @@ export default function ToolCard({ tool, onDelete, focusEmbed = false }: Props) 
   const [showEmbed, setShowEmbed] = useState(focusEmbed);
   const previewUrl = `${window.location.origin}/tools/${tool.id}`;
   const embedCode = `<iframe src="${previewUrl}" width="100%" height="500" frameborder="0"></iframe>`;
+  const TemplateIcon = getTemplateIcon(tool.templateId);
 
   const download = () => {
     const blob = new Blob([tool.html], { type: 'text/html' });
@@ -25,13 +27,13 @@ export default function ToolCard({ tool, onDelete, focusEmbed = false }: Props) 
     a.download = `${tool.templateId}-${tool.bizName.replace(/\s+/g, '-').toLowerCase()}.html`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Downloaded ✓');
+    toast.success('Downloaded');
   };
 
   const copyEmbed = async () => {
     try {
       await navigator.clipboard.writeText(embedCode);
-      toast.success('Embed code copied ✓');
+      toast.success('Embed code copied');
     } catch {
       toast.error('Copy failed');
     }
@@ -41,7 +43,9 @@ export default function ToolCard({ tool, onDelete, focusEmbed = false }: Props) 
     <div className="rounded-xl border border-white/10 bg-card p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="text-2xl">{tool.templateIcon}</div>
+          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <TemplateIcon className="h-5 w-5 text-primary" aria-hidden="true" />
+          </div>
           <div className="min-w-0">
             <div className="font-semibold truncate">{tool.templateName}</div>
             <div className="text-xs text-muted-foreground truncate">
@@ -52,13 +56,17 @@ export default function ToolCard({ tool, onDelete, focusEmbed = false }: Props) 
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button asChild size="sm" variant="outline">
-            <Link to={`/tools/${tool.id}`}>👁 Preview</Link>
+            <Link to={`/tools/${tool.id}`}><Eye className="h-4 w-4 mr-1" aria-hidden="true" />Preview</Link>
           </Button>
-          <Button size="sm" variant="outline" onClick={download}>⬇ Download</Button>
+          <Button size="sm" variant="outline" onClick={download}>
+            <Download className="h-4 w-4 mr-1" aria-hidden="true" />Download
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setShowEmbed((s) => !s)}>
-            🔗 Embed
+            <Link2 className="h-4 w-4 mr-1" aria-hidden="true" />Embed
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onDelete(tool.id)}>🗑</Button>
+          <Button size="sm" variant="outline" onClick={() => onDelete(tool.id)} aria-label="Delete tool">
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
         </div>
       </div>
       {showEmbed && (

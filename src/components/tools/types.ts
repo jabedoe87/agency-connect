@@ -1,9 +1,11 @@
+import type { LucideIcon } from 'lucide-react';
+
 export type NicheId = 'realestate' | 'salon' | 'gym' | 'coach' | 'contractor';
 
 export interface ToolTemplate {
   id: string;
   niche: NicheId;
-  icon: string;
+  Icon: LucideIcon;
   name: string;
   desc: string;
   tags: string[];
@@ -13,7 +15,6 @@ export interface GeneratedTool {
   id: string;
   templateId: string;
   templateName: string;
-  templateIcon: string;
   niche: NicheId;
   bizName: string;
   color: string;
