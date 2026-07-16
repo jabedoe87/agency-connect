@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { getTemplateIcon } from '@/components/tools/toolTemplates';
 import type { GeneratedTool } from '@/components/tools/types';
 
 const STORAGE_KEY = 'agencyos_tools_v2';
@@ -51,10 +53,14 @@ export default function ToolPreviewPage() {
         <Button asChild variant="outline" size="sm">
           <Link to="/tools">← Back</Link>
         </Button>
-        <div className="text-sm text-muted-foreground truncate px-3">
-          {tool.templateIcon} {tool.templateName} · {tool.bizName}
+        <div className="text-sm text-muted-foreground truncate px-3 flex items-center gap-2">
+          {(() => {
+            const Icon = getTemplateIcon(tool.templateId);
+            return <Icon className="h-4 w-4 text-primary" aria-hidden="true" />;
+          })()}
+          <span className="truncate">{tool.templateName} · {tool.bizName}</span>
         </div>
-        <Button size="sm" onClick={download}>⬇ Download</Button>
+        <Button size="sm" onClick={download}><Download className="h-4 w-4 mr-1" aria-hidden="true" />Download</Button>
       </div>
       <iframe
         title={tool.templateName}
