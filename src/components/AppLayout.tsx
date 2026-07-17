@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X, Sparkles, BarChart3, ChevronDown, FolderOpen, ChevronRight, Hammer,
+  LayoutDashboard, Users, UserCheck, CalendarDays, PenTool, Star, Zap, Settings, LogOut, Lock, Menu, X, Sparkles, BarChart3, ChevronDown, FolderOpen, ChevronRight, Hammer, Bot,
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -22,6 +22,7 @@ import { trackEvent } from '@/lib/analytics';
 
 const primaryNav = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', locked: false },
+  { label: 'AI Command', icon: Bot, path: '/ai-command', locked: false, badge: 'NEW' },
   { label: 'Content Generator', icon: Sparkles, path: '/generator', locked: false },
   { label: 'Projects', icon: FolderOpen, path: '/projects', locked: false },
   { label: 'Clients', icon: UserCheck, path: '/clients', locked: false },

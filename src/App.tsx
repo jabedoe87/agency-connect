@@ -29,6 +29,7 @@ import Success from "./pages/Success";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import ToolsPage from "./pages/ToolsPage";
 import ToolPreviewPage from "./pages/ToolPreviewPage";
+import AiCommand from "./pages/AiCommand";
 import { HardGateProvider } from "./components/HardGateModal";
 
 
@@ -97,6 +98,12 @@ const App = () => (
             } />
             <Route path="/tools/:id" element={
               <ProtectedRoute><ToolPreviewPage /></ProtectedRoute>
+            } />
+            <Route path="/ai-command" element={
+              <ProtectedRoute><OnboardingGuard><AiCommand /></OnboardingGuard></ProtectedRoute>
+            } />
+            <Route path="/ai-command/:threadId" element={
+              <ProtectedRoute><OnboardingGuard><AiCommand /></OnboardingGuard></ProtectedRoute>
             } />
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<NotFound />} />
